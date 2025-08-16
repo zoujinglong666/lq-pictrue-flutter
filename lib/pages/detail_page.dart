@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'image_preview_page.dart';
 
 class DetailPage extends StatefulWidget {
   final Map<String, dynamic>? imageData;
@@ -55,24 +56,36 @@ class _DetailPageState extends State<DetailPage> {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Image.network(
-                      _imageDetails['url'],
-                      fit: BoxFit.cover,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Container(
-                          color: Colors.grey[200],
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              value: loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded /
-                                      loadingProgress.expectedTotalBytes!
-                                  : null,
-                              color: const Color(0xFF4FC3F7),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ImagePreviewPage(
+                              imageUrl: _imageDetails['url'],
                             ),
                           ),
                         );
                       },
+                      child: Image.network(
+                        _imageDetails['url'],
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
+                            color: Colors.grey[200],
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded /
+                                        loadingProgress.expectedTotalBytes!
+                                    : null,
+                                color: const Color(0xFF4FC3F7),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                     ),
                     // 渐变遮罩
                     Positioned(

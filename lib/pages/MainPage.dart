@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:lq_picture/pages/home_page.dart';
 import 'package:lq_picture/pages/profile_page.dart';
@@ -81,126 +83,69 @@ class _CustomTabBar extends StatelessWidget {
     required this.tabs,
     required this.selectedIndex,
     required this.onTap,
-    this.activeColor = Colors.blue,
+    this.activeColor = const Color(0xFF007AFF),
   });
 
   @override
   Widget build(BuildContext context) {
+    const double barHeight = 56;
+
     return Container(
-      height: 60, // 减小高度
+      height: barHeight,
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.white.withOpacity(0.85),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, -2),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: List.generate(tabs.length, (index) {
-          final tab = tabs[index];
-          final isSelected = index == selectedIndex;
-          return Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: GestureDetector(
-            onTap: () => onTap(index),
-            behavior: HitTestBehavior.opaque,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeInOut,
-              padding: isSelected
-                  ? const EdgeInsets.symmetric(horizontal: 16, vertical: 8)
-                  : const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                gradient: isSelected
-                    ? const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFF00D4FF),
-                    Color(0xFF0099CC),
-                  ],
-                )
-                    : null,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: isSelected
-                    ? [
-                  BoxShadow(
-                    color: const Color(0xFF00D4FF).withOpacity(0.25),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-                    : null,
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Stack(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: List.generate(tabs.length, (index) {
+              final tab = tabs[index];
+              final isSelected = index == selectedIndex;
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () => onTap(index),
+                  behavior: HitTestBehavior.opaque,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
                         tab.icon,
-                        size: isSelected ? 22 : 20, // 减小图标尺寸
+                        size: 24,
                         color: isSelected
-                            ? Colors.white
-                            : const Color(0xFF666666),
+                            ? activeColor
+                            : Colors.black.withOpacity(0.45),
                       ),
-                      // 更小的连接状态指示器
-                      if (isSelected)
-                        Positioned(
-                          right: -2,
-                          top: -2,
-                          child: Container(
-                            width: 6,
-                            height: 6,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF00FF88),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
+                      const SizedBox(height: 3),
+                      Text(
+                        tab.label,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight:
+                          isSelected ? FontWeight.w500 : FontWeight.w400,
+                          color: isSelected
+                              ? activeColor
+                              : Colors.black.withOpacity(0.45),
                         ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 4), // 减小间距
-                  Text(
-                    tab.label,
-                    style: TextStyle(
-                      fontSize: 10, // 减小字体
-                      color: isSelected
-                          ? Colors.white
-                          : const Color(0xFF888888),
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                  // 更小的速度指示条
-                  if (isSelected)
-                    Container(
-                      margin: const EdgeInsets.only(top: 2),
-                      width: 12,
-                      height: 1.5,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [
-                            Color(0xFF00FF88),
-                            Color(0xFF00D4FF),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(0.75),
-                      ),
-                    ),
-                ],
-              ),
-            ),
+                ),
+              );
+            }),
           ),
         ),
-      );
-        }),
       ),
     );
   }

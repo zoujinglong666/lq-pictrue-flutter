@@ -6,13 +6,42 @@ class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('我的'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
-      body: SingleChildScrollView(
+      body: SafeArea(
+        child: SingleChildScrollView(
         child: Column(
           children: [
+            // 标题
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Row(
+                children: [
+                  const Text(
+                    '我的',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: IconButton(
+                      icon: Icon(Icons.settings_outlined, color: Colors.grey[700], size: 20),
+                      onPressed: () {
+                        // 打开设置
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
             // 用户信息卡片
             Container(
               width: double.infinity,
@@ -119,6 +148,7 @@ class ProfilePage extends StatelessWidget {
                   () {},
             ),
           ],
+          ),
         ),
       ),
     );
