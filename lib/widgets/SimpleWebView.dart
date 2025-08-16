@@ -302,6 +302,16 @@ class _SimpleWebViewState extends State<SimpleWebView> {
         // 只负责 loading，不改标题
         if (mounted) setState(() => _isLoading = true);
       },
+      onLoadError: (_, __, ___, ____) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text('加载失败')));
+          });
+        }
+      },
 
         onLoadStop: (controller, url) async {
           String? raw = await controller.getTitle();
