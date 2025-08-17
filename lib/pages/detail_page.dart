@@ -20,7 +20,7 @@ class _DetailPageState extends State<DetailPage> {
   @override
   void initState() {
     super.initState();
-    _imageDetails = widget.imageData ?? {
+    _imageDetails =  {
       'id': 1,
       'title': '高质量摄影作品',
       'url': 'https://picsum.photos/800/1200',
