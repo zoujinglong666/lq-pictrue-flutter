@@ -139,7 +139,7 @@ class _HomePageState extends State<HomePage> {
               child: Row(
                 children: [
                   const Text(
-                    '摄图网',
+                    '龙琪图库',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,

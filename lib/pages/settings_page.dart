@@ -256,6 +256,61 @@ class _SettingsPageState extends State<SettingsPage> {
             
             const SizedBox(height: 20),
             
+            // 账号安全
+            _buildSectionTitle('账号安全'),
+            _buildSettingCard([
+              _buildActionTile(
+                icon: Icons.lock_reset_outlined,
+                title: '忘记密码',
+                subtitle: '通过邮箱或手机号重置密码',
+                onTap: () {
+                  Navigator.pushNamed(context, '/forgot_password');
+                },
+                trailing: Icon(Icons.chevron_right, color: Colors.grey[400]),
+              ),
+              const Divider(height: 1),
+              _buildActionTile(
+                icon: Icons.security_outlined,
+                title: '修改密码',
+                subtitle: '更改当前账户密码',
+                onTap: () {
+                  // TODO: 实现修改密码功能
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('修改密码功能开发中')),
+                  );
+                },
+                trailing: Icon(Icons.chevron_right, color: Colors.grey[400]),
+              ),
+              const Divider(height: 1),
+              _buildActionTile(
+                icon: Icons.phone_android_outlined,
+                title: '绑定手机',
+                subtitle: '绑定手机号用于安全验证',
+                onTap: () {
+                  // TODO: 实现绑定手机功能
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('绑定手机功能开发中')),
+                  );
+                },
+                trailing: Icon(Icons.chevron_right, color: Colors.grey[400]),
+              ),
+              const Divider(height: 1),
+              _buildActionTile(
+                icon: Icons.email_outlined,
+                title: '绑定邮箱',
+                subtitle: '绑定邮箱用于密码找回',
+                onTap: () {
+                  // TODO: 实现绑定邮箱功能
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('绑定邮箱功能开发中')),
+                  );
+                },
+                trailing: Icon(Icons.chevron_right, color: Colors.grey[400]),
+              ),
+            ]),
+            
+            const SizedBox(height: 20),
+            
             // 关于应用
             _buildSectionTitle('关于应用'),
             _buildSettingCard([

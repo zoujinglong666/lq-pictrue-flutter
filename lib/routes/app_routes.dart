@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lq_picture/pages/SplashPage.dart';
 import 'package:lq_picture/pages/detail_page.dart';
+import 'package:lq_picture/pages/forgot_password_page.dart';
 import 'package:lq_picture/pages/search_page.dart';
 import 'package:lq_picture/pages/image_preview_page.dart';
 import 'package:lq_picture/pages/login_page.dart';
@@ -16,6 +17,7 @@ import 'package:lq_picture/pages/user_management_page.dart';
 import 'package:lq_picture/pages/settings_page.dart';
 import 'package:lq_picture/pages/upload_page.dart';
 import 'package:lq_picture/pages/MainPage.dart';
+import 'package:lq_picture/pages/forbidden_page.dart';
 
 class AppRoutes {
   // 路由名称常量
@@ -36,6 +38,8 @@ class AppRoutes {
   static const String userSettings = '/user_settings';
   static const String settings = '/settings';
   static const String upload = '/upload';
+  static const String forgotPassword = '/forgot_password';
+  static const String forbidden = '/forbidden';
 
   // 路由映射表
   static final Map<String, WidgetBuilder> _routes = {
@@ -54,6 +58,8 @@ class AppRoutes {
     userSettings: (context) => const UserSettingsPage(),
     settings: (context) => const SettingsPage(),
     upload: (context) => const UploadPage(),
+    forgotPassword: (context) => const ForgotPasswordPage(),
+    forbidden: (context) => const ForbiddenPage(),
   };
 
   // 获取路由映射表
