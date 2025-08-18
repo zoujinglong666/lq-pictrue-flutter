@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lq_picture/pages/MainPage.dart';
+import 'package:lq_picture/pages/login_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 
@@ -25,7 +26,7 @@ class _SplashPageState extends State<SplashPage> {
       if (!mounted) return; // 确保页面仍在树中
       final targetPage = (token != null && token.isNotEmpty)
           ? const MainPage()
-          : const MainPage();
+          : const LoginPage();
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => targetPage),

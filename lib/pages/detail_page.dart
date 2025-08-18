@@ -20,7 +20,26 @@ class _DetailPageState extends State<DetailPage> {
   @override
   void initState() {
     super.initState();
-    _imageDetails = widget.imageData ?? {
+    // _imageDetails = widget.imageData ?? {
+    //   'id': 1,
+    //   'title': '高质量摄影作品',
+    //   'url': 'https://picsum.photos/800/1200',
+    //   'author': '摄影师小明',
+    //   'views': '1.2k',
+    //   'downloads': '356',
+    //   'likes': '89',
+    //   'tags': ['风景', '自然', '山水'],
+    //   'description': '这是一张高质量的摄影作品，拍摄于2023年夏天。使用了专业设备，完美捕捉了自然光线和景色。',
+    //   'camera': 'Canon EOS R5',
+    //   'lens': 'RF 24-70mm f/2.8L IS USM',
+    //   'iso': '100',
+    //   'aperture': 'f/8',
+    //   'shutterSpeed': '1/125s',
+    //   'date': '2023-07-15',
+    // };
+
+
+    _imageDetails = {
       'id': 1,
       'title': '高质量摄影作品',
       'url': 'https://picsum.photos/800/1200',

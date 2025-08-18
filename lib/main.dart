@@ -3,6 +3,10 @@ import 'package:lq_picture/pages/SplashPage.dart';
 import 'package:lq_picture/pages/detail_page.dart';
 import 'package:lq_picture/pages/search_page.dart';
 import 'package:lq_picture/pages/image_preview_page.dart';
+import 'package:lq_picture/pages/login_page.dart';
+import 'package:lq_picture/pages/register_page.dart';
+import 'package:lq_picture/pages/notification_page.dart';
+import 'package:lq_picture/pages/MainPage.dart';
 
 void main() {
   runApp(const MyApp());
@@ -14,7 +18,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '摄图网',
+      title: '龙琪图库',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF4FC3F7)),
         useMaterial3: true,
@@ -39,6 +43,22 @@ class MyApp extends StatelessWidget {
           final imageUrl = settings.arguments as String;
           return MaterialPageRoute(
             builder: (context) => ImagePreviewPage(imageUrl: imageUrl),
+          );
+        } else if (settings.name == '/login') {
+          return MaterialPageRoute(
+            builder: (context) => const LoginPage(),
+          );
+        } else if (settings.name == '/home') {
+          return MaterialPageRoute(
+            builder: (context) => const MainPage(),
+          );
+        } else if (settings.name == '/register') {
+          return MaterialPageRoute(
+            builder: (context) => const RegisterPage(),
+          );
+        } else if (settings.name == '/notification') {
+          return MaterialPageRoute(
+            builder: (context) => const NotificationPage(),
           );
         }
         return null;

@@ -9,6 +9,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  int _unreadNotificationCount = 2; // 未读消息数量
+
   final List<Map<String, dynamic>> _images = [
     {
       'id': '1',
@@ -80,18 +82,54 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   const Spacer(),
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: IconButton(
-                      icon: Icon(Icons.notifications_none_outlined, color: Colors.grey[700], size: 20),
-                      onPressed: () {},
-                    ),
+                  Stack(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: IconButton(
+                          icon: Icon(Icons.notifications_none_outlined, color: Colors.grey[700], size: 20),
+                          onPressed: () {
+                            Navigator.pushNamed(context, '/notification').then((_) {
+                              // 从消息页面返回时，可以更新未读消息数量
+                              setState(() {
+                                _unreadNotificationCount = 0;
+                              });
+                            });
+                          },
+                        ),
+                      ),
+                      if (_unreadNotificationCount > 0)
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              color: Colors.red[500],
+                              shape: BoxShape.circle,
+                            ),
+                            constraints: const BoxConstraints(
+                              minWidth: 16,
+                              minHeight: 16,
+                            ),
+                            child: Text(
+                              _unreadNotificationCount > 99 ? '99+' : _unreadNotificationCount.toString(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ],
               ),

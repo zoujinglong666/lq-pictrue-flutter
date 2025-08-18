@@ -381,7 +381,7 @@ class _UploadPageState extends State<UploadPage> {
                       ),
                     ),
 
-                    const SizedBox(height: 32),
+                    // const SizedBox(height: 32),
                   ],
                 ),
               ),
