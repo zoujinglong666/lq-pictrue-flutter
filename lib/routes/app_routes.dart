@@ -13,6 +13,7 @@ import 'package:lq_picture/pages/picture_management_page.dart';
 import 'package:lq_picture/pages/space_management_page.dart';
 import 'package:lq_picture/pages/user_settings_page.dart';
 import 'package:lq_picture/pages/user_management_page.dart';
+import 'package:lq_picture/pages/settings_page.dart';
 import 'package:lq_picture/pages/upload_page.dart';
 import 'package:lq_picture/pages/MainPage.dart';
 
@@ -33,6 +34,7 @@ class AppRoutes {
   static const String spaceManagement = '/space_management';
   static const String userManagement = '/user_management';
   static const String userSettings = '/user_settings';
+  static const String settings = '/settings';
   static const String upload = '/upload';
 
   // 路由映射表
@@ -50,6 +52,7 @@ class AppRoutes {
     spaceManagement: (context) => const SpaceManagementPage(),
     userManagement: (context) => const UserManagementPage(),
     userSettings: (context) => const UserSettingsPage(),
+    settings: (context) => const SettingsPage(),
     upload: (context) => const UploadPage(),
   };
 

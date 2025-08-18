@@ -115,7 +115,7 @@ class _CustomTabBar extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
+          filter: ImageFilter.blur(sigmaX: 64, sigmaY: 64),
           child: Container(
             decoration: BoxDecoration(
               // 更精致的液态玻璃渐变背景

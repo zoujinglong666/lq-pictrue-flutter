@@ -34,7 +34,7 @@ class ProfilePage extends StatelessWidget {
                     child: IconButton(
                       icon: Icon(Icons.settings_outlined, color: Colors.grey[700], size: 20),
                       onPressed: () {
-                        // 打开设置
+                        Navigator.pushNamed(context, '/settings');
                       },
                     ),
                   ),
@@ -253,7 +253,9 @@ class ProfilePage extends StatelessWidget {
               Icons.settings_outlined,
               '设置',
               '应用设置和偏好',
-                  () {},
+                  () {
+                Navigator.pushNamed(context, '/settings');
+              },
             ),
             _buildMenuItem(
               context,
