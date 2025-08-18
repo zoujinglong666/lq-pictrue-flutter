@@ -83,7 +83,7 @@ class _CustomTabBar extends StatelessWidget {
     required this.tabs,
     required this.selectedIndex,
     required this.onTap,
-    this.activeColor = const Color(0xFF007AFF),
+    this.activeColor = const Color(0xFF26C6DA),
   });
 
   @override
@@ -92,9 +92,9 @@ class _CustomTabBar extends StatelessWidget {
 
     return Container(
       height: barHeight,
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.85),
+        // color: Colors.white.withOpacity(0.85),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(

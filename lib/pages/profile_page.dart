@@ -234,6 +234,15 @@ class ProfilePage extends StatelessWidget {
                 Navigator.pushNamed(context, '/space_management');
               },
             ),
+            _buildMenuItem(
+              context,
+              Icons.people_outline,
+              '用户管理',
+              '管理系统用户',
+                  () {
+                Navigator.pushNamed(context, '/user_management');
+              },
+            ),
             
             const SizedBox(height: 20),
             

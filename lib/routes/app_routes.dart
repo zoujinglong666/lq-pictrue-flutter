@@ -12,6 +12,7 @@ import 'package:lq_picture/pages/space_settings_page.dart';
 import 'package:lq_picture/pages/picture_management_page.dart';
 import 'package:lq_picture/pages/space_management_page.dart';
 import 'package:lq_picture/pages/user_settings_page.dart';
+import 'package:lq_picture/pages/user_management_page.dart';
 import 'package:lq_picture/pages/upload_page.dart';
 import 'package:lq_picture/pages/MainPage.dart';
 
@@ -30,6 +31,7 @@ class AppRoutes {
   static const String spaceSettings = '/space_settings';
   static const String pictureManagement = '/picture_management';
   static const String spaceManagement = '/space_management';
+  static const String userManagement = '/user_management';
   static const String userSettings = '/user_settings';
   static const String upload = '/upload';
 
@@ -46,6 +48,7 @@ class AppRoutes {
     spaceSettings: (context) => const SpaceSettingsPage(),
     pictureManagement: (context) => const PictureManagementPage(),
     spaceManagement: (context) => const SpaceManagementPage(),
+    userManagement: (context) => const UserManagementPage(),
     userSettings: (context) => const UserSettingsPage(),
     upload: (context) => const UploadPage(),
   };
