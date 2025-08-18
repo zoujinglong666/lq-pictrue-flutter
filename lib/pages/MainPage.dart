@@ -87,62 +87,162 @@ class _CustomTabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const double barHeight = 56;
+    const double barHeight = 64;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       height: barHeight,
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        // color: Colors.white.withOpacity(0.85),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
+          // 主阴影
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 30,
+            offset: const Offset(0, 10),
+            spreadRadius: -5,
+          ),
+          // 内阴影效果
+          BoxShadow(
+            color: Colors.white.withOpacity(0.1),
+            blurRadius: 1,
+            offset: const Offset(0, 1),
+            spreadRadius: 0,
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: List.generate(tabs.length, (index) {
-              final tab = tabs[index];
-              final isSelected = index == selectedIndex;
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () => onTap(index),
-                  behavior: HitTestBehavior.opaque,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        tab.icon,
-                        size: 24,
-                        color: isSelected
-                            ? activeColor
-                            : Colors.black.withOpacity(0.45),
+          filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
+          child: Container(
+            decoration: BoxDecoration(
+              // 更精致的液态玻璃渐变背景
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [
+                        Colors.white.withOpacity(0.25),
+                        Colors.white.withOpacity(0.12),
+                        Colors.white.withOpacity(0.08),
+                        Colors.white.withOpacity(0.15),
+                      ]
+                    : [
+                        Colors.white.withOpacity(0.4),
+                        Colors.white.withOpacity(0.2),
+                        Colors.white.withOpacity(0.15),
+                        Colors.white.withOpacity(0.3),
+                      ],
+                stops: const [0.0, 0.3, 0.7, 1.0],
+              ),
+              // 精致的双层边框
+              border: Border.all(
+                width: 1.2,
+                color: Colors.white.withOpacity(0.35),
+              ),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: List.generate(tabs.length, (index) {
+                final tab = tabs[index];
+                final isSelected = index == selectedIndex;
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: () => onTap(index),
+                    behavior: HitTestBehavior.opaque,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeInOut,
+                      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      decoration: isSelected
+                          ? BoxDecoration(
+                              borderRadius: BorderRadius.circular(25),
+                              // iOS风格的液态玻璃渐变
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Colors.white.withOpacity(0.4),
+                                  Colors.white.withOpacity(0.2),
+                                  activeColor.withOpacity(0.15),
+                                  Colors.white.withOpacity(0.1),
+                                ],
+                                stops: const [0.0, 0.3, 0.7, 1.0],
+                              ),
+                              // 精致的边框
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.3),
+                                width: 0.1,
+                              ),
+                              // 多层阴影效果
+                              boxShadow: [
+                                // 主要阴影
+                                BoxShadow(
+                                  color: activeColor.withOpacity(0.1),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                  spreadRadius: -2,
+                                ),
+                                // // 内发光效果
+                                // BoxShadow(
+                                //   color: Colors.white.withOpacity(0.6),
+                                //   blurRadius: 6,
+                                //   offset: const Offset(0, 1),
+                                //   spreadRadius: -3,
+                                // ),
+                                // // 底部深度阴影
+                                // BoxShadow(
+                                //   color: Colors.black.withOpacity(0.1),
+                                //   blurRadius: 8,
+                                //   offset: const Offset(0, 2),
+                                //   spreadRadius: -1,
+                                // ),
+                              ],
+                            )
+                          : null,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeInOut,
+                            transform: Matrix4.identity()
+                              ..scale(isSelected ? 1.1 : 1.0),
+                            child: Icon(
+                              tab.icon,
+                              size: 24,
+                              color: isSelected
+                                  ? activeColor
+                                  : (isDark 
+                                      ? Colors.white.withOpacity(0.7)
+                                      : Colors.black.withOpacity(0.6)),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          AnimatedDefaultTextStyle(
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeInOut,
+                            style: TextStyle(
+                              fontSize: isSelected ? 12 : 11,
+                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                              color: isSelected
+                                  ? activeColor
+                                  : (isDark 
+                                      ? Colors.white.withOpacity(0.7)
+                                      : Colors.black.withOpacity(0.6)),
+                            ),
+                            child: Text(tab.label),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 3),
-                      Text(
-                        tab.label,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight:
-                          isSelected ? FontWeight.w500 : FontWeight.w400,
-                          color: isSelected
-                              ? activeColor
-                              : Colors.black.withOpacity(0.45),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              );
-            }),
+                );
+              }),
+            ),
           ),
         ),
       ),
