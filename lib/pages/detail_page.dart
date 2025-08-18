@@ -16,12 +16,15 @@ class DetailPage extends StatefulWidget {
 class _DetailPageState extends State<DetailPage> {
   bool _isFavorite = false;
   bool _isImageLoaded = false; // 图片加载状态
+  bool _showAppBarBackground = false; // 控制AppBar背景显示
   final TextEditingController _commentController = TextEditingController();
   final FocusNode _commentFocusNode = FocusNode();
   final ScrollController _scrollController = ScrollController(); // 滚动控制器
   final GlobalKey _commentsKey = GlobalKey(); // 评论区域的key
   String? _replyToUser;
   int? _replyToCommentId;
+  int? _highlightedCommentId; // 高亮的评论ID
+  int? _highlightedReplyId; // 高亮的回复ID
   
   // 模拟图片详情数据
   late Map<String, dynamic> _imageDetails;
@@ -52,6 +55,22 @@ class _DetailPageState extends State<DetailPage> {
     
     // 初始化模拟评论数据
     _initComments();
+    
+    // 监听滚动事件
+    _scrollController.addListener(_onScroll);
+  }
+  
+  void _onScroll() {
+    // 当滚动超过图片高度的一半时显示AppBar背景
+    final scrollOffset = _scrollController.offset;
+    final imageHeight = MediaQuery.of(context).size.height * 0.6;
+    final shouldShowBackground = scrollOffset > imageHeight * 0.5;
+    
+    if (shouldShowBackground != _showAppBarBackground) {
+      setState(() {
+        _showAppBarBackground = shouldShowBackground;
+      });
+    }
   }
   
   void _initComments() {
@@ -138,8 +157,11 @@ class _DetailPageState extends State<DetailPage> {
                 SliverAppBar(
                   expandedHeight: MediaQuery.of(context).size.height * 0.6,
                   pinned: true,
-                  backgroundColor: Colors.transparent,
-                  elevation: 0,
+                  backgroundColor: _showAppBarBackground ? Colors.white : Colors.transparent,
+                  elevation: _showAppBarBackground ? 4 : 0,
+                  shadowColor: Colors.black26,
+                  surfaceTintColor: Colors.transparent,
+                  foregroundColor: _showAppBarBackground ? Colors.black : Colors.white,
                   flexibleSpace: FlexibleSpaceBar(
                     background: Hero(
                       tag: 'image_${_imageDetails['id']}',
@@ -224,29 +246,36 @@ class _DetailPageState extends State<DetailPage> {
                     ),
                   ),
                   leading: IconButton(
-                    icon: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.3),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.arrow_back, color: Colors.white),
-                    ),
+                    icon: _showAppBarBackground 
+                        ? const Icon(Icons.arrow_back, color: Colors.black)
+                        : Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.3),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.arrow_back, color: Colors.white),
+                          ),
                     onPressed: () => Navigator.pop(context),
                   ),
                   actions: [
                     IconButton(
-                      icon: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.3),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          _isFavorite ? Icons.favorite : Icons.favorite_border,
-                          color: _isFavorite ? Colors.red : Colors.white,
-                        ),
-                      ),
+                      icon: _showAppBarBackground
+                          ? Icon(
+                              _isFavorite ? Icons.favorite : Icons.favorite_border,
+                              color: _isFavorite ? Colors.red : Colors.black,
+                            )
+                          : Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.3),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                _isFavorite ? Icons.favorite : Icons.favorite_border,
+                                color: _isFavorite ? Colors.red : Colors.white,
+                              ),
+                            ),
                       onPressed: () {
                         setState(() {
                           _isFavorite = !_isFavorite;
@@ -254,18 +283,33 @@ class _DetailPageState extends State<DetailPage> {
                       },
                     ),
                     IconButton(
-                      icon: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.3),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.share, color: Colors.white),
-                      ),
+                      icon: _showAppBarBackground
+                          ? const Icon(Icons.share, color: Colors.black)
+                          : Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.3),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.share, color: Colors.white),
+                            ),
                       onPressed: () => _shareImage(),
                     ),
                     const SizedBox(width: 8),
                   ],
+                  // 添加标题，只在滚动时显示
+                  title: _showAppBarBackground 
+                      ? Text(
+                          _imageDetails['title'],
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        )
+                      : null,
                 ),
                 
                 // 图片信息
@@ -801,8 +845,21 @@ class _DetailPageState extends State<DetailPage> {
 
   // 构建单个评论项
   Widget _buildCommentItem(Map<String, dynamic> comment) {
+    final isHighlighted = _highlightedCommentId == comment['id'];
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
+      padding: isHighlighted ? const EdgeInsets.all(12) : EdgeInsets.zero,
+      decoration: isHighlighted 
+          ? BoxDecoration(
+              color: const Color(0xFF4FC3F7).withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFF4FC3F7).withOpacity(0.2),
+                width: 1,
+              ),
+            )
+          : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -887,8 +944,13 @@ class _DetailPageState extends State<DetailPage> {
                           child: Text(
                             '回复',
                             style: TextStyle(
-                              color: Colors.grey[600],
+                              color: isHighlighted
+                                  ? const Color(0xFF4FC3F7)
+                                  : Colors.grey[600],
                               fontSize: 12,
+                              fontWeight: isHighlighted
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
                             ),
                           ),
                         ),
@@ -917,12 +979,22 @@ class _DetailPageState extends State<DetailPage> {
 
   // 构建回复项
   Widget _buildReplyItem(Map<String, dynamic> reply) {
+    final isHighlighted = _highlightedReplyId == reply['id'];
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        color: isHighlighted 
+            ? const Color(0xFF4FC3F7).withOpacity(0.08)
+            : Colors.grey[50],
         borderRadius: BorderRadius.circular(8),
+        border: isHighlighted
+            ? Border.all(
+                color: const Color(0xFF4FC3F7).withOpacity(0.3),
+                width: 1,
+              )
+            : null,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1018,8 +1090,13 @@ class _DetailPageState extends State<DetailPage> {
                       child: Text(
                         '回复',
                         style: TextStyle(
-                          color: Colors.grey[600],
+                          color: isHighlighted
+                              ? const Color(0xFF4FC3F7)
+                              : Colors.grey[600],
                           fontSize: 11,
+                          fontWeight: isHighlighted
+                              ? FontWeight.w600
+                              : FontWeight.normal,
                         ),
                       ),
                     ),
@@ -1065,6 +1142,8 @@ class _DetailPageState extends State<DetailPage> {
     setState(() {
       _replyToUser = comment['user'];
       _replyToCommentId = comment['id'];
+      _highlightedCommentId = comment['id']; // 高亮当前评论
+      _highlightedReplyId = null; // 清除回复高亮
     });
     // 延迟一帧后请求焦点，确保UI更新完成
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1077,6 +1156,8 @@ class _DetailPageState extends State<DetailPage> {
     setState(() {
       _replyToUser = reply['user'];
       _replyToCommentId = reply['id'];
+      _highlightedReplyId = reply['id']; // 高亮当前回复
+      _highlightedCommentId = null; // 清除评论高亮
     });
     // 延迟一帧后请求焦点，确保UI更新完成
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1089,6 +1170,8 @@ class _DetailPageState extends State<DetailPage> {
     setState(() {
       _replyToUser = null;
       _replyToCommentId = null;
+      _highlightedCommentId = null; // 清除评论高亮
+      _highlightedReplyId = null; // 清除回复高亮
     });
     _commentController.clear();
     _commentFocusNode.unfocus();
@@ -1143,7 +1226,6 @@ class _DetailPageState extends State<DetailPage> {
     });
 
     _commentController.clear();
-    _cancelReply();
     
     // 显示成功提示
     ScaffoldMessenger.of(context).showSnackBar(
@@ -1156,6 +1238,9 @@ class _DetailPageState extends State<DetailPage> {
         ),
       ),
     );
+    
+    // 清除回复状态和高亮
+    _cancelReply();
   }
 
   // 构建图片骨架屏
