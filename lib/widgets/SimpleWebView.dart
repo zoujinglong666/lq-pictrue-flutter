@@ -33,18 +33,14 @@ class _SimpleWebViewState extends State<SimpleWebView> {
 
   // 初始化
   String _innerTitle = ''; // 先空着，不显示 URL
-// 内存缓存：{url: title}
+  // 内存缓存：{url: title}
   static final Map<String, String> _titleCache = {};
+  
   @override
   void initState() {
     super.initState();
-    // 可选：先显示 widget.title，避免空白
-    @override
-    void initState() {
-      super.initState();
-      // 1. 先尝试缓存
-      _innerTitle = _titleCache[widget.url] ?? widget.title;
-    }
+    // 先尝试缓存，如果没有则使用传入的title
+    _innerTitle = _titleCache[widget.url] ?? widget.title;
   }
 
   Future<void> _onRefresh() => _controller.reload();
@@ -121,35 +117,43 @@ class _SimpleWebViewState extends State<SimpleWebView> {
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
-        appBar:
-            _isFullscreen
-                ? null
-                : AppBar(
-                  title: Text(
-                    _innerTitle,
-                    style: const TextStyle(color: Colors.black),
+        appBar: _isFullscreen
+            ? null
+            : AppBar(
+                backgroundColor: Colors.white,
+                elevation: 0,
+                leading: IconButton(
+                  icon: Icon(
+                    Icons.arrow_back_ios,
+                    color: Colors.grey[800],
                   ),
-                  centerTitle: true,
-                  // 标题居中
-                  backgroundColor: Colors.white,
-                  iconTheme: const IconThemeData(color: Colors.black),
-                  leading: IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.black),
-                    onPressed: () async {
-                      if (await _controller.canGoBack()) {
-                        await _controller.goBack();
-                      } else {
-                        if (mounted) Navigator.of(context).pop();
-                      }
-                    },
-                  ),
-                  actions: [
-                    IconButton(
-                      icon: const Icon(Icons.refresh, color: Colors.black),
-                      onPressed: () => _controller.reload(),
-                    ),
-                  ],
+                  onPressed: () async {
+                    if (await _controller.canGoBack()) {
+                      await _controller.goBack();
+                    } else {
+                      if (mounted) Navigator.of(context).pop();
+                    }
+                  },
                 ),
+                title: Text(
+                  _innerTitle,
+                  style: TextStyle(
+                    color: Colors.grey[800],
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                centerTitle: true,
+                actions: [
+                  IconButton(
+                    icon: Icon(
+                      Icons.refresh,
+                      color: Colors.grey[800],
+                    ),
+                    onPressed: () => _controller.reload(),
+                  ),
+                ],
+              ),
         body: Stack(
           children: [
             _buildWebView(),
@@ -176,64 +180,7 @@ class _SimpleWebViewState extends State<SimpleWebView> {
     await _controller.clearSslPreferences(); // 清证书缓存
   }
 
-  // Widget _buildWebView() {
-  //   final webView = InAppWebView(
-  //     initialUrlRequest: URLRequest(url: WebUri(widget.url)),
-  //     initialSettings: InAppWebViewSettings(
-  //       sharedCookiesEnabled: true,
-  //       cacheEnabled: widget.enableCache,
-  //       domStorageEnabled: true,
-  //       databaseEnabled: true,
-  //       cacheMode: CacheMode.LOAD_DEFAULT,
-  //
-  //       // cacheMode: widget.enableCache
-  //       //     ? CacheMode.LOAD_CACHE_ELSE_NETWORK
-  //       //     : CacheMode.LOAD_DEFAULT,
-  //       allowsInlineMediaPlayback: !widget.allowFullscreenVideo,
-  //     ),
-  //     initialUserScripts:
-  //         widget.initialCookies == null
-  //             ? UnmodifiableListView([])
-  //             : UnmodifiableListView(
-  //               widget.initialCookies!.map(
-  //                 (cookie) => UserScript(
-  //                   source:
-  //                       'document.cookie="${cookie.name}=${cookie.value}; path=${cookie.path ?? "/"}; domain=${cookie.domain}";',
-  //                   injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
-  //                 ),
-  //               ),
-  //             ),
-  //     onWebViewCreated: (controller) {
-  //       _controller = controller;
-  //       widget.jsHandlers?.forEach(
-  //         (handlerName, callback) => controller.addJavaScriptHandler(
-  //           handlerName: handlerName,
-  //           callback: (args) => callback(args),
-  //         ),
-  //       );
-  //     },
-  //     onLoadStart: (_, __) => setState(() => _isLoading = true),
-  //     onLoadStop: (_, __) => setState(() => _isLoading = false),
-  //     onReceivedError: (_, __, error) {
-  //       setState(() => _isLoading = false);
-  //       ScaffoldMessenger.of(
-  //         context,
-  //       ).showSnackBar(SnackBar(content: Text('加载失败：${error.description}')));
-  //     },
-  //     /* 全屏监听（仅一个参数） */
-  //     onEnterFullscreen: (_) => setState(() => _isFullscreen = true),
-  //     onExitFullscreen: (_) => setState(() => _isFullscreen = false),
-  //     onPermissionRequest:
-  //         (controller, request) async => PermissionResponse(
-  //           resources: request.resources,
-  //           action: PermissionResponseAction.GRANT,
-  //         ),
-  //   );
-  //
-  //   return widget.enablePullToRefresh
-  //       ? RefreshIndicator(onRefresh: _onRefresh, child: webView)
-  //       : webView;
-  // }
+
 
   Widget _buildWebView() {
     final webView = InAppWebView(

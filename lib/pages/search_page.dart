@@ -49,7 +49,7 @@ class _SearchPageState extends State<SearchPage> {
               ),
             ),
             bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(60),
+              preferredSize: const Size.fromHeight(80),
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 child: Container(
