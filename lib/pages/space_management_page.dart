@@ -111,14 +111,11 @@ class _SpaceManagementPageState extends State<SpaceManagementPage> {
   }
 
   void _showSpaceDetail(SpaceItem space) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Container(
-          width: MediaQuery.of(context).size.width * 0.9,
+      builder: (context) => SafeArea(
+        child: SizedBox(
+          width: MediaQuery.of(context).size.width,
           height: MediaQuery.of(context).size.height * 0.8,
           child: Column(
             children: [
