@@ -872,14 +872,14 @@ class _PictureManagementPageState extends State<PictureManagementPage> {
                                                 ),
                                               ),
                                             ),
-                                            const SizedBox(width: 8),
-                                            Icon(Icons.access_time, size: 12, color: Colors.grey[500]),
                                             const SizedBox(width: 4),
+                                            Icon(Icons.access_time, size: 12, color: Colors.grey[500]),
+                                            const SizedBox(width: 2),
                                             Text(
                                               _formatDateTime(picture.createTime),
                                               style: TextStyle(
                                                 color: Colors.grey[500],
-                                                fontSize: 11,
+                                                fontSize: 10,
                                               ),
                                             ),
                                           ],
@@ -920,8 +920,8 @@ class _PictureManagementPageState extends State<PictureManagementPage> {
                                     Column(
                                       children: [
                                         SizedBox(
-                                          width: 64,
-                                          height: 32,
+                                          width: 48,
+                                          height: 24,
                                           child: ElevatedButton(
                                             onPressed: () => _reviewPicture(picture, 1),
                                             style: ElevatedButton.styleFrom(
@@ -937,8 +937,8 @@ class _PictureManagementPageState extends State<PictureManagementPage> {
                                         ),
                                         const SizedBox(height: 6),
                                         SizedBox(
-                                          width: 64,
-                                          height: 32,
+                                          width: 48,
+                                          height: 24,
                                           child: ElevatedButton(
                                             onPressed: () => _showRejectDialog(picture),
                                             style: ElevatedButton.styleFrom(
@@ -956,8 +956,8 @@ class _PictureManagementPageState extends State<PictureManagementPage> {
                                     ),
                                   ] else ...[
                                     SizedBox(
-                                      width: 64,
-                                      height: 32,
+                                      width: 48,
+                                      height: 24,
                                       child: OutlinedButton(
                                         onPressed: () => _showPictureDetail(picture),
                                         style: OutlinedButton.styleFrom(

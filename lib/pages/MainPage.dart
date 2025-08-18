@@ -54,7 +54,6 @@ class _MainPageState extends State<MainPage>
                 tabs: tabs,
                 selectedIndex: selectedIndex,
                 onTap: onTabTapped,
-                activeColor: theme.colorScheme.primary,
               ),
             ),
           ),
@@ -83,7 +82,7 @@ class _CustomTabBar extends StatelessWidget {
     required this.tabs,
     required this.selectedIndex,
     required this.onTap,
-    this.activeColor = const Color(0xFF26C6DA),
+    this.activeColor = const Color(0xFF4FC3F7),
   });
 
   @override
