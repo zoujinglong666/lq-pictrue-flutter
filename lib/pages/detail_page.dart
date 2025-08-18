@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'image_preview_page.dart';
+import '../widgets/shimmer_effect.dart';
+import '../widgets/skeleton_widgets.dart';
 
 class DetailPage extends StatefulWidget {
   final Map<String, dynamic>? imageData;
@@ -13,9 +15,11 @@ class DetailPage extends StatefulWidget {
 
 class _DetailPageState extends State<DetailPage> {
   bool _isFavorite = false;
-  bool _isDownloading = false;
+  bool _isImageLoaded = false; // 图片加载状态
   final TextEditingController _commentController = TextEditingController();
   final FocusNode _commentFocusNode = FocusNode();
+  final ScrollController _scrollController = ScrollController(); // 滚动控制器
+  final GlobalKey _commentsKey = GlobalKey(); // 评论区域的key
   String? _replyToUser;
   int? _replyToCommentId;
   
@@ -28,25 +32,6 @@ class _DetailPageState extends State<DetailPage> {
   @override
   void initState() {
     super.initState();
-    // _imageDetails = widget.imageData ?? {
-    //   'id': 1,
-    //   'title': '高质量摄影作品',
-    //   'url': 'https://picsum.photos/800/1200',
-    //   'author': '摄影师小明',
-    //   'views': '1.2k',
-    //   'downloads': '356',
-    //   'likes': '89',
-    //   'tags': ['风景', '自然', '山水'],
-    //   'description': '这是一张高质量的摄影作品，拍摄于2023年夏天。使用了专业设备，完美捕捉了自然光线和景色。',
-    //   'camera': 'Canon EOS R5',
-    //   'lens': 'RF 24-70mm f/2.8L IS USM',
-    //   'iso': '100',
-    //   'aperture': 'f/8',
-    //   'shutterSpeed': '1/125s',
-    //   'date': '2023-07-15',
-    // };
-
-
     _imageDetails = {
       'id': 1,
       'title': '高质量摄影作品',
@@ -138,6 +123,8 @@ class _DetailPageState extends State<DetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final keyboardVisible = mediaQuery.viewInsets.bottom > 0;
     return Scaffold(
       resizeToAvoidBottomInset: true,
       body: Column(
@@ -145,6 +132,7 @@ class _DetailPageState extends State<DetailPage> {
           // 主要内容区域
           Expanded(
             child: CustomScrollView(
+              controller: _scrollController,
               slivers: [
                 // 图片和顶部操作栏
                 SliverAppBar(
@@ -173,17 +161,40 @@ class _DetailPageState extends State<DetailPage> {
                               _imageDetails['url'],
                               fit: BoxFit.cover,
                               loadingBuilder: (context, child, loadingProgress) {
-                                if (loadingProgress == null) return child;
+                                if (loadingProgress == null) {
+                                  // 图片加载完成
+                                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                                    if (mounted) {
+                                      setState(() {
+                                        _isImageLoaded = true;
+                                      });
+                                    }
+                                  });
+                                  return child;
+                                }
+                                // 显示骨架屏
+                                return _buildImageSkeleton();
+                              },
+                              errorBuilder: (context, error, stackTrace) {
                                 return Container(
                                   color: Colors.grey[200],
-                                  child: Center(
-                                    child: CircularProgressIndicator(
-                                      value: loadingProgress.expectedTotalBytes != null
-                                          ? loadingProgress.cumulativeBytesLoaded /
-                                              loadingProgress.expectedTotalBytes!
-                                          : null,
-                                      color: const Color(0xFF4FC3F7),
-                                    ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.broken_image,
+                                        size: 64,
+                                        color: Colors.grey[400],
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        '图片加载失败',
+                                        style: TextStyle(
+                                          color: Colors.grey[600],
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 );
                               },
@@ -259,11 +270,12 @@ class _DetailPageState extends State<DetailPage> {
                 
                 // 图片信息
                 SliverToBoxAdapter(
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                  child: _isImageLoaded 
+                      ? Container(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                         // 标题和作者
                         Text(
                           _imageDetails['title'],
@@ -382,12 +394,16 @@ class _DetailPageState extends State<DetailPage> {
                         const SizedBox(height: 16),
                         
                         // 评论区
-                        _buildCommentsSection(),
+                        Container(
+                          key: _commentsKey,
+                          child: _buildCommentsSection(),
+                        ),
                         
                         const SizedBox(height: 20), // 减少底部空间
-                      ],
-                    ),
-                  ),
+                            ],
+                          ),
+                        )
+                      : _buildContentSkeleton(), // 显示内容骨架屏
                 ),
               ],
             ),
@@ -408,10 +424,10 @@ class _DetailPageState extends State<DetailPage> {
             ),
             child: Padding(
               padding: EdgeInsets.only(
-                left: 16,
-                right: 16,
-                top: 16,
-                bottom: 16 + MediaQuery.of(context).viewPadding.bottom, // 只考虑安全区域，不考虑键盘
+                left: 8,
+                right: 8,
+                top: 8,
+                bottom: 8 + (keyboardVisible ? 0 : mediaQuery.viewPadding.bottom),
               ),
               child: Row(
                 children: [
@@ -445,8 +461,9 @@ class _DetailPageState extends State<DetailPage> {
                         textInputAction: TextInputAction.send,
                         onSubmitted: (_) => _submitComment(),
                         onTap: () {
-                          // 点击输入框时自动弹起键盘
+                          // 点击输入框时自动弹起键盘并滚动到评论区
                           _commentFocusNode.requestFocus();
+                          _scrollToComments();
                         },
                       ),
                     ),
@@ -1141,10 +1158,156 @@ class _DetailPageState extends State<DetailPage> {
     );
   }
 
+  // 构建图片骨架屏
+  Widget _buildImageSkeleton() {
+    return Container(
+      color: Colors.grey[200],
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // 骨架屏动画
+          ShimmerEffect(
+            child: Container(
+              color: Colors.white,
+            ),
+          ),
+          // 加载指示器
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const CircularProgressIndicator(
+                  color: Color(0xFF4FC3F7),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  '图片加载中...',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 构建内容骨架屏
+  Widget _buildContentSkeleton() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 标题骨架
+          const SkeletonBox(width: double.infinity, height: 28),
+          const SizedBox(height: 8),
+          
+          // 作者信息骨架
+          const Row(
+            children: [
+              SkeletonBox(width: 32, height: 32, isCircle: true),
+              SizedBox(width: 8),
+              SkeletonBox(width: 120, height: 16),
+              Spacer(),
+              SkeletonBox(width: 60, height: 32),
+            ],
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // 统计信息骨架
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              StatSkeleton(),
+              StatSkeleton(),
+              StatSkeleton(),
+            ],
+          ),
+          
+          const SizedBox(height: 16),
+          const Divider(),
+          const SizedBox(height: 16),
+          
+          // 标签骨架
+          const Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              SkeletonBox(width: 60, height: 32),
+              SkeletonBox(width: 80, height: 32),
+              SkeletonBox(width: 70, height: 32),
+            ],
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // 描述骨架
+          const SkeletonBox(width: 80, height: 20),
+          const SizedBox(height: 8),
+          const SkeletonBox(width: double.infinity, height: 16),
+          const SizedBox(height: 4),
+          const SkeletonBox(width: double.infinity, height: 16),
+          const SizedBox(height: 4),
+          const SkeletonBox(width: 200, height: 16),
+          
+          const SizedBox(height: 16),
+          const Divider(),
+          const SizedBox(height: 16),
+          
+          // 拍摄信息骨架
+          const SkeletonBox(width: 100, height: 20),
+          const SizedBox(height: 12),
+          ...List.generate(6, (index) => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 6),
+            child: Row(
+              children: [
+                SkeletonBox(width: 80, height: 16),
+                SizedBox(width: 8),
+                SkeletonBox(width: 120, height: 16),
+              ],
+            ),
+          )),
+          
+          const SizedBox(height: 16),
+          const Divider(),
+          const SizedBox(height: 16),
+          
+          // 评论区骨架
+          const SkeletonBox(width: 80, height: 20),
+          const SizedBox(height: 16),
+          ...List.generate(3, (index) => const CommentSkeleton()),
+        ],
+      ),
+    );
+  }
+
+  // 滚动到评论区
+  void _scrollToComments() {
+    if (_commentsKey.currentContext != null) {
+      // 延迟执行，确保键盘弹起后再滚动
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (mounted) {
+          Scrollable.ensureVisible(
+            _commentsKey.currentContext!,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeInOut,
+            alignment: 0.1, // 滚动到屏幕顶部10%的位置
+          );
+        }
+      });
+    }
+  }
+
   @override
   void dispose() {
     _commentController.dispose();
     _commentFocusNode.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
   

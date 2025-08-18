@@ -67,11 +67,30 @@ class _UploadPageState extends State<UploadPage> with SingleTickerProviderStateM
   // 文件上传相关方法
   Future<void> _pickImages() async {
     try {
+      // 检查当前已选择的图片数量
+      if (_selectedImages.length >= 6) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('最多只能选择6张图片')),
+        );
+        return;
+      }
+
       final List<XFile> images = await _picker.pickMultiImage();
       if (images.isNotEmpty) {
+        // 计算还能选择多少张图片
+        final remainingSlots = 6 - _selectedImages.length;
+        final imagesToAdd = images.take(remainingSlots).toList();
+        
         setState(() {
-          _selectedImages.addAll(images);
+          _selectedImages.addAll(imagesToAdd);
         });
+
+        // 如果选择的图片超过了限制，给出提示
+        if (images.length > remainingSlots) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('已选择${imagesToAdd.length}张图片，最多只能选择6张')),
+          );
+        }
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -82,6 +101,14 @@ class _UploadPageState extends State<UploadPage> with SingleTickerProviderStateM
 
   Future<void> _pickImageFromCamera() async {
     try {
+      // 检查当前已选择的图片数量
+      if (_selectedImages.length >= 6) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('最多只能选择6张图片')),
+        );
+        return;
+      }
+
       final XFile? image = await _picker.pickImage(source: ImageSource.camera);
       if (image != null) {
         setState(() {
@@ -308,7 +335,10 @@ class _UploadPageState extends State<UploadPage> with SingleTickerProviderStateM
           // 图片选择区域
           Container(
             width: double.infinity,
-            height: 200,
+            constraints: BoxConstraints(
+              minHeight: 200,
+              maxHeight: _selectedImages.isEmpty ? 200 : 320, // 动态调整高度
+            ),
             decoration: BoxDecoration(
               color: Colors.grey[50],
               borderRadius: BorderRadius.circular(16),
@@ -336,7 +366,7 @@ class _UploadPageState extends State<UploadPage> with SingleTickerProviderStateM
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '支持 JPG、PNG 格式',
+                        '支持 JPG、PNG 格式，最多6张',
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.grey[500],
@@ -376,69 +406,115 @@ class _UploadPageState extends State<UploadPage> with SingleTickerProviderStateM
                       ),
                     ],
                   )
-                : GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(16),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      crossAxisSpacing: 8,
-                      mainAxisSpacing: 8,
-                    ),
-                    itemCount: _selectedImages.length + 1,
-                    itemBuilder: (context, index) {
-                      if (index == _selectedImages.length) {
-                        return GestureDetector(
-                          onTap: _pickImages,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.grey[100],
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.grey.shade300),
+                : Column(
+                    children: [
+                      // 图片数量提示
+                      Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Row(
+                          children: [
+                            Text(
+                              '已选择 ${_selectedImages.length}/6 张图片',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                            child: Icon(
-                              Icons.add,
-                              color: Colors.grey[600],
-                              size: 32,
-                            ),
+                            const Spacer(),
+                            if (_selectedImages.length < 6)
+                              TextButton.icon(
+                                onPressed: _pickImages,
+                                icon: const Icon(Icons.add, size: 16),
+                                label: const Text('添加更多'),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: const Color(0xFF00BCD4),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      // 图片网格
+                      Expanded(
+                        child: GridView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 8,
+                            mainAxisSpacing: 8,
+                            childAspectRatio: 1.0,
                           ),
-                        );
-                      }
+                          itemCount: _selectedImages.length + (_selectedImages.length < 6 ? 1 : 0),
+                          itemBuilder: (context, index) {
+                            if (index == _selectedImages.length) {
+                                return GestureDetector(
+                                  onTap: _pickImages,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[100],
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: Colors.grey.shade300),
+                                    ),
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.add,
+                                          color: Colors.grey[600],
+                                          size: 24,
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '添加',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey[600],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                            }
 
-                      return Stack(
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              image: DecorationImage(
-                                image: FileImage(File(_selectedImages[index].path)),
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            top: 4,
-                            right: 4,
-                            child: GestureDetector(
-                              onTap: () => _removeImage(index),
-                              child: Container(
-                                width: 24,
-                                height: 24,
-                                decoration: const BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
+                            return Stack(
+                              children: [
+                                Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(8),
+                                    image: DecorationImage(
+                                      image: FileImage(File(_selectedImages[index].path)),
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
                                 ),
-                                child: const Icon(
-                                  Icons.close,
-                                  color: Colors.white,
-                                  size: 16,
+                                Positioned(
+                                  top: 4,
+                                  right: 4,
+                                  child: GestureDetector(
+                                    onTap: () => _removeImage(index),
+                                    child: Container(
+                                      width: 24,
+                                      height: 24,
+                                      decoration: const BoxDecoration(
+                                        color: Colors.red,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.close,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                    ],
                   ),
           ),
           const SizedBox(height: 24),
