@@ -103,7 +103,24 @@ class ProfilePage extends StatelessWidget {
             ),
 
             const SizedBox(height: 20),
-
+            _buildMenuItem(
+              context,
+              Icons.photo_library,
+              '创建图片空间',
+              ' 创建图片空间',
+                  () {
+                Navigator.pushNamed(context, '/create_space');
+              },
+            ),
+             _buildMenuItem(
+              context,
+              Icons.photo_library,
+              '我的空间',
+              ' 我的空间',
+                  () {
+                Navigator.pushNamed(context, '/my_space');
+              },
+            ),
             // 功能列表
             _buildMenuItem(
               context,

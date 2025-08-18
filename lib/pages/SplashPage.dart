@@ -26,7 +26,7 @@ class _SplashPageState extends State<SplashPage> {
       if (!mounted) return; // 确保页面仍在树中
       final targetPage = (token != null && token.isNotEmpty)
           ? const MainPage()
-          : const LoginPage();
+          : const MainPage();
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => targetPage),
