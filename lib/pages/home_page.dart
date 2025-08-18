@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:lq_picture/model/picture.dart';
+
+import '../apis/picture_api.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -15,62 +18,19 @@ class _HomePageState extends State<HomePage> {
   bool _hasMore = true;
   int _currentPage = 1;
 
-  List<Map<String, dynamic>> _images = [
-    {
-      'id': '1',
-      'url': 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400',
-      'title': '美丽的山景风光',
-      'likes': 128,
-      'category': '风景',
-      'aspectRatio': 0.8,
-    },
-    {
-      'id': '2',
-      'url': 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400',
-      'title': '现代办公空间设计',
-      'likes': 89,
-      'category': '商务',
-      'aspectRatio': 1.2,
-    },
-    {
-      'id': '3',
-      'url': 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400',
-      'title': '自然风光摄影',
-      'likes': 256,
-      'category': '自然',
-      'aspectRatio': 1.0,
-    },
-    {
-      'id': '4',
-      'url': 'https://images.unsplash.com/photo-1486312338219-ce68e2c6b7d3?w=400',
-      'title': '科技办公环境',
-      'likes': 167,
-      'category': '科技',
-      'aspectRatio': 0.9,
-    },
-    {
-      'id': '5',
-      'url': 'https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=400',
-      'title': '城市建筑景观',
-      'likes': 203,
-      'category': '建筑',
-      'aspectRatio': 1.3,
-    },
-    {
-      'id': '6',
-      'url': 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=400',
-      'title': '编程代码界面',
-      'likes': 145,
-      'category': '技术',
-      'aspectRatio': 0.7,
-    },
+  List<PictureVO> _images = [
+
   ];
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    _loadData();
   }
+
+
+
 
   @override
   void dispose() {
@@ -85,6 +45,36 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Future<void> _loadData() async {
+    if (_isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final res = await PictureApi.getList({
+        "current": 1,
+        "pageSize": 10,
+      });
+
+      setState(() {
+        _images = res.records ?? [];
+        _isLoading = false;
+        _currentPage = 2; // 下一页为2
+        _hasMore = _images.length >= 10; // 如果返回数据少于请求数量，说明没有更多了
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      // 可以添加错误提示
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('加载失败，请重试')),
+      );
+    }
+  }
+
   Future<void> _loadMoreImages() async {
     if (_isLoading || !_hasMore) return;
 
@@ -92,39 +82,34 @@ class _HomePageState extends State<HomePage> {
       _isLoading = true;
     });
 
-    // 模拟网络请求
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      final res = await PictureApi.getList({
+        "current": _currentPage,
+        "pageSize": 10,
+      });
 
-    // 模拟加载更多数据
-    List<Map<String, dynamic>> newImages = [
-      {
-        'id': '${_images.length + 1}',
-        'url': 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=400',
-        'title': '湖泊风景 ${_images.length + 1}',
-        'likes': 89 + (_images.length * 10),
-        'category': '风景',
-        'aspectRatio': 1.1,
-      },
-      {
-        'id': '${_images.length + 2}',
-        'url': 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=400',
-        'title': '星空摄影 ${_images.length + 2}',
-        'likes': 156 + (_images.length * 8),
-        'category': '自然',
-        'aspectRatio': 0.75,
-      },
-    ];
-
-    setState(() {
-      _images.addAll(newImages);
-      _isLoading = false;
-      _currentPage++;
-      // 模拟没有更多数据
-      if (_currentPage > 5) {
-        _hasMore = false;
-      }
-    });
+      setState(() {
+        if (res.records != null) {
+          _images.addAll(res.records!);
+          _currentPage++;
+          // 如果返回数据少于请求数量，说明没有更多了
+          _hasMore = res.records!.length >= 10;
+        } else {
+          _hasMore = false;
+        }
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      // 添加错误提示
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('加载更多失败，请重试')),
+      );
+    }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -280,13 +265,13 @@ class _HomePageState extends State<HomePage> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     AspectRatio(
-                                      aspectRatio: image['aspectRatio'],
+                                      aspectRatio: image.picWidth/image.picHeight,
                                       child: Container(
                                         decoration: BoxDecoration(
                                           color: Colors.grey[100],
                                         ),
                                         child: Image.network(
-                                          image['url'],
+                                          image.thumbnailUrl??image.url,
                                           fit: BoxFit.cover,
                                           errorBuilder: (context, error, stackTrace) {
                                             return Container(
@@ -309,7 +294,7 @@ class _HomePageState extends State<HomePage> {
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            image['title'],
+                                            image.name,
                                             style: const TextStyle(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w500,
@@ -328,7 +313,7 @@ class _HomePageState extends State<HomePage> {
                                               ),
                                               const SizedBox(width: 4),
                                               Text(
-                                                image['likes'].toString(),
+                                                image.picWidth.toString(),
                                                 style: TextStyle(
                                                   fontSize: 12,
                                                   color: Colors.grey[600],
@@ -345,7 +330,7 @@ class _HomePageState extends State<HomePage> {
                                                   borderRadius: BorderRadius.circular(10),
                                                 ),
                                                 child: Text(
-                                                  image['category'],
+                                                  image.category??"未分类",
                                                   style: const TextStyle(
                                                     fontSize: 10,
                                                     color: Color(0xFF00BCD4),

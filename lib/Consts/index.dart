@@ -6,14 +6,14 @@ final class Consts {
 
   /// About network request
   static const request = (
-  baseUrl: "http://10.9.17.94:8888/api/v1",
-  socketUrl: "http://10.9.17.94:8888",
+  baseUrl: "http://192.168.48.23:8123/api",
+  socketUrl: "http://192.168.48.23:8123",
   minWaitingTime: Duration(milliseconds: 500),
   cachedTime: Duration(milliseconds: 2000),
   sendTimeout: Duration(seconds: 5),
   connectTimeout: Duration(seconds: 30),
   receiveTimeout: Duration(seconds: 30),
-  successCode: 200,
+  successCode: 0,
   pageSize: 10,
   );
 

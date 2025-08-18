@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:lq_picture/model/picture.dart';
 import 'package:share_plus/share_plus.dart';
 import 'image_preview_page.dart';
 import '../widgets/shimmer_effect.dart';
 import '../widgets/skeleton_widgets.dart';
 
 class DetailPage extends StatefulWidget {
-  final Map<String, dynamic>? imageData;
+  final PictureVO? imageData;
 
   const DetailPage({super.key, this.imageData});
 
@@ -27,7 +28,7 @@ class _DetailPageState extends State<DetailPage> {
   int? _highlightedReplyId; // 高亮的回复ID
 
   // 模拟图片详情数据
-  late Map<String, dynamic> _imageDetails;
+  late PictureVO _imageDetails;
 
   // 模拟评论数据
   List<Map<String, dynamic>> _comments = [];
@@ -35,29 +36,44 @@ class _DetailPageState extends State<DetailPage> {
   @override
   void initState() {
     super.initState();
-    _imageDetails = {
-      'id': 1,
-      'title': '高质量摄影作品',
-      'url': 'https://picsum.photos/800/1200',
-      'author': '摄影师小明',
-      'views': '1.2k',
-      'downloads': '356',
-      'likes': '89',
-      'tags': ['风景', '自然', '山水'],
-      'description': '这是一张高质量的摄影作品，拍摄于2023年夏天。使用了专业设备，完美捕捉了自然光线和景色。',
-      'camera': 'Canon EOS R5',
-      'lens': 'RF 24-70mm f/2.8L IS USM',
-      'iso': '100',
-      'aperture': 'f/8',
-      'shutterSpeed': '1/125s',
-      'date': '2023-07-15',
-    };
+    _imageDetails = widget.imageData!;
 
     // 初始化模拟评论数据
     _initComments();
 
     // 监听滚动事件
     _scrollController.addListener(_onScroll);
+  }
+  /// 将不同类型的数据转换为标签列表
+  List<String> _convertToTagList(dynamic tags) {
+    if (tags == null) {
+      return [];
+    }
+
+    if (tags is List<String>) {
+      // 已经是正确的类型
+      return tags;
+    }
+
+    if (tags is List) {
+      // 是列表但元素不是字符串，转换为字符串
+      return tags.map((tag) => tag.toString()).toList();
+    }
+
+    if (tags is String) {
+      // 是字符串，尝试按逗号分割
+      if (tags.isEmpty) {
+        return [];
+      }
+      return tags.split(',').map((tag) => tag.trim()).where((tag) => tag.isNotEmpty).toList();
+    }
+
+    // 其他情况，转换为字符串再处理
+    final tagString = tags.toString();
+    if (tagString.isEmpty) {
+      return [];
+    }
+    return tagString.split(',').map((tag) => tag.trim()).where((tag) => tag.isNotEmpty).toList();
   }
 
   void _onScroll() {
@@ -164,7 +180,7 @@ class _DetailPageState extends State<DetailPage> {
                   foregroundColor: _showAppBarBackground ? Colors.black : Colors.white,
                   flexibleSpace: FlexibleSpaceBar(
                     background: Hero(
-                      tag: 'image_${_imageDetails['id']}',
+                      tag: 'image_${_imageDetails.id}',
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
@@ -174,13 +190,13 @@ class _DetailPageState extends State<DetailPage> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => ImagePreviewPage(
-                                    imageUrl: _imageDetails['url'],
+                                    imageUrl: _imageDetails.url,
                                   ),
                                 ),
                               );
                             },
                             child: Image.network(
-                              _imageDetails['url'],
+                              _imageDetails.url,
                               fit: BoxFit.cover,
                               loadingBuilder: (context, child, loadingProgress) {
                                 if (loadingProgress == null) {
@@ -300,7 +316,7 @@ class _DetailPageState extends State<DetailPage> {
                   // 添加标题，只在滚动时显示
                   title: _showAppBarBackground
                       ? Text(
-                    _imageDetails['title'],
+                    _imageDetails.name,
                     style: const TextStyle(
                       color: Colors.black,
                       fontSize: 18,
@@ -322,7 +338,7 @@ class _DetailPageState extends State<DetailPage> {
                       children: [
                         // 标题和作者
                         Text(
-                          _imageDetails['title'],
+                          _imageDetails.name,
                           style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -338,7 +354,7 @@ class _DetailPageState extends State<DetailPage> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              _imageDetails['author'],
+                              _imageDetails.user.userAccount,
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w500,
@@ -365,14 +381,14 @@ class _DetailPageState extends State<DetailPage> {
                         const SizedBox(height: 16),
 
                         // 统计信息
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            _buildStatItem(Icons.visibility, _imageDetails['views'], '浏览'),
-                            _buildStatItem(Icons.file_download, _imageDetails['downloads'], '下载'),
-                            _buildStatItem(Icons.favorite, _imageDetails['likes'], '喜欢'),
-                          ],
-                        ),
+                        // Row(
+                        //   mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        //   children: [
+                        //     _buildStatItem(Icons.visibility, _imageDetails['views'], '浏览'),
+                        //     _buildStatItem(Icons.file_download, _imageDetails['downloads'], '下载'),
+                        //     _buildStatItem(Icons.favorite, _imageDetails['likes'], '喜欢'),
+                        //   ],
+                        // ),
 
                         const SizedBox(height: 16),
                         const Divider(),
@@ -382,7 +398,7 @@ class _DetailPageState extends State<DetailPage> {
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
-                          children: (_imageDetails['tags'] as List<String>).map((tag) {
+                          children: _convertToTagList(_imageDetails.tags).map((tag) {
                             return Chip(
                               label: Text(tag),
                               backgroundColor: Colors.grey[100],
@@ -392,6 +408,7 @@ class _DetailPageState extends State<DetailPage> {
                             );
                           }).toList(),
                         ),
+
 
                         const SizedBox(height: 16),
 
@@ -405,7 +422,7 @@ class _DetailPageState extends State<DetailPage> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          _imageDetails['description'],
+                          _imageDetails.introduction??"暂无描述",
                           style: TextStyle(
                             fontSize: 16,
                             color: Colors.grey[700],
@@ -426,12 +443,12 @@ class _DetailPageState extends State<DetailPage> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        _buildInfoRow('相机', _imageDetails['camera']),
-                        _buildInfoRow('镜头', _imageDetails['lens']),
-                        _buildInfoRow('ISO', _imageDetails['iso']),
-                        _buildInfoRow('光圈', _imageDetails['aperture']),
-                        _buildInfoRow('快门速度', _imageDetails['shutterSpeed']),
-                        _buildInfoRow('拍摄日期', _imageDetails['date']),
+                        // _buildInfoRow('相机', _imageDetails['camera']),
+                        // _buildInfoRow('镜头', _imageDetails['lens']),
+                        // _buildInfoRow('ISO', _imageDetails['iso']),
+                        // _buildInfoRow('光圈', _imageDetails['aperture']),
+                        // _buildInfoRow('快门速度', _imageDetails['shutterSpeed']),
+                        // _buildInfoRow('拍摄日期', _imageDetails['date']),
 
                         const SizedBox(height: 16),
                         const Divider(),
@@ -540,23 +557,14 @@ class _DetailPageState extends State<DetailPage> {
   // 分享图片功能
   void _shareImage() {
     final String shareText = '''
-📸 ${_imageDetails['title']}
+📸 ${_imageDetails.name}
 
-👤 作者：${_imageDetails['author']}
-📊 浏览：${_imageDetails['views']} | 下载：${_imageDetails['downloads']} | 喜欢：${_imageDetails['likes']}
+📝 ${_imageDetails.introduction}
 
-📝 ${_imageDetails['description']}
 
-📷 拍摄信息：
-• 相机：${_imageDetails['camera']}
-• 镜头：${_imageDetails['lens']}
-• ISO：${_imageDetails['iso']}
-• 光圈：${_imageDetails['aperture']}
-• 快门：${_imageDetails['shutterSpeed']}
+🔗 图片链接：${_imageDetails.url}
 
-🔗 图片链接：${_imageDetails['url']}
-
-#摄影 #图库 ${(_imageDetails['tags'] as List<String>).map((tag) => '#$tag').join(' ')}
+#摄影 #图库 ${(_imageDetails.tags ?? [] as List<String>).map((tag) => '#$tag').join(' ')}
     '''.trim();
 
     // 显示分享选项对话框
@@ -736,7 +744,7 @@ class _DetailPageState extends State<DetailPage> {
   void _copyLink() {
     // 这里应该使用 Clipboard.setData，但需要导入 flutter/services
     // 为了简化，我们使用 Share.share 来分享链接
-    Share.share(_imageDetails['url']);
+    Share.share(_imageDetails.url);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -761,8 +769,8 @@ class _DetailPageState extends State<DetailPage> {
     // 这里应该先下载图片到本地，然后分享文件
     // 为了简化演示，我们分享图片URL
     Share.share(
-      '分享一张精美图片：${_imageDetails['title']}\n${_imageDetails['url']}',
-      subject: _imageDetails['title'],
+      '分享一张精美图片：${_imageDetails.name}\n${_imageDetails.url}',
+      subject: _imageDetails.name,
     );
 
     ScaffoldMessenger.of(context).showSnackBar(

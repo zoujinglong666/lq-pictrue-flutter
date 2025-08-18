@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lq_picture/pages/MainPage.dart';
 import 'package:lq_picture/pages/login_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../providers/auth_provider.dart';
 
-class SplashPage extends StatefulWidget {
+
+class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
 
   @override
-  State<SplashPage> createState() => _SplashPageState();
+  ConsumerState<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashPageState extends State<SplashPage> {
+class _SplashPageState extends ConsumerState<SplashPage> {
   @override
   void initState() {
     super.initState();
@@ -22,11 +25,16 @@ class _SplashPageState extends State<SplashPage> {
     try {
       await Future.delayed(const Duration(milliseconds: 100)); // 启动缓冲
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
+      final authState = ref.read(authProvider);
+
+      // 步骤3: 导航到相应页面（减少延迟）
+      await Future.delayed(const Duration(milliseconds: 50)); // 进一步减少到50ms
+
+
       if (!mounted) return; // 确保页面仍在树中
-      final targetPage = (token != null && token.isNotEmpty)
+      final targetPage = (authState.token  != null && authState.token!.isNotEmpty)
           ? const MainPage()
-          : const MainPage();
+          : const LoginPage();
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => targetPage),

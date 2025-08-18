@@ -1,0 +1,33 @@
+targets:
+  $default:
+    builders:
+      # 更改工具默认生成的 xxx.g.dart 的位置
+      # 如果不做配置，则默认放置于当前文件的同级目录
+      # ---------------------------------- #
+      # user.dart
+      # user.g.dart
+      # info.dart
+      # info.g.dart
+      # ---------------------------------- #
+      source_gen:combining_builder:
+        options:
+          build_extensions:
+            '^lib/model/{{}}.dart':'lib/model/generated/{{}}.g.dart'
+      # ---------------------------------- #
+      # json_serializable 的全局配置项
+      json_serializable:
+        options:
+          any_map: false
+          checked: true
+          constructor: ""
+          create_factory: true
+          create_field_map: false
+          create_json_keys: false
+          create_per_field_to_json: false
+          create_to_json: true
+          disallow_unrecognized_keys: false
+          explicit_to_json: true
+          field_rename: none
+          generic_argument_factories: true
+          ignore_unannotated: false
+          include_if_null: true

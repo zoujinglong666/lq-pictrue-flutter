@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lq_picture/model/picture.dart';
 import 'package:lq_picture/pages/SplashPage.dart';
 import 'package:lq_picture/pages/detail_page.dart';
 import 'package:lq_picture/pages/forgot_password_page.dart';
@@ -70,7 +71,7 @@ class AppRoutes {
     // 处理需要参数的路由
     switch (settings.name) {
       case detail:
-        final args = settings.arguments as Map<String, dynamic>?;
+        final args = settings.arguments as PictureVO?;
         return MaterialPageRoute(
           builder: (context) => DetailPage(imageData: args),
           settings: settings,

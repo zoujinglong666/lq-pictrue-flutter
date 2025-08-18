@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lq_picture/routes/app_routes.dart';
+import 'net/interceptor_cache.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  // 确保Flutter绑定初始化
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(
+    ProviderScope(
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -25,6 +33,9 @@ class MyApp extends StatelessWidget {
       routes: AppRoutes.routes,
       onGenerateRoute: AppRoutes.onGenerateRoute,
       onUnknownRoute: AppRoutes.onUnknownRoute,
+      navigatorObservers: [
+        CacheManager.observer, // 像这样注册进去就可以了
+      ],
     );
   }
 }

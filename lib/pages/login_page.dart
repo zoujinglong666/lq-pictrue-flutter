@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lq_picture/providers/auth_provider.dart';
 
-class LoginPage extends StatefulWidget {
+import '../apis/user_api.dart';
+import '../net/request.dart';
+
+class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  ConsumerState<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends ConsumerState<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -35,10 +40,20 @@ class _LoginPageState extends State<LoginPage> {
     setState(() {
       _isLoading = false;
     });
-    // 登录成功后跳转到主页
-    if (mounted) {
-      Navigator.pushReplacementNamed(context, '/home');
+
+    final loginRes=await UserApi.userLogin({
+      'userAccount': _usernameController.text,
+      'userPassword': _passwordController.text,
+    });
+    if(loginRes!= null){
+      ref.read(authProvider.notifier).login(loginRes, loginRes.token!);
+      Http.setToken(loginRes.token!);
+      // 登录成功后跳转到主页
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
     }
+
   }
 
   @override
