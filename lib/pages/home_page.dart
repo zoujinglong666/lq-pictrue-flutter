@@ -9,9 +9,13 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final ScrollController _scrollController = ScrollController();
   int _unreadNotificationCount = 2; // 未读消息数量
+  bool _isLoading = false;
+  bool _hasMore = true;
+  int _currentPage = 1;
 
-  final List<Map<String, dynamic>> _images = [
+  List<Map<String, dynamic>> _images = [
     {
       'id': '1',
       'url': 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400',
@@ -61,6 +65,66 @@ class _HomePageState extends State<HomePage> {
       'aspectRatio': 0.7,
     },
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= 
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadMoreImages();
+    }
+  }
+
+  Future<void> _loadMoreImages() async {
+    if (_isLoading || !_hasMore) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    // 模拟网络请求
+    await Future.delayed(const Duration(seconds: 1));
+
+    // 模拟加载更多数据
+    List<Map<String, dynamic>> newImages = [
+      {
+        'id': '${_images.length + 1}',
+        'url': 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=400',
+        'title': '湖泊风景 ${_images.length + 1}',
+        'likes': 89 + (_images.length * 10),
+        'category': '风景',
+        'aspectRatio': 1.1,
+      },
+      {
+        'id': '${_images.length + 2}',
+        'url': 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=400',
+        'title': '星空摄影 ${_images.length + 2}',
+        'likes': 156 + (_images.length * 8),
+        'category': '自然',
+        'aspectRatio': 0.75,
+      },
+    ];
+
+    setState(() {
+      _images.addAll(newImages);
+      _isLoading = false;
+      _currentPage++;
+      // 模拟没有更多数据
+      if (_currentPage > 5) {
+        _hasMore = false;
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -169,125 +233,161 @@ class _HomePageState extends State<HomePage> {
 
             // 瀑布流内容
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: MasonryGridView.count(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  itemCount: _images.length,
-                  itemBuilder: (context, index) {
-                    final image = _images[index];
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.pushNamed(
-                          context,
-                          '/detail',
-                          arguments: image,
-                        );
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.04),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              AspectRatio(
-                                aspectRatio: image['aspectRatio'],
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[100],
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  setState(() {
+                    _currentPage = 1;
+                    _hasMore = true;
+                    _images = _images.take(6).toList(); // 重置为初始数据
+                  });
+                  await _loadMoreImages();
+                },
+                child: CustomScrollView(
+                  controller: _scrollController,
+                  slivers: [
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      sliver: SliverMasonryGrid.count(
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 12,
+                        crossAxisSpacing: 12,
+                        childCount: _images.length,
+                        itemBuilder: (context, index) {
+                          final image = _images[index];
+                          return GestureDetector(
+                            onTap: () {
+                              Navigator.pushNamed(
+                                context,
+                                '/detail',
+                                arguments: image,
+                              );
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.04),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
                                   ),
-                                  child: Image.network(
-                                    image['url'],
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Container(
-                                        color: Colors.grey[200],
-                                        child: const Center(
-                                          child: Icon(
-                                            Icons.image_not_supported_outlined,
-                                            color: Colors.grey,
-                                            size: 32,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
+                                ],
                               ),
-                              Padding(
-                                padding: const EdgeInsets.all(12),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      image['title'],
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                        height: 1.3,
+                                    AspectRatio(
+                                      aspectRatio: image['aspectRatio'],
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[100],
+                                        ),
+                                        child: Image.network(
+                                          image['url'],
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) {
+                                            return Container(
+                                              color: Colors.grey[200],
+                                              child: const Center(
+                                                child: Icon(
+                                                  Icons.image_not_supported_outlined,
+                                                  color: Colors.grey,
+                                                  size: 32,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
                                       ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                    const SizedBox(height: 6),
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.favorite_border_outlined,
-                                          size: 14,
-                                          color: Colors.grey[600],
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          image['likes'].toString(),
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey[600],
-                                          ),
-                                        ),
-                                        const Spacer(),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 2,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFF00BCD4).withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(10),
-                                          ),
-                                          child: Text(
-                                            image['category'],
+                                    Padding(
+                                      padding: const EdgeInsets.all(12),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            image['title'],
                                             style: const TextStyle(
-                                              fontSize: 10,
-                                              color: Color(0xFF00BCD4),
+                                              fontSize: 14,
                                               fontWeight: FontWeight.w500,
+                                              height: 1.3,
                                             ),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
                                           ),
-                                        ),
-                                      ],
+                                          const SizedBox(height: 6),
+                                          Row(
+                                            children: [
+                                              Icon(
+                                                Icons.favorite_border_outlined,
+                                                size: 14,
+                                                color: Colors.grey[600],
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                image['likes'].toString(),
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.grey[600],
+                                                ),
+                                              ),
+                                              const Spacer(),
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(
+                                                  horizontal: 8,
+                                                  vertical: 2,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFF00BCD4).withOpacity(0.1),
+                                                  borderRadius: BorderRadius.circular(10),
+                                                ),
+                                                child: Text(
+                                                  image['category'],
+                                                  style: const TextStyle(
+                                                    fontSize: 10,
+                                                    color: Color(0xFF00BCD4),
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ],
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
+                            ),
+                          );
+                        },
                       ),
-                    );
-                  },
+                    ),
+                    // 加载更多指示器
+                    SliverToBoxAdapter(
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        child: _isLoading
+                            ? const Center(
+                                child: CircularProgressIndicator(),
+                              )
+                            : !_hasMore
+                                ? Center(
+                                    child: Text(
+                                      '没有更多图片了',
+                                      style: TextStyle(
+                                        color: Colors.grey[500],
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  )
+                                : const SizedBox.shrink(),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

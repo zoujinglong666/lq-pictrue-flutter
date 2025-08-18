@@ -8,6 +8,7 @@ import 'package:lq_picture/pages/register_page.dart';
 import 'package:lq_picture/pages/notification_page.dart';
 import 'package:lq_picture/pages/create_space_page.dart';
 import 'package:lq_picture/pages/my_space_page.dart';
+import 'package:lq_picture/pages/space_settings_page.dart';
 import 'package:lq_picture/pages/upload_page.dart';
 import 'package:lq_picture/pages/MainPage.dart';
 
@@ -23,6 +24,7 @@ class AppRoutes {
   static const String notification = '/notification';
   static const String createSpace = '/create_space';
   static const String mySpace = '/my_space';
+  static const String spaceSettings = '/space_settings';
   static const String upload = '/upload';
 
   // 路由映射表
@@ -35,6 +37,7 @@ class AppRoutes {
     notification: (context) => const NotificationPage(),
     createSpace: (context) => const CreateSpacePage(),
     mySpace: (context) => const MySpacePage(),
+    spaceSettings: (context) => const SpaceSettingsPage(),
     upload: (context) => const UploadPage(),
   };
 

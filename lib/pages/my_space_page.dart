@@ -182,10 +182,7 @@ class _MySpacePageState extends State<MySpacePage> {
               color: Colors.grey[700],
             ),
             onPressed: () {
-              // 跳转到空间设置
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('跳转到空间设置')),
-              );
+              Navigator.pushNamed(context, '/space_settings');
             },
           ),
         ],
@@ -455,8 +452,15 @@ class _MySpacePageState extends State<MySpacePage> {
                     onTap: () {
                       Navigator.pushNamed(
                         context,
-                        '/preview',
-                        arguments: image['url'],
+                        '/detail',
+                        arguments: {
+                          'id': image['id'],
+                          'url': image['url'],
+                          'title': image['title'],
+                          'likes': 0,
+                          'category': '我的图片',
+                          'aspectRatio': image['aspectRatio'],
+                        },
                       );
                     },
                     child: Container(

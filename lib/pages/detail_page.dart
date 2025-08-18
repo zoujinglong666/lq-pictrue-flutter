@@ -296,7 +296,7 @@ class _DetailPageState extends State<DetailPage> {
                   _buildInfoRow('快门速度', _imageDetails['shutterSpeed']),
                   _buildInfoRow('拍摄日期', _imageDetails['date']),
                   
-                  const SizedBox(height: 80), // 为底部按钮留出空间
+                //   const SizedBox(height: 80), // 为底部按钮留出空间
                 ],
               ),
             ),
