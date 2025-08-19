@@ -3,6 +3,7 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:lq_picture/model/picture.dart';
 
 import '../apis/picture_api.dart';
+import '../widgets/cached_image.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -270,22 +271,9 @@ class _HomePageState extends State<HomePage> {
                                         decoration: BoxDecoration(
                                           color: Colors.grey[100],
                                         ),
-                                        child: Image.network(
-                                          image.thumbnailUrl??image.url,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (context, error, stackTrace) {
-                                            return Container(
-                                              color: Colors.grey[200],
-                                              child: const Center(
-                                                child: Icon(
-                                                  Icons.image_not_supported_outlined,
-                                                  color: Colors.grey,
-                                                  size: 32,
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                        ),
+                                        child:  CachedImage(
+                                        fit: BoxFit.cover, imageUrl: image.thumbnailUrl??image.url,
+                                      ),
                                       ),
                                     ),
                                     Padding(

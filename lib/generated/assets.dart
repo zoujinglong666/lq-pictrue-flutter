@@ -57,6 +57,7 @@ class Assets {
   static const String routesAppRoutes = 'lib/routes/app_routes.dart';
   static const String utilsToastUtils = 'lib/utils/ToastUtils.dart';
   static const String widgetsCacheWebView = 'lib/widgets/CacheWebView.dart';
+  static const String widgetsCachedImage = 'lib/widgets/cached_image.dart';
   static const String widgetsShimmerEffect = 'lib/widgets/shimmer_effect.dart';
   static const String widgetsSimpleWebView = 'lib/widgets/SimpleWebView.dart';
   static const String widgetsSkeletonWidgets = 'lib/widgets/skeleton_widgets.dart';

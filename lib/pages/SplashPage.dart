@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lq_picture/pages/MainPage.dart';
 import 'package:lq_picture/pages/login_page.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../providers/auth_provider.dart';
-
 
 class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
@@ -18,23 +16,27 @@ class _SplashPageState extends ConsumerState<SplashPage> {
   @override
   void initState() {
     super.initState();
-    _initApp();
+    _checkAuthStatus();
   }
 
-  Future<void> _initApp() async {
+  Future<void> _checkAuthStatus() async {
     try {
-      await Future.delayed(const Duration(milliseconds: 100)); // 启动缓冲
-      final prefs = await SharedPreferences.getInstance();
+      // 给用户一些启动反馈
+      await Future.delayed(const Duration(milliseconds: 1000));
+
+      if (!mounted) return;
+
+      // 监听 auth 状态变化
       final authState = ref.read(authProvider);
 
-      // 步骤3: 导航到相应页面（减少延迟）
-      await Future.delayed(const Duration(milliseconds: 50)); // 进一步减少到50ms
+      if (!mounted) return;
 
-
-      if (!mounted) return; // 确保页面仍在树中
-      final targetPage = (authState.token  != null && authState.token!.isNotEmpty)
+      // 根据认证状态导航
+      final targetPage = (authState.token != null && authState.token!.isNotEmpty)
           ? const MainPage()
           : const LoginPage();
+
+      if (!mounted) return;
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => targetPage),
@@ -42,8 +44,10 @@ class _SplashPageState extends ConsumerState<SplashPage> {
     } catch (e) {
       debugPrint('启动时发生错误: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('初始化失败，请重启 App')),
+
+      // 错误时导航到登录页
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const LoginPage()),
       );
     }
   }
@@ -56,6 +60,14 @@ class _SplashPageState extends ConsumerState<SplashPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text(
+              '龙琪图库',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             SizedBox(height: 8),
             Text('正在加载...', style: TextStyle(color: Colors.grey)),
           ],
