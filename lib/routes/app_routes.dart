@@ -18,6 +18,7 @@ import 'package:lq_picture/pages/settings_page.dart';
 import 'package:lq_picture/pages/upload_page.dart';
 import 'package:lq_picture/pages/MainPage.dart';
 import 'package:lq_picture/pages/forbidden_page.dart';
+import 'package:lq_picture/pages/image_edit_page.dart';
 
 class AppRoutes {
   // 路由名称常量
@@ -40,6 +41,7 @@ class AppRoutes {
   static const String upload = '/upload';
   static const String forgotPassword = '/forgot_password';
   static const String forbidden = '/forbidden';
+  static const String imageEdit = '/image_edit';
 
   // 路由映射表
   static final Map<String, WidgetBuilder> _routes = {
@@ -60,6 +62,7 @@ class AppRoutes {
     upload: (context) => const UploadPage(),
     forgotPassword: (context) => const ForgotPasswordPage(),
     forbidden: (context) => const ForbiddenPage(),
+    imageEdit: (context) => const ImageEditPage(),
   };
 
   // 获取路由映射表
@@ -80,6 +83,16 @@ class AppRoutes {
         final imageUrl = settings.arguments as String;
         return MaterialPageRoute(
           builder: (context) => ImagePreviewPage(imageUrl: imageUrl),
+          settings: settings,
+        );
+      
+      case imageEdit:
+        final args = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          builder: (context) => ImageEditPage(
+            imageId: args?['imageId'],
+            imageData: args?['imageData'],
+          ),
           settings: settings,
         );
       

@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:lq_picture/routes/app_routes.dart';
+import 'package:lq_picture/utils/screenutil/screen_adapter.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
+
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
+
+    // 初始化屏幕适配
+    ScreenAdapter.init(context);
     return MaterialApp(
       title: '龙琪图库',
       theme: ThemeData(

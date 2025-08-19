@@ -463,24 +463,57 @@ class _MySpacePageState extends State<MySpacePage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            AspectRatio(
-                              aspectRatio: image['aspectRatio'],
-                              child: Image.network(
-                                image['url'],
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    color: Colors.grey[200],
-                                    child: const Center(
-                                      child: Icon(
-                                        Icons.image_not_supported_outlined,
-                                        color: Colors.grey,
-                                        size: 32,
+                            Stack(
+                              children: [
+                                AspectRatio(
+                                  aspectRatio: image['aspectRatio'],
+                                  child: Image.network(
+                                    image['url'],
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Container(
+                                        color: Colors.grey[200],
+                                        child: const Center(
+                                          child: Icon(
+                                            Icons.image_not_supported_outlined,
+                                            color: Colors.grey,
+                                            size: 32,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                                // 编辑按钮
+                                Positioned(
+                                  top: 8,
+                                  right: 8,
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      Navigator.pushNamed(
+                                        context,
+                                        '/image_edit',
+                                        arguments: {
+                                          'imageId': image['id'],
+                                          'imageData': image,
+                                        },
+                                      );
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withOpacity(0.6),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Icon(
+                                        Icons.edit,
+                                        color: Colors.white,
+                                        size: 16,
                                       ),
                                     ),
-                                  );
-                                },
-                              ),
+                                  ),
+                                ),
+                              ],
                             ),
                             Padding(
                               padding: const EdgeInsets.all(12),

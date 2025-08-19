@@ -50,8 +50,13 @@ dependencies:
   photo_view: ^0.15.0
   share_plus: ^10.1.2
   cached_network_image: ^3.3.1  # 图片缓存
+  # 屏幕适配
+  flutter_screenutil: ^5.8.0
+  # json解析
+  json_annotation: ^4.9.0
+  flutter_cache_manager: ^3.4.1
 flutter_launcher_icons:
-  image_path: "l"
+  image_path: "lib/assets/images/icon.png"
   image_path_android: "lib/assets/images/icon.png"
   android: true # can specify file name here e.g. "ic_launcher"
   ios: true
@@ -68,6 +73,19 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+# 配置 json_annotation 的全局转换器
+json_annotation:
+  options:
+    # 启用全局转换器
+    converters:
+      - 'package:lq_Picture/lib/utils/jsonConverter/safe_dateTime_converter.dart::SafeDateTimeConverter'
+      - 'package:lq_Picture/lib/utils/jsonConverter/safe_num_converter.dart::SafeNumConverter'
+      - 'package:lq_Picture/lib/utils/jsonConverter/safe_map_converter.dart::SafeMapConverter'
+      - 'package:lq_Picture/lib/utils/jsonConverter/safe_list_converter.dart::SafeListConverter'
+  # 通用配置
+  any_map: true
+  checked: false
+  explicit_to_json: true
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
