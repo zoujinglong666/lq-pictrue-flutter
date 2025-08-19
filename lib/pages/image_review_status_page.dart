@@ -146,16 +146,22 @@ class _ImageReviewStatusPageState extends State<ImageReviewStatusPage> {
           // 分割线
           Divider(height: 1, color: Colors.grey[200]),
           
-          // 图片列表
+          // 图片网格
           Expanded(
             child: _filteredImages.isEmpty
                 ? _buildEmptyState()
-                : ListView.builder(
+                : GridView.builder(
                     padding: const EdgeInsets.all(16),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 0.8,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                    ),
                     itemCount: _filteredImages.length,
                     itemBuilder: (context, index) {
                       final image = _filteredImages[index];
-                      return _buildImageReviewItem(image);
+                      return _buildImageReviewGridItem(image);
                     },
                   ),
           ),
@@ -199,161 +205,228 @@ class _ImageReviewStatusPageState extends State<ImageReviewStatusPage> {
     );
   }
 
-  // 图片审核项
-  Widget _buildImageReviewItem(Map<String, dynamic> image) {
-    // 根据状态设置颜色
-    Color statusColor;
-    IconData statusIcon;
-    
-    switch (image['status']) {
+  // 获取状态颜色和图标
+  Map<String, dynamic> _getStatusInfo(String status) {
+    switch (status) {
       case '待审核':
-        statusColor = Colors.orange;
-        statusIcon = Icons.hourglass_empty;
-        break;
+        return {'color': Colors.orange, 'icon': Icons.hourglass_empty};
       case '已通过':
-        statusColor = Colors.green;
-        statusIcon = Icons.check_circle_outline;
-        break;
+        return {'color': Colors.green, 'icon': Icons.check_circle_outline};
       case '已拒绝':
-        statusColor = Colors.red;
-        statusIcon = Icons.cancel_outlined;
-        break;
+        return {'color': Colors.red, 'icon': Icons.cancel_outlined};
       default:
-        statusColor = Colors.grey;
-        statusIcon = Icons.help_outline;
+        return {'color': Colors.grey, 'icon': Icons.help_outline};
     }
+  }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 图片信息部分
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                // 缩略图
-                Container(
-                  width: 70,
-                  height: 70,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.image,
-                    color: Colors.grey,
-                    size: 30,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                // 图片信息
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        image['name'],
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+  // 网格布局的图片审核项
+  Widget _buildImageReviewGridItem(Map<String, dynamic> image) {
+    final statusInfo = _getStatusInfo(image['status']);
+    final statusColor = statusInfo['color'] as Color;
+    final statusIcon = statusInfo['icon'] as IconData;
+    
+    return GestureDetector(
+      onTap: () {
+        // 点击查看详情
+        if (image['status'] == '已拒绝' && image['reason'].isNotEmpty) {
+          _showRejectReasonDialog(image);
+        }
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              blurRadius: 5,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 图片缩略图
+            Expanded(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // 图片容器
+                  ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(12),
+                      topRight: Radius.circular(12),
+                    ),
+                    child: Container(
+                      color: Colors.grey[200],
+                      child: const Icon(
+                        Icons.image,
+                        color: Colors.grey,
+                        size: 40,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '上传时间: ${image['uploadTime']}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
+                    ),
+                  ),
+                  // 状态标签
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      const SizedBox(height: 8),
-                      // 状态标签
-                      Row(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: statusColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  statusIcon,
-                                  size: 12,
-                                  color: statusColor,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  image['status'],
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: statusColor,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
+                          Icon(
+                            statusIcon,
+                            size: 12,
+                            color: statusColor,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            image['status'],
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          
-          // 拒绝原因（如果有）
-          if (image['status'] == '已拒绝' && image['reason'].isNotEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.red[50],
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(12),
-                  bottomRight: Radius.circular(12),
-                ),
+                  // 拒绝提示
+                  if (image['status'] == '已拒绝')
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        color: Colors.red.withOpacity(0.7),
+                        child: const Center(
+                          child: Text(
+                            '点击查看原因',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
+            ),
+            // 图片信息
+            Padding(
+              padding: const EdgeInsets.all(8.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    '拒绝原因:',
-                    style: TextStyle(
-                      fontSize: 12,
+                  Text(
+                    image['name'],
+                    style: const TextStyle(
                       fontWeight: FontWeight.w600,
-                      color: Colors.red,
+                      fontSize: 12,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    image['reason'],
+                    '上传: ${image['uploadTime'].split(' ')[0]}',
                     style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.red[800],
+                      fontSize: 10,
+                      color: Colors.grey[600],
                     ),
                   ),
                 ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  // 显示拒绝原因对话框
+  void _showRejectReasonDialog(Map<String, dynamic> image) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              Icons.cancel_outlined,
+              color: Colors.red,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              '审核未通过',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '图片名称: ${image['name']}',
+              style: const TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '上传时间: ${image['uploadTime']}',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              '拒绝原因:',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Colors.red,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red[50],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                image['reason'],
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.red[800],
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('关闭'),
+          ),
         ],
       ),
     );
