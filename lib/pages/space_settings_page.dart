@@ -141,9 +141,7 @@ class _SpaceSettingsPageState extends State<SpaceSettingsPage> {
                     ),
                   ),
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('跳转到升级页面')),
-                    );
+                    _showUpgradeDialog();
                   },
                 ),
                 const SizedBox(height: 16),
@@ -506,6 +504,95 @@ class _SpaceSettingsPageState extends State<SpaceSettingsPage> {
           Icon(
             Icons.chevron_right,
             color: Colors.grey[400],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showUpgradeDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('空间升级'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('升级到更高级别的空间可获得更多存储空间和功能。'),
+            const SizedBox(height: 16),
+            _buildUpgradeOption('专业版', '200GB存储空间，支持水印', Colors.purple),
+            const SizedBox(height: 12),
+            _buildUpgradeOption('旗舰版', '500GB存储空间，团队协作', Colors.orange),
+            const SizedBox(height: 16),
+            const Text(
+              '点击空间升级可联系作者邮箱进行联系升级相应版本',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('已复制作者邮箱: author@lqpicture.com')),
+              );
+            },
+            child: Text(
+              '联系作者',
+              style: TextStyle(color: Colors.blue[600]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUpgradeOption(String title, String features, Color color) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: color.withOpacity(0.3)),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.star,
+              color: color,
+              size: 14,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
+                ),
+                Text(
+                  features,
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ],
+            ),
           ),
         ],
       ),

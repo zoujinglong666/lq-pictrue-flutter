@@ -502,13 +502,13 @@ class _MySpacePageState extends State<MySpacePage> {
                                     child: Container(
                                       padding: const EdgeInsets.all(6),
                                       decoration: BoxDecoration(
-                                        color: Colors.black.withOpacity(0.6),
+                                        color: Colors.black.withOpacity(0.1),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: const Icon(
                                         Icons.edit,
                                         color: Colors.white,
-                                        size: 16,
+                                        size: 12,
                                       ),
                                     ),
                                   ),

@@ -19,6 +19,8 @@ import 'package:lq_picture/pages/upload_page.dart';
 import 'package:lq_picture/pages/MainPage.dart';
 import 'package:lq_picture/pages/forbidden_page.dart';
 import 'package:lq_picture/pages/image_edit_page.dart';
+import 'package:lq_picture/pages/image_review_status_page.dart';
+import 'package:lq_picture/pages/image_review_status_page.dart';
 
 class AppRoutes {
   // 路由名称常量
@@ -42,6 +44,7 @@ class AppRoutes {
   static const String forgotPassword = '/forgot_password';
   static const String forbidden = '/forbidden';
   static const String imageEdit = '/image_edit';
+  static const String imageReviewStatus = '/image_review_status';
 
   // 路由映射表
   static final Map<String, WidgetBuilder> _routes = {
@@ -63,6 +66,7 @@ class AppRoutes {
     forgotPassword: (context) => const ForgotPasswordPage(),
     forbidden: (context) => const ForbiddenPage(),
     imageEdit: (context) => const ImageEditPage(),
+    imageReviewStatus: (context) => const ImageReviewStatusPage(),
   };
 
   // 获取路由映射表

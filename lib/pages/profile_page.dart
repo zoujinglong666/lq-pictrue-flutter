@@ -177,6 +177,15 @@ class ProfilePage extends StatelessWidget {
               ),
               const Divider(height: 0.5),
               _buildActionTile(
+                icon: Icons.fact_check_outlined,
+                title: '审核状态',
+                subtitle: '查看图片审核进度和结果',
+                onTap: () => Navigator.pushNamed(context, '/image_review_status'),
+                iconColor: Colors.teal[600],
+                iconBgColor: Colors.teal[50],
+              ),
+              const Divider(height: 0.5),
+              _buildActionTile(
                 icon: Icons.favorite_border,
                 title: '我的收藏',
                 subtitle: '查看收藏的精美图片',
