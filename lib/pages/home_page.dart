@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:tdesign_flutter/tdesign_flutter.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -14,7 +15,8 @@ class _HomePageState extends State<HomePage> {
   bool _isLoading = false;
   bool _hasMore = true;
   int _currentPage = 1;
-
+  List<String> tagList = ["热门", "搞笑", "生活", "高清", "艺术", "校园", "背景", "简历", "创意"];
+  List<String> categoryList = ["模板", "电商", "表情包", "素材", "海报"];
   List<Map<String, dynamic>> _images = [
     {
       'id': '1',
@@ -230,7 +232,8 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
-
+            _buildDownSimple(context),
+            SizedBox(height: 16),
             // 瀑布流内容
             Expanded(
               child: RefreshIndicator(
@@ -372,7 +375,12 @@ class _HomePageState extends State<HomePage> {
                         padding: const EdgeInsets.all(16),
                         child: _isLoading
                             ? const Center(
-                                child: CircularProgressIndicator(),
+                                child: TDLoading(
+                                  size: TDLoadingSize.small,
+                                  icon: TDLoadingIcon.circle,
+                                  text: '加载中…',
+                                  axis: Axis.horizontal,
+                                ),
                               )
                             : !_hasMore
                                 ? Center(
@@ -396,4 +404,48 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
+
+
+  TDDropdownMenu _buildDownSimple(BuildContext context) {
+  // 将 tagList 转换为下拉选项
+  List<TDDropdownItemOption> tagOptions = [
+    TDDropdownItemOption(label: '全部标签', value: 'all', selected: true),
+    ...tagList.map((tag) => TDDropdownItemOption(label: tag, value: tag)),
+  ];
+
+  // 将 categoryList 转换为下拉选项
+  List<TDDropdownItemOption> categoryOptions = [
+    TDDropdownItemOption(label: '全部分类', value: 'all', selected: true),
+    ...categoryList.map((category) => TDDropdownItemOption(label: category, value: category)),
+  ];
+
+  return TDDropdownMenu(
+    direction: TDDropdownMenuDirection.down,
+    onMenuOpened: (value) {
+      print('打开第$value个菜单');
+    },
+    onMenuClosed: (value) {
+      print('关闭第$value个菜单');
+    },
+    items: [
+      TDDropdownItem(
+        options: tagOptions,
+        onChange: (value) {
+          print('标签选择：$value');
+          // 在这里添加处理标签筛选的逻辑
+        },
+      ),
+      TDDropdownItem(
+        options: categoryOptions,
+        onChange: (value) {
+          print('分类选择：$value');
+          // 在这里添加处理分类筛选的逻辑
+        },
+      ),
+      // 保留原有的排序选项
+
+    ],
+  );
+}
+
 }
