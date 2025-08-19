@@ -189,7 +189,7 @@ class ProfilePage extends StatelessWidget {
                 icon: Icons.favorite_border,
                 title: '我的收藏',
                 subtitle: '查看收藏的精美图片',
-                onTap: () {},
+                onTap: () => Navigator.pushNamed(context, '/favorites'),
                 iconColor: Colors.red[600],
                 iconBgColor: Colors.red[50],
               ),

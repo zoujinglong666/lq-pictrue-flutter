@@ -533,40 +533,343 @@ class _SpaceSettingsPageState extends State<SpaceSettingsPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('空间升级'),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: Colors.blue[600]!.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.upgrade,
+                color: Colors.blue[600],
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              '空间升级',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('升级到更高级别的空间可获得更多存储空间和功能。'),
-            const SizedBox(height: 16),
+            const Text(
+              '升级到更高级别的空间可获得更多存储空间和功能。',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 20),
             _buildUpgradeOption('专业版', '200GB存储空间，支持水印', Colors.purple),
             const SizedBox(height: 12),
             _buildUpgradeOption('旗舰版', '500GB存储空间，团队协作', Colors.orange),
-            const SizedBox(height: 16),
-            const Text(
-              '点击空间升级可联系作者邮箱进行联系升级相应版本',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
+            const SizedBox(height: 20),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.blue[200]!),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.contact_mail,
+                        color: Colors.blue[600],
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '作者联系方式',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.blue[700],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    '点击空间升级可联系作者邮箱进行联系升级相应版本',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.email_outlined,
+                        color: Colors.blue[600],
+                        size: 14,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'author@lqpicture.com',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.blue[700],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            child: Text(
+              '取消',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('已复制作者邮箱: author@lqpicture.com')),
-              );
+              _showContactAuthorDialog();
             },
-            child: Text(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue[600],
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
               '联系作者',
-              style: TextStyle(color: Colors.blue[600]),
+              style: TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showContactAuthorDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: Colors.green[600]!.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.person_outline,
+                color: Colors.green[600],
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              '作者联系方式',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: Column(
+                children: [
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundColor: Colors.blue[100],
+                    child: Icon(
+                      Icons.person,
+                      color: Colors.blue[600],
+                      size: 30,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'LQ Picture 开发者',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '专业的图片管理应用开发者',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildContactItem(
+              Icons.email_outlined,
+              '邮箱',
+              'author@lqpicture.com',
+              Colors.blue,
+              () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('已复制邮箱地址: author@lqpicture.com'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            _buildContactItem(
+              Icons.phone_outlined,
+              '微信',
+              'lqpicture_dev',
+              Colors.green,
+              () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('已复制微信号: lqpicture_dev'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            _buildContactItem(
+              Icons.language_outlined,
+              '官网',
+              'www.lqpicture.com',
+              Colors.orange,
+              () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('已复制官网地址: www.lqpicture.com'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            child: Text(
+              '关闭',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContactItem(IconData icon, String label, String value, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withOpacity(0.2)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Icon(
+                icon,
+                color: color,
+                size: 16,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: color,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.copy,
+              color: color,
+              size: 16,
+            ),
+          ],
+        ),
       ),
     );
   }
