@@ -185,6 +185,172 @@ class _SimpleWebViewState extends State<SimpleWebView> {
   Widget _buildWebView() {
     final webView = InAppWebView(
       initialUrlRequest: URLRequest(url: WebUri(widget.url)),
+      shouldOverrideUrlLoading: (controller, navigationAction) async {
+        final uri = navigationAction.request.url;
+        if (uri != null) {
+          final scheme = uri.scheme.toLowerCase();
+          
+          // 百度系 scheme
+          if (scheme == 'bdapp' || 
+              scheme == 'baiduboxapp' || 
+              scheme == 'baidumap' ||
+              scheme == 'bdnetdisk' ||
+              scheme == 'baiduyun' ||
+              scheme == 'baidutieba' ||
+              scheme == 'baidupan' ||
+              scheme.startsWith('baidu')) {
+            return NavigationActionPolicy.ALLOW;
+          }
+          
+          // 腾讯系 scheme
+          if (scheme == 'weixin' ||
+              scheme == 'wechat' ||
+              scheme == 'mqq' ||
+              scheme == 'mqqapi' ||
+              scheme == 'tim' ||
+              scheme == 'qqmusic' ||
+              scheme == 'tencentvideo' ||
+              scheme == 'qqlive' ||
+              scheme == 'tencent' ||
+              scheme.startsWith('tencent')) {
+            return NavigationActionPolicy.ALLOW;
+          }
+          
+          // 阿里系 scheme
+          if (scheme == 'alipay' ||
+              scheme == 'alipays' ||
+              scheme == 'taobao' ||
+              scheme == 'tmall' ||
+              scheme == 'dingtalk' ||
+              scheme == 'alipayhk' ||
+              scheme == 'alipayqr' ||
+              scheme == 'youku' ||
+              scheme == 'uc' ||
+              scheme == 'ucbrowser' ||
+              scheme.startsWith('ali')) {
+            return NavigationActionPolicy.ALLOW;
+          }
+          
+          // 字节跳动系 scheme
+          if (scheme == 'snssdk1128' ||  // 抖音
+              scheme == 'snssdk1233' ||  // 今日头条
+              scheme == 'awemesso' ||    // 抖音
+              scheme == 'toutiao' ||
+              scheme == 'douyin' ||
+              scheme == 'xigua' ||       // 西瓜视频
+              scheme == 'feishu' ||      // 飞书
+              scheme.startsWith('bytedance')) {
+            return NavigationActionPolicy.ALLOW;
+          }
+          
+          // 美团系 scheme
+          if (scheme == 'imeituan' ||
+              scheme == 'dianping' ||
+              scheme == 'meituan' ||
+              scheme == 'meituanwaimai' ||
+              scheme.startsWith('meituan')) {
+            return NavigationActionPolicy.ALLOW;
+          }
+          // 滴滴系 scheme
+          if (scheme == 'diditaxi' ||
+              scheme == 'didi' ||
+              scheme == 'didichuxing' ||
+              scheme.startsWith('didi')) {
+            return NavigationActionPolicy.ALLOW;
+          }
+          
+          // 京东系 scheme
+          if (scheme == 'openapp.jdmobile' ||
+              scheme == 'jdmobile' ||
+              scheme == 'jd' ||
+              scheme == 'jingdong' ||
+              scheme.startsWith('jd')) {
+            return NavigationActionPolicy.ALLOW;
+          }
+          
+          // 网易系 scheme
+          if (scheme == 'newsapp' ||     // 网易新闻
+              scheme == 'cloudmusic' ||  // 网易云音乐
+              scheme == 'netease' ||
+              scheme == 'yanxuan' ||     // 网易严选
+              scheme.startsWith('netease')) {
+            return NavigationActionPolicy.ALLOW;
+          }
+          
+          // 新浪系 scheme
+          if (scheme == 'sinaweibo' ||
+              scheme == 'weibo' ||
+              scheme == 'sina' ||
+              scheme.startsWith('sina')) {
+            return NavigationActionPolicy.ALLOW;
+          }
+          
+          // 小米系 scheme
+          if (scheme == 'mimarket' ||
+              scheme == 'xiaomi' ||
+              scheme == 'miui' ||
+              scheme.startsWith('xiaomi')) {
+            return NavigationActionPolicy.ALLOW;
+          }
+          
+          // 华为系 scheme
+          if (scheme == 'hwbrowser' ||
+              scheme == 'huawei' ||
+              scheme == 'hicloud' ||
+              scheme.startsWith('huawei')) {
+            return NavigationActionPolicy.ALLOW;
+          }
+          
+          // OPPO/VIVO 系 scheme
+          if (scheme == 'oppo' ||
+              scheme == 'vivo' ||
+              scheme.startsWith('oppo') ||
+              scheme.startsWith('vivo')) {
+            return NavigationActionPolicy.ALLOW;
+          }
+          
+          // 快手系 scheme
+          if (scheme == 'kwai' ||
+              scheme == 'kuaishou' ||
+              scheme.startsWith('kwai')) {
+            return NavigationActionPolicy.ALLOW;
+          }
+          
+          // B站系 scheme
+          if (scheme == 'bilibili' ||
+              scheme == 'bili' ||
+              scheme.startsWith('bilibili')) {
+            return NavigationActionPolicy.ALLOW;
+          }
+          
+          // 拼多多系 scheme
+          if (scheme == 'pinduoduo' ||
+              scheme == 'pdd' ||
+              scheme.startsWith('pinduoduo')) {
+            return NavigationActionPolicy.ALLOW;
+          }
+          
+          // 系统级 scheme
+          if (scheme == 'tel' || 
+              scheme == 'mailto' || 
+              scheme == 'sms' ||
+              scheme == 'http' ||
+              scheme == 'https' ||
+              scheme == 'ftp' ||
+              scheme == 'file') {
+            return NavigationActionPolicy.ALLOW;
+          }
+          
+          // 其他常见 scheme
+          if (scheme == 'market' ||      // 应用商店
+              scheme == 'intent' ||      // Android Intent
+              scheme == 'itms-apps' ||   // iOS App Store
+              scheme == 'itms-services') { // iOS 企业应用
+            return NavigationActionPolicy.ALLOW;
+          }
+        }
+        return NavigationActionPolicy.ALLOW;
+      },
       initialSettings: InAppWebViewSettings(
         /* ---------- 核心性能开关 ---------- */
         // 1. GPU 加速：保持默认 true，除非调试
