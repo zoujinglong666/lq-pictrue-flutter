@@ -678,7 +678,7 @@ class _MySpacePageState extends State<MySpacePage> {
                           Positioned.fill(
                             child: Container(
                               decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.7),
+                                color: Colors.black.withOpacity(0.5),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: SingleChildScrollView(
