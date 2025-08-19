@@ -181,18 +181,72 @@ class _SimpleWebViewState extends State<SimpleWebView>
           children: [
             // 进度条
             if (_isLoading)
-              AnimatedBuilder(
-                animation: _progressAnimation,
-                builder: (context, child) {
-                  return LinearProgressIndicator(
-                    value: _loadingProgress,
-                    backgroundColor: Colors.grey[200],
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      Theme.of(context).primaryColor,
-                    ),
-                    minHeight: 2,
-                  );
-                },
+              Container(
+                height: 3,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.grey[100]!,
+                      Colors.grey[200]!,
+                    ],
+                  ),
+                ),
+                child: AnimatedBuilder(
+                  animation: _progressAnimation,
+                  builder: (context, child) {
+                    return Stack(
+                      children: [
+                        // 背景
+                        Container(
+                          width: double.infinity,
+                          height: 3,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(1.5),
+                          ),
+                        ),
+                        // 进度条
+                        FractionallySizedBox(
+                          widthFactor: _loadingProgress,
+                          child: Container(
+                            height: 3,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Color(0xFF4FC3F7),
+                                  Color(0xFF29B6F6),
+                                  Color(0xFF03A9F4),
+                                ],
+                                stops: [0.0, 0.5, 1.0],
+                              ),
+                              borderRadius: BorderRadius.circular(1.5),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF4FC3F7).withOpacity(0.3),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ],
+                            ),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(1.5),
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.white.withOpacity(0.3),
+                                    Colors.transparent,
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
               ),
             // WebView
             Expanded(
