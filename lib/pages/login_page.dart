@@ -138,6 +138,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         controller: _usernameController,
                         decoration: InputDecoration(
                           labelText: '用户名',
+                          floatingLabelBehavior: FloatingLabelBehavior.never,
+                          hintText: '请输入用户名',
                           prefixIcon: Icon(
                             Icons.person_outline,
                             color: Colors.grey[600],
@@ -152,10 +154,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             horizontal: 16,
                             vertical: 16,
                           ),
+                          errorStyle: const TextStyle(
+                            height: 2,
+                          ),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return '请输入用户名';
+                          }
+                          if (!RegExp(r'^[a-zA-Z][a-zA-Z0-9]*$').hasMatch(value)) {
+                            return '用户名必须以字母开头，只能包含字母和数字';
                           }
                           return null;
                         },
@@ -182,6 +190,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         obscureText: !_isPasswordVisible,
                         decoration: InputDecoration(
                           labelText: '密码',
+                          floatingLabelBehavior: FloatingLabelBehavior.never,
+                          hintText: '请输入密码',
                           prefixIcon: Icon(
                             Icons.lock_outline,
                             color: Colors.grey[600],
@@ -209,6 +219,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             horizontal: 16,
                             vertical: 16,
                           ),
+                          errorStyle: const TextStyle(
+                            height: 2,
+                          ),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -216,6 +229,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           }
                           if (value.length < 6) {
                             return '密码长度至少6位';
+                          }
+                          if (!RegExp(r'^[a-zA-Z0-9!@#$%^&*(),.?":{}|<>]*$').hasMatch(value)) {
+                            return '密码只能包含字母、数字和特殊字符';
                           }
                           return null;
                         },

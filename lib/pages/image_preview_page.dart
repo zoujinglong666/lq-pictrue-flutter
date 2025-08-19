@@ -50,7 +50,10 @@ class _ImagePreviewPageState extends State<ImagePreviewPage> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: Center(
         child: GestureDetector(

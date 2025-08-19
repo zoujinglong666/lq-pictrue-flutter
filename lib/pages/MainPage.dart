@@ -186,20 +186,20 @@ class _CustomTabBar extends StatelessWidget {
                                   offset: const Offset(0, 4),
                                   spreadRadius: -2,
                                 ),
-                                // // 内发光效果
-                                // BoxShadow(
-                                //   color: Colors.white.withOpacity(0.6),
-                                //   blurRadius: 6,
-                                //   offset: const Offset(0, 1),
-                                //   spreadRadius: -3,
-                                // ),
-                                // // 底部深度阴影
-                                // BoxShadow(
-                                //   color: Colors.black.withOpacity(0.1),
-                                //   blurRadius: 8,
-                                //   offset: const Offset(0, 2),
-                                //   spreadRadius: -1,
-                                // ),
+                                // 内发光效果
+                                BoxShadow(
+                                  color: Colors.white.withOpacity(0.6),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 1),
+                                  spreadRadius: -3,
+                                ),
+                                // 底部深度阴影
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                  spreadRadius: -1,
+                                ),
                               ],
                             )
                           : null,

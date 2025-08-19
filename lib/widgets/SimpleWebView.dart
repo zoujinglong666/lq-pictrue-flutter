@@ -25,9 +25,13 @@ class SimpleWebView extends StatefulWidget {
   State<SimpleWebView> createState() => _SimpleWebViewState();
 }
 
-class _SimpleWebViewState extends State<SimpleWebView> {
+class _SimpleWebViewState extends State<SimpleWebView>
+    with TickerProviderStateMixin {
   late InAppWebViewController _controller;
+  double _loadingProgress = 0.0;
   bool _isLoading = true;
+  late AnimationController _progressController;
+  late Animation<double> _progressAnimation;
 
   bool _isFullscreen = false;
 
@@ -41,6 +45,25 @@ class _SimpleWebViewState extends State<SimpleWebView> {
     super.initState();
     // 先尝试缓存，如果没有则使用传入的title
     _innerTitle = _titleCache[widget.url] ?? widget.title;
+    
+    // 初始化进度条动画控制器
+    _progressController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _progressAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _progressController,
+      curve: Curves.easeInOut,
+    ));
+  }
+
+  @override
+  void dispose() {
+    _progressController.dispose();
+    super.dispose();
   }
 
   Future<void> _onRefresh() => _controller.reload();
@@ -154,10 +177,81 @@ class _SimpleWebViewState extends State<SimpleWebView> {
                   ),
                 ],
               ),
-        body: Stack(
+        body: Column(
           children: [
-            _buildWebView(),
-            if (_isLoading) const Center(child: CircularProgressIndicator()),
+            // 进度条
+            if (_isLoading)
+              Container(
+                height: 3,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.grey[100]!,
+                      Colors.grey[200]!,
+                    ],
+                  ),
+                ),
+                child: AnimatedBuilder(
+                  animation: _progressAnimation,
+                  builder: (context, child) {
+                    return Stack(
+                      children: [
+                        // 背景
+                        Container(
+                          width: double.infinity,
+                          height: 3,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(1.5),
+                          ),
+                        ),
+                        // 进度条
+                        FractionallySizedBox(
+                          widthFactor: _loadingProgress,
+                          child: Container(
+                            height: 3,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Color(0xFF4FC3F7),
+                                  Color(0xFF29B6F6),
+                                  Color(0xFF03A9F4),
+                                ],
+                                stops: [0.0, 0.5, 1.0],
+                              ),
+                              borderRadius: BorderRadius.circular(1.5),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF4FC3F7).withOpacity(0.3),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ],
+                            ),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(1.5),
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.white.withOpacity(0.3),
+                                    Colors.transparent,
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            // WebView
+            Expanded(
+              child: _buildWebView(),
+            ),
           ],
         ),
       ),
@@ -185,6 +279,172 @@ class _SimpleWebViewState extends State<SimpleWebView> {
   Widget _buildWebView() {
     final webView = InAppWebView(
       initialUrlRequest: URLRequest(url: WebUri(widget.url)),
+      shouldOverrideUrlLoading: (controller, navigationAction) async {
+        final uri = navigationAction.request.url;
+        if (uri != null) {
+          final scheme = uri.scheme.toLowerCase();
+          
+          // 百度系 scheme
+          if (scheme == 'bdapp' || 
+              scheme == 'baiduboxapp' || 
+              scheme == 'baidumap' ||
+              scheme == 'bdnetdisk' ||
+              scheme == 'baiduyun' ||
+              scheme == 'baidutieba' ||
+              scheme == 'baidupan' ||
+              scheme.startsWith('baidu')) {
+            return NavigationActionPolicy.ALLOW;
+          }
+          
+          // 腾讯系 scheme
+          if (scheme == 'weixin' ||
+              scheme == 'wechat' ||
+              scheme == 'mqq' ||
+              scheme == 'mqqapi' ||
+              scheme == 'tim' ||
+              scheme == 'qqmusic' ||
+              scheme == 'tencentvideo' ||
+              scheme == 'qqlive' ||
+              scheme == 'tencent' ||
+              scheme.startsWith('tencent')) {
+            return NavigationActionPolicy.ALLOW;
+          }
+          
+          // 阿里系 scheme
+          if (scheme == 'alipay' ||
+              scheme == 'alipays' ||
+              scheme == 'taobao' ||
+              scheme == 'tmall' ||
+              scheme == 'dingtalk' ||
+              scheme == 'alipayhk' ||
+              scheme == 'alipayqr' ||
+              scheme == 'youku' ||
+              scheme == 'uc' ||
+              scheme == 'ucbrowser' ||
+              scheme.startsWith('ali')) {
+            return NavigationActionPolicy.ALLOW;
+          }
+          
+          // 字节跳动系 scheme
+          if (scheme == 'snssdk1128' ||  // 抖音
+              scheme == 'snssdk1233' ||  // 今日头条
+              scheme == 'awemesso' ||    // 抖音
+              scheme == 'toutiao' ||
+              scheme == 'douyin' ||
+              scheme == 'xigua' ||       // 西瓜视频
+              scheme == 'feishu' ||      // 飞书
+              scheme.startsWith('bytedance')) {
+            return NavigationActionPolicy.ALLOW;
+          }
+          
+          // 美团系 scheme
+          if (scheme == 'imeituan' ||
+              scheme == 'dianping' ||
+              scheme == 'meituan' ||
+              scheme == 'meituanwaimai' ||
+              scheme.startsWith('meituan')) {
+            return NavigationActionPolicy.ALLOW;
+          }
+          // 滴滴系 scheme
+          if (scheme == 'diditaxi' ||
+              scheme == 'didi' ||
+              scheme == 'didichuxing' ||
+              scheme.startsWith('didi')) {
+            return NavigationActionPolicy.ALLOW;
+          }
+          
+          // 京东系 scheme
+          if (scheme == 'openapp.jdmobile' ||
+              scheme == 'jdmobile' ||
+              scheme == 'jd' ||
+              scheme == 'jingdong' ||
+              scheme.startsWith('jd')) {
+            return NavigationActionPolicy.ALLOW;
+          }
+          
+          // 网易系 scheme
+          if (scheme == 'newsapp' ||     // 网易新闻
+              scheme == 'cloudmusic' ||  // 网易云音乐
+              scheme == 'netease' ||
+              scheme == 'yanxuan' ||     // 网易严选
+              scheme.startsWith('netease')) {
+            return NavigationActionPolicy.ALLOW;
+          }
+          
+          // 新浪系 scheme
+          if (scheme == 'sinaweibo' ||
+              scheme == 'weibo' ||
+              scheme == 'sina' ||
+              scheme.startsWith('sina')) {
+            return NavigationActionPolicy.ALLOW;
+          }
+          
+          // 小米系 scheme
+          if (scheme == 'mimarket' ||
+              scheme == 'xiaomi' ||
+              scheme == 'miui' ||
+              scheme.startsWith('xiaomi')) {
+            return NavigationActionPolicy.ALLOW;
+          }
+          
+          // 华为系 scheme
+          if (scheme == 'hwbrowser' ||
+              scheme == 'huawei' ||
+              scheme == 'hicloud' ||
+              scheme.startsWith('huawei')) {
+            return NavigationActionPolicy.ALLOW;
+          }
+          
+          // OPPO/VIVO 系 scheme
+          if (scheme == 'oppo' ||
+              scheme == 'vivo' ||
+              scheme.startsWith('oppo') ||
+              scheme.startsWith('vivo')) {
+            return NavigationActionPolicy.ALLOW;
+          }
+          
+          // 快手系 scheme
+          if (scheme == 'kwai' ||
+              scheme == 'kuaishou' ||
+              scheme.startsWith('kwai')) {
+            return NavigationActionPolicy.ALLOW;
+          }
+          
+          // B站系 scheme
+          if (scheme == 'bilibili' ||
+              scheme == 'bili' ||
+              scheme.startsWith('bilibili')) {
+            return NavigationActionPolicy.ALLOW;
+          }
+          
+          // 拼多多系 scheme
+          if (scheme == 'pinduoduo' ||
+              scheme == 'pdd' ||
+              scheme.startsWith('pinduoduo')) {
+            return NavigationActionPolicy.ALLOW;
+          }
+          
+          // 系统级 scheme
+          if (scheme == 'tel' || 
+              scheme == 'mailto' || 
+              scheme == 'sms' ||
+              scheme == 'http' ||
+              scheme == 'https' ||
+              scheme == 'ftp' ||
+              scheme == 'file') {
+            return NavigationActionPolicy.ALLOW;
+          }
+          
+          // 其他常见 scheme
+          if (scheme == 'market' ||      // 应用商店
+              scheme == 'intent' ||      // Android Intent
+              scheme == 'itms-apps' ||   // iOS App Store
+              scheme == 'itms-services') { // iOS 企业应用
+            return NavigationActionPolicy.ALLOW;
+          }
+        }
+        return NavigationActionPolicy.ALLOW;
+      },
       initialSettings: InAppWebViewSettings(
         /* ---------- 核心性能开关 ---------- */
         // 1. GPU 加速：保持默认 true，除非调试
@@ -246,45 +506,70 @@ class _SimpleWebViewState extends State<SimpleWebView> {
       /* 其余 callbacks 不变 */
       onWebViewCreated: (c) => _controller = c,
       onLoadStart: (_, __) {
-        // 只负责 loading，不改标题
-        if (mounted) setState(() => _isLoading = true);
+        if (mounted) {
+          setState(() {
+            _isLoading = true;
+            _loadingProgress = 0.1; // 开始时显示一点进度
+          });
+          _progressController.forward();
+        }
+      },
+      onProgressChanged: (controller, progress) {
+        if (mounted) {
+          setState(() {
+            _loadingProgress = progress / 100.0;
+          });
+        }
       },
       onLoadError: (_, __, ___, ____) {
         if (mounted) {
           setState(() {
             _isLoading = false;
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text('加载失败')));
+            _loadingProgress = 0.0;
+          });
+          _progressController.reset();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('加载失败')),
+          );
+        }
+      },
+      onLoadStop: (controller, url) async {
+        String? raw = await controller.getTitle();
+
+        // 智能过滤：空 / 纯 URL / 纯域名
+        String validTitle = _isUrl(raw) || (raw?.trim().isEmpty ?? true)
+            ? widget.title
+            : raw!.trim();
+
+        // 缓存
+        if (url != null) {
+          _titleCache[url.toString()] = validTitle;
+        }
+
+        if (mounted) {
+          setState(() {
+            _innerTitle = validTitle;
+            _loadingProgress = 1.0; // 完成时设为100%
+          });
+          
+          // 延迟隐藏进度条，让用户看到100%的效果
+          Future.delayed(const Duration(milliseconds: 200), () {
+            if (mounted) {
+              setState(() {
+                _isLoading = false;
+              });
+              _progressController.reset();
+            }
           });
         }
       },
-
-        onLoadStop: (controller, url) async {
-          String? raw = await controller.getTitle();
-
-          // 智能过滤：空 / 纯 URL / 纯域名
-          String validTitle = _isUrl(raw) || (raw?.trim().isEmpty ?? true)
-              ? widget.title
-              : raw!.trim();
-
-          // 缓存
-          if (url != null) {
-            _titleCache[url.toString()] = validTitle;
-          }
-
-          if (mounted) {
-            setState(() {
-              _innerTitle = validTitle;
-              _isLoading = false;
-            });
-          }
-        },
       onReceivedError: (_, __, ___) {
         if (mounted) {
           setState(() {
             _isLoading = false;
+            _loadingProgress = 0.0;
           });
+          _progressController.reset();
         }
       },
 

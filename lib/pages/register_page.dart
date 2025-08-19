@@ -152,6 +152,8 @@ class _RegisterPageState extends State<RegisterPage> {
                         controller: _usernameController,
                         decoration: InputDecoration(
                           labelText: '用户名',
+                          floatingLabelBehavior: FloatingLabelBehavior.never,
+                          hintText: '请输入用户名',
                           prefixIcon: Icon(
                             Icons.person_outline,
                             color: Colors.grey[600],
@@ -166,6 +168,9 @@ class _RegisterPageState extends State<RegisterPage> {
                             horizontal: 16,
                             vertical: 16,
                           ),
+                          errorStyle: const TextStyle(
+                            height: 0.8,
+                          ),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -173,6 +178,9 @@ class _RegisterPageState extends State<RegisterPage> {
                           }
                           if (value.length < 3) {
                             return '用户名长度至少3位';
+                          }
+                          if (!RegExp(r'^[a-zA-Z][a-zA-Z0-9]*$').hasMatch(value)) {
+                            return '用户名必须以字母开头，只能包含字母和数字';
                           }
                           return null;
                         },
@@ -199,6 +207,8 @@ class _RegisterPageState extends State<RegisterPage> {
                         keyboardType: TextInputType.emailAddress,
                         decoration: InputDecoration(
                           labelText: '邮箱',
+                          floatingLabelBehavior: FloatingLabelBehavior.never,
+                          hintText: '请输入邮箱',
                           prefixIcon: Icon(
                             Icons.email_outlined,
                             color: Colors.grey[600],
@@ -212,6 +222,9 @@ class _RegisterPageState extends State<RegisterPage> {
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16,
                             vertical: 16,
+                          ),
+                          errorStyle: const TextStyle(
+                            height: 0.8,
                           ),
                         ),
                         validator: (value) {
@@ -246,6 +259,8 @@ class _RegisterPageState extends State<RegisterPage> {
                         obscureText: !_isPasswordVisible,
                         decoration: InputDecoration(
                           labelText: '密码',
+                          floatingLabelBehavior: FloatingLabelBehavior.never,
+                          hintText: '请输入密码',
                           prefixIcon: Icon(
                             Icons.lock_outline,
                             color: Colors.grey[600],
@@ -273,6 +288,9 @@ class _RegisterPageState extends State<RegisterPage> {
                             horizontal: 16,
                             vertical: 16,
                           ),
+                          errorStyle: const TextStyle(
+                            height: 0.8,
+                          ),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -280,6 +298,9 @@ class _RegisterPageState extends State<RegisterPage> {
                           }
                           if (value.length < 6) {
                             return '密码长度至少6位';
+                          }
+                          if (!RegExp(r'^[a-zA-Z0-9!@#$%^&*(),.?":{}|<>]*$').hasMatch(value)) {
+                            return '密码只能包含字母、数字和特殊字符';
                           }
                           return null;
                         },
@@ -306,6 +327,8 @@ class _RegisterPageState extends State<RegisterPage> {
                         obscureText: !_isConfirmPasswordVisible,
                         decoration: InputDecoration(
                           labelText: '确认密码',
+                          floatingLabelBehavior: FloatingLabelBehavior.never,
+                          hintText: '请再次输入密码',
                           prefixIcon: Icon(
                             Icons.lock_outline,
                             color: Colors.grey[600],
@@ -332,6 +355,9 @@ class _RegisterPageState extends State<RegisterPage> {
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16,
                             vertical: 16,
+                          ),
+                          errorStyle: const TextStyle(
+                            height: 0.8,
                           ),
                         ),
                         validator: (value) {

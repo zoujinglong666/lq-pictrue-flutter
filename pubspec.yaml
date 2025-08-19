@@ -27,16 +27,6 @@ environment:
 # dependencies can be manually updated by changing the version numbers below to
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
-
-# 组件依赖（会打包到程序包中）
-
-# 开发工具（本地开发依赖，仅开发测试用）
-dev_dependencies:
-  json_serializable: ^6.9.0
-  build_runner: ^2.4.13
-  flutter_test:
-    sdk: flutter
-  flutter_lints: ^5.0.0
 dependencies:
   flutter:
     sdk: flutter
@@ -65,13 +55,36 @@ dependencies:
   flutter_riverpod: ^2.6.1 #一个状态管理插件，它是 Provider 的改进版本，用于在 Flutter 应用中管理应用状态。
 
 flutter_launcher_icons:
-  image_path: "l"
+  image_path: "lib/assets/images/icon.png"
   image_path_android: "lib/assets/images/icon.png"
   android: true # can specify file name here e.g. "ic_launcher"
   ios: true
 launcher_name:
   default: "龙琪图库"
 
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # The "flutter_lints" package below contains a set of recommended lints to
+  # encourage good coding practices. The lint set provided by the package is
+  # activated in the `analysis_options.yaml` file located at the root of your
+  # package. See that file for information about deactivating specific lint
+  # rules and activating additional ones.
+  flutter_lints: ^5.0.0
+# 配置 json_annotation 的全局转换器
+json_annotation:
+  options:
+    # 启用全局转换器
+    converters:
+      - 'package:lq_Picture/lib/utils/jsonConverter/safe_dateTime_converter.dart::SafeDateTimeConverter'
+      - 'package:lq_Picture/lib/utils/jsonConverter/safe_num_converter.dart::SafeNumConverter'
+      - 'package:lq_Picture/lib/utils/jsonConverter/safe_map_converter.dart::SafeMapConverter'
+      - 'package:lq_Picture/lib/utils/jsonConverter/safe_list_converter.dart::SafeListConverter'
+  # 通用配置
+  any_map: true
+  checked: false
+  explicit_to_json: true
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

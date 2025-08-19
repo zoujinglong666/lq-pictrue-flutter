@@ -13,6 +13,8 @@ class _MySpacePageState extends State<MySpacePage> {
   bool _isLoading = false;
   bool _hasMore = true;
   int _currentPage = 1;
+  String? _selectedImageId;
+  bool _showActionOverlay = false;
 
   // 模拟空间信息
   final Map<String, dynamic> _spaceInfo = {
@@ -128,6 +130,103 @@ class _MySpacePageState extends State<MySpacePage> {
     });
   }
 
+  void _hideActionOverlay() {
+    setState(() {
+      _showActionOverlay = false;
+      _selectedImageId = null;
+    });
+  }
+
+  void _showImageActions(String imageId) {
+    setState(() {
+      _selectedImageId = imageId;
+      _showActionOverlay = true;
+    });
+  }
+
+  Future<void> _deleteImage(String imageId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('删除图片'),
+        content: const Text('确定要删除这张图片吗？删除后无法恢复。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      setState(() {
+        _images.removeWhere((image) => image['id'] == imageId);
+      });
+      _hideActionOverlay();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('图片已删除'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    }
+  }
+
+  void _moveToTrash(String imageId) {
+    setState(() {
+      final image = _images.firstWhere((img) => img['id'] == imageId);
+      image['isInTrash'] = true;
+    });
+    _hideActionOverlay();
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('图片已移至回收站'),
+          backgroundColor: Colors.orange,
+          action: SnackBarAction(
+            label: '撤销',
+            onPressed: () {
+              setState(() {
+                final image = _images.firstWhere((img) => img['id'] == imageId);
+                image['isInTrash'] = false;
+              });
+            },
+          ),
+        ),
+      );
+    }
+  }
+
+  void _shareImage(String imageId) {
+    _hideActionOverlay();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('分享功能开发中...'),
+        backgroundColor: Colors.blue,
+      ),
+    );
+  }
+
+  void _downloadImage(String imageId) {
+    _hideActionOverlay();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('图片下载中...'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
   String _formatFileSize(int bytes) {
     if (bytes < 1024) return '${bytes}B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)}KB';
@@ -155,9 +254,15 @@ class _MySpacePageState extends State<MySpacePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
+    return GestureDetector(
+      onTap: () {
+        if (_showActionOverlay) {
+          _hideActionOverlay();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.grey[50],
+        appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
@@ -431,97 +536,230 @@ class _MySpacePageState extends State<MySpacePage> {
                 childCount: _images.length,
                 itemBuilder: (context, index) {
                   final image = _images[index];
+                  final isSelected = _selectedImageId == image['id'];
+                  
                   return GestureDetector(
                     onTap: () {
-                      Navigator.pushNamed(
-                        context,
-                        '/detail',
-                        arguments: {
-                          'id': image['id'],
-                          'url': image['url'],
-                          'title': image['title'],
-                          'likes': 0,
-                          'category': '我的图片',
-                          'aspectRatio': image['aspectRatio'],
-                        },
-                      );
+                      if (_showActionOverlay) {
+                        _hideActionOverlay();
+                      } else {
+                        Navigator.pushNamed(
+                          context,
+                          '/detail',
+                          arguments: {
+                            'id': image['id'],
+                            'url': image['url'],
+                            'title': image['title'],
+                            'likes': 0,
+                            'category': '我的图片',
+                            'aspectRatio': image['aspectRatio'],
+                          },
+                        );
+                      }
                     },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.04),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
+                    onLongPress: () {
+                      _showImageActions(image['id']);
+                    },
+                    child: Stack(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.04),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            AspectRatio(
-                              aspectRatio: image['aspectRatio'],
-                              child: Image.network(
-                                image['url'],
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    color: Colors.grey[200],
-                                    child: const Center(
-                                      child: Icon(
-                                        Icons.image_not_supported_outlined,
-                                        color: Colors.grey,
-                                        size: 32,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Stack(
+                                  children: [
+                                    AspectRatio(
+                                      aspectRatio: image['aspectRatio'],
+                                      child: Image.network(
+                                        image['url'],
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) {
+                                          return Container(
+                                            color: Colors.grey[200],
+                                            child: const Center(
+                                              child: Icon(
+                                                Icons.image_not_supported_outlined,
+                                                color: Colors.grey,
+                                                size: 32,
+                                              ),
+                                            ),
+                                          );
+                                        },
                                       ),
                                     ),
-                                  );
-                                },
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    image['title'],
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
+                                    // 编辑按钮
+                                    if (!_showActionOverlay)
+                                      Positioned(
+                                        top: 8,
+                                        right: 8,
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            Navigator.pushNamed(
+                                              context,
+                                              '/image_edit',
+                                              arguments: {
+                                                'imageId': image['id'],
+                                                'imageData': image,
+                                              },
+                                            );
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.all(6),
+                                            decoration: BoxDecoration(
+                                              color: Colors.black.withOpacity(0.1),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: const Icon(
+                                              Icons.edit,
+                                              color: Colors.white,
+                                              size: 12,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        image['size'],
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey[600],
+                                        image['title'],
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
                                         ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                      const Spacer(),
-                                      Text(
-                                        image['uploadTime'],
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey[500],
-                                        ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            image['size'],
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
+                                          const Spacer(),
+                                          Text(
+                                            image['uploadTime'],
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey[500],
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
-                                ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        // 操作遮罩
+                        if (isSelected && _showActionOverlay)
+                          Positioned.fill(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.5),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: SingleChildScrollView(
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    minHeight: MediaQuery.of(context).size.height * 0.2,
+                                  ),
+                                  child: IntrinsicHeight(
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const SizedBox(height: 8),
+                                        // 操作按钮网格 - 使用更紧凑的布局
+                                        Flexible(
+                                          child: Wrap(
+                                            spacing: 8,
+                                            runSpacing: 8,
+                                            alignment: WrapAlignment.center,
+                                            children: [
+                                              _buildCompactActionButton(
+                                                icon: Icons.share_outlined,
+                                                label: '分享',
+                                                color: Colors.blue,
+                                                onTap: () => _shareImage(image['id']),
+                                              ),
+                                              _buildCompactActionButton(
+                                                icon: Icons.download_outlined,
+                                                label: '下载',
+                                                color: Colors.green,
+                                                onTap: () => _downloadImage(image['id']),
+                                              ),
+                                              _buildCompactActionButton(
+                                                icon: Icons.delete_outline,
+                                                label: '回收站',
+                                                color: Colors.orange,
+                                                onTap: () => _moveToTrash(image['id']),
+                                              ),
+                                              _buildCompactActionButton(
+                                                icon: Icons.delete_forever_outlined,
+                                                label: '删除',
+                                                color: Colors.red,
+                                                onTap: () => _deleteImage(image['id']),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        // 取消按钮
+                                        GestureDetector(
+                                          onTap: _hideActionOverlay,
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                              vertical: 6,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withOpacity(0.2),
+                                              borderRadius: BorderRadius.circular(16),
+                                              border: Border.all(
+                                                color: Colors.white.withOpacity(0.3),
+                                              ),
+                                            ),
+                                            child: const Text(
+                                              '取消',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                      ],
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
-                          ],
-                        ),
-                      ),
+                          ),
+                      ],
                     ),
                   );
                 },
@@ -552,6 +790,7 @@ class _MySpacePageState extends State<MySpacePage> {
           ],
         ),
       ),
+    )
     );
   }
 
@@ -591,6 +830,94 @@ class _MySpacePageState extends State<MySpacePage> {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: color.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: Icon(
+              icon,
+              color: color,
+              size: 24,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompactActionButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: color.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: Icon(
+              icon,
+              color: color,
+              size: 18,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 9,
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
