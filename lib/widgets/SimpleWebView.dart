@@ -25,9 +25,13 @@ class SimpleWebView extends StatefulWidget {
   State<SimpleWebView> createState() => _SimpleWebViewState();
 }
 
-class _SimpleWebViewState extends State<SimpleWebView> {
+class _SimpleWebViewState extends State<SimpleWebView>
+    with TickerProviderStateMixin {
   late InAppWebViewController _controller;
+  double _loadingProgress = 0.0;
   bool _isLoading = true;
+  late AnimationController _progressController;
+  late Animation<double> _progressAnimation;
 
   bool _isFullscreen = false;
 
@@ -41,6 +45,25 @@ class _SimpleWebViewState extends State<SimpleWebView> {
     super.initState();
     // 先尝试缓存，如果没有则使用传入的title
     _innerTitle = _titleCache[widget.url] ?? widget.title;
+    
+    // 初始化进度条动画控制器
+    _progressController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _progressAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _progressController,
+      curve: Curves.easeInOut,
+    ));
+  }
+
+  @override
+  void dispose() {
+    _progressController.dispose();
+    super.dispose();
   }
 
   Future<void> _onRefresh() => _controller.reload();
@@ -154,10 +177,27 @@ class _SimpleWebViewState extends State<SimpleWebView> {
                   ),
                 ],
               ),
-        body: Stack(
+        body: Column(
           children: [
-            _buildWebView(),
-            if (_isLoading) const Center(child: CircularProgressIndicator()),
+            // 进度条
+            if (_isLoading)
+              AnimatedBuilder(
+                animation: _progressAnimation,
+                builder: (context, child) {
+                  return LinearProgressIndicator(
+                    value: _loadingProgress,
+                    backgroundColor: Colors.grey[200],
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Theme.of(context).primaryColor,
+                    ),
+                    minHeight: 2,
+                  );
+                },
+              ),
+            // WebView
+            Expanded(
+              child: _buildWebView(),
+            ),
           ],
         ),
       ),
@@ -412,45 +452,70 @@ class _SimpleWebViewState extends State<SimpleWebView> {
       /* 其余 callbacks 不变 */
       onWebViewCreated: (c) => _controller = c,
       onLoadStart: (_, __) {
-        // 只负责 loading，不改标题
-        if (mounted) setState(() => _isLoading = true);
+        if (mounted) {
+          setState(() {
+            _isLoading = true;
+            _loadingProgress = 0.1; // 开始时显示一点进度
+          });
+          _progressController.forward();
+        }
+      },
+      onProgressChanged: (controller, progress) {
+        if (mounted) {
+          setState(() {
+            _loadingProgress = progress / 100.0;
+          });
+        }
       },
       onLoadError: (_, __, ___, ____) {
         if (mounted) {
           setState(() {
             _isLoading = false;
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text('加载失败')));
+            _loadingProgress = 0.0;
+          });
+          _progressController.reset();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('加载失败')),
+          );
+        }
+      },
+      onLoadStop: (controller, url) async {
+        String? raw = await controller.getTitle();
+
+        // 智能过滤：空 / 纯 URL / 纯域名
+        String validTitle = _isUrl(raw) || (raw?.trim().isEmpty ?? true)
+            ? widget.title
+            : raw!.trim();
+
+        // 缓存
+        if (url != null) {
+          _titleCache[url.toString()] = validTitle;
+        }
+
+        if (mounted) {
+          setState(() {
+            _innerTitle = validTitle;
+            _loadingProgress = 1.0; // 完成时设为100%
+          });
+          
+          // 延迟隐藏进度条，让用户看到100%的效果
+          Future.delayed(const Duration(milliseconds: 200), () {
+            if (mounted) {
+              setState(() {
+                _isLoading = false;
+              });
+              _progressController.reset();
+            }
           });
         }
       },
-
-        onLoadStop: (controller, url) async {
-          String? raw = await controller.getTitle();
-
-          // 智能过滤：空 / 纯 URL / 纯域名
-          String validTitle = _isUrl(raw) || (raw?.trim().isEmpty ?? true)
-              ? widget.title
-              : raw!.trim();
-
-          // 缓存
-          if (url != null) {
-            _titleCache[url.toString()] = validTitle;
-          }
-
-          if (mounted) {
-            setState(() {
-              _innerTitle = validTitle;
-              _isLoading = false;
-            });
-          }
-        },
       onReceivedError: (_, __, ___) {
         if (mounted) {
           setState(() {
             _isLoading = false;
+            _loadingProgress = 0.0;
           });
+          _progressController.reset();
         }
       },
 
