@@ -337,7 +337,7 @@ class _UploadPageState extends State<UploadPage> with SingleTickerProviderStateM
             width: double.infinity,
             constraints: BoxConstraints(
               minHeight: 200,
-              maxHeight: _selectedImages.isEmpty ? 200 : 320, // 动态调整高度
+              maxHeight: _selectedImages.isEmpty ? 200 : 280, // 动态调整高度
             ),
             decoration: BoxDecoration(
               color: Colors.grey[50],

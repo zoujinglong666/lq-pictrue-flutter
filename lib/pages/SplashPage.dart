@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lq_picture/pages/MainPage.dart';
 import 'package:lq_picture/pages/login_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tdesign_flutter/tdesign_flutter.dart';
 
 
 class SplashPage extends StatefulWidget {
@@ -47,9 +48,12 @@ class _SplashPageState extends State<SplashPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 8),
-            Text('正在加载...', style: TextStyle(color: Colors.grey)),
+             TDLoading(
+              size: TDLoadingSize.large,
+              icon: TDLoadingIcon.circle,
+              text: '加载中…',
+              axis: Axis.horizontal,
+            ),
           ],
         ),
       ),
