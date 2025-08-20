@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/keyboard_utils.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -7,7 +8,7 @@ class SearchPage extends StatefulWidget {
   State<SearchPage> createState() => _SearchPageState();
 }
 
-class _SearchPageState extends State<SearchPage> {
+class _SearchPageState extends State<SearchPage> with KeyboardDismissMixin {
   final TextEditingController _searchController = TextEditingController();
   final List<String> _recentSearches = ['风景', '人像摄影', '城市建筑', '自然'];
   final List<String> _popularTags = ['风景', '人像', '城市', '自然', '黑白', '街拍', '建筑', '美食', '旅行', '动物'];
@@ -24,7 +25,7 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return buildWithKeyboardDismiss(
       body: CustomScrollView(
         slivers: [
           // 搜索头部

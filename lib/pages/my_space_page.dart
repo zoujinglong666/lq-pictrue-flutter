@@ -9,6 +9,7 @@ import 'package:lq_picture/pages/upload_page.dart';
 import '../apis/picture_api.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/cached_image.dart';
+import '../utils/keyboard_utils.dart';
 
 class MySpacePage extends ConsumerStatefulWidget {
   const MySpacePage({super.key});
@@ -17,7 +18,7 @@ class MySpacePage extends ConsumerStatefulWidget {
   ConsumerState<MySpacePage> createState() => _MySpacePageState();
 }
 
-class _MySpacePageState extends ConsumerState<MySpacePage> {
+class _MySpacePageState extends ConsumerState<MySpacePage> with KeyboardDismissMixin {
   final ScrollController _scrollController = ScrollController();
   bool _isLoading = false;
   bool _hasMore = true;
@@ -35,11 +36,18 @@ class _MySpacePageState extends ConsumerState<MySpacePage> {
   @override
   void initState() {
     super.initState();
-    _getMySpaceData();
-    _loadData();
+
+    _getMySpaceData().then((value) {
+      _loadData();
+    });
     _scrollController.addListener(_onScroll);
   }
-
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadMoreImages();
+    }
+  }
   Future<void> _getMySpaceData() async {
     try {
       // 获取用户认证状态
@@ -70,12 +78,7 @@ class _MySpacePageState extends ConsumerState<MySpacePage> {
     }
   }
 
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      _loadMoreImages();
-    }
-  }
+
 
   Future<void> _loadData() async {
     if (_isLoading) return;
@@ -280,15 +283,9 @@ class _MySpacePageState extends ConsumerState<MySpacePage> {
     // 防止除以0或产生NaN
     double progress = (max > 0) ? (total / max).clamp(0.0, 1.0) : 0.0;
 
-    return GestureDetector(
-      onTap: () {
-        if (_showActionOverlay) {
-          _hideActionOverlay();
-        }
-      },
-      child: Scaffold(
-        backgroundColor: Colors.grey[50],
-        appBar: AppBar(
+    return buildWithKeyboardDismiss(
+      backgroundColor: Colors.grey[50],
+      appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,
           leading: IconButton(
@@ -307,12 +304,21 @@ class _MySpacePageState extends ConsumerState<MySpacePage> {
             IconButton(
               icon: Icon(Icons.settings_outlined, color: Colors.grey[700]),
               onPressed: () {
+
+
+
                 Navigator.pushNamed(context, '/space_settings');
               },
             ),
           ],
         ),
-        body: RefreshIndicator(
+      body: GestureDetector(
+        onTap: () {
+          if (_showActionOverlay) {
+            _hideActionOverlay();
+          }
+        },
+        child: RefreshIndicator(
           onRefresh: () async {
             setState(() {
               _currentPage = 1;

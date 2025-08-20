@@ -85,6 +85,14 @@ class UserApi {
     return result.toModel((json) => LoginUserVO.fromJson(json));
   }
 
+
+  static Future<bool> userLogout() async {
+    final result = await Http.post<Result>(
+      "/user/logout",
+    );
+    return result.toBoolean() ;
+  }
+
   /// 获取当前用户信息
   static Future<UserDto> getCurrentUser() async {
     final result = await Http.get<Result>("/user/current");

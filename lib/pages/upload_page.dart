@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:lq_picture/apis/picture_api.dart';
 import 'package:lq_picture/providers/auth_provider.dart';
+import 'package:lq_picture/utils/keyboard_utils.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
@@ -45,7 +46,7 @@ class _CustomPainter extends BoxPainter {
 }
 
 class _UploadPageState extends ConsumerState<UploadPage>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, KeyboardDismissMixin {
   late TabController _tabController;
 
   // 文件上传相关
@@ -677,7 +678,7 @@ class _UploadPageState extends ConsumerState<UploadPage>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return buildWithKeyboardDismiss(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/keyboard_utils.dart';
 
 class SpaceManagementPage extends StatefulWidget {
   const SpaceManagementPage({super.key});
@@ -7,7 +8,7 @@ class SpaceManagementPage extends StatefulWidget {
   State<SpaceManagementPage> createState() => _SpaceManagementPageState();
 }
 
-class _SpaceManagementPageState extends State<SpaceManagementPage> {
+class _SpaceManagementPageState extends State<SpaceManagementPage> with KeyboardDismissMixin {
   final TextEditingController _searchController = TextEditingController();
   String _selectedLevel = '全部';
   List<SpaceItem> _spaces = [];
@@ -371,7 +372,7 @@ class _SpaceManagementPageState extends State<SpaceManagementPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return buildWithKeyboardDismiss(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         backgroundColor: Colors.white,

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lq_picture/apis/user_api.dart';
 import 'package:lq_picture/model/user.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -79,16 +80,20 @@ Future<void> setLoginUser(LoginUserVO user) async {
   final prefs = await SharedPreferences.getInstance();
   await prefs.setString(_storageKey, jsonEncode(state.toJson()));
 }
-
+  Future<void> apiLogout() async {
+    final res=await UserApi.userLogout();
+  }
 
   /// ✅ 登出
   Future<void> logout() async {
-
+    await apiLogout();
     state = AuthState(isInitialized: true);
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_storageKey);
     await prefs.remove('token');
   }
+
+
 
   // ✅ Getter
   LoginUserVO? get user => state.user;

@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:ui';
 
 import 'package:dio/dio.dart';
 import 'package:lq_picture/model/picture.dart';
+import 'package:lq_picture/pages/picture_management_page.dart';
 
 import '../model/page.dart';
 import '../model/result.dart';
@@ -103,7 +103,166 @@ class PictureUploadVO {
     return data;
   }
 }
+PictureItem pictureItemFromJson(String str) => PictureItem.fromJson(json.decode(str));
 
+String pictureItemToJson(PictureItem data) => json.encode(data.toJson());
+
+class PictureItem {
+  final String id;
+  final String url;
+  final dynamic thumbnailUrl;
+  final String name;
+  final dynamic introduction;
+  final dynamic category;
+  final dynamic tags;
+  final String picSize;
+  final int picWidth;
+  final int picHeight;
+  final double picScale;
+  final String picFormat;
+  final String userId;
+  final dynamic spaceId;
+  final int reviewStatus;
+  final dynamic reviewMessage;
+  final String reviewerId;
+  final DateTime reviewTime;
+  final DateTime createTime;
+  final DateTime editTime;
+  final DateTime updateTime;
+  final int isDelete;
+
+  PictureItem({
+    required this.id,
+    required this.url,
+    required this.thumbnailUrl,
+    required this.name,
+    required this.introduction,
+    required this.category,
+    required this.tags,
+    required this.picSize,
+    required this.picWidth,
+    required this.picHeight,
+    required this.picScale,
+    required this.picFormat,
+    required this.userId,
+    required this.spaceId,
+    required this.reviewStatus,
+    required this.reviewMessage,
+    required this.reviewerId,
+    required this.reviewTime,
+    required this.createTime,
+    required this.editTime,
+    required this.updateTime,
+    required this.isDelete,
+  });
+
+  PictureItem copyWith({
+    String? id,
+    String? url,
+    dynamic thumbnailUrl,
+    String? name,
+    dynamic introduction,
+    dynamic category,
+    dynamic tags,
+    String? picSize,
+    int? picWidth,
+    int? picHeight,
+    double? picScale,
+    String? picFormat,
+    String? userId,
+    dynamic spaceId,
+    int? reviewStatus,
+    dynamic reviewMessage,
+    String? reviewerId,
+    DateTime? reviewTime,
+    DateTime? createTime,
+    DateTime? editTime,
+    DateTime? updateTime,
+    int? isDelete,
+  }) =>
+      PictureItem(
+        id: id ?? this.id,
+        url: url ?? this.url,
+        thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+        name: name ?? this.name,
+        introduction: introduction ?? this.introduction,
+        category: category ?? this.category,
+        tags: tags ?? this.tags,
+        picSize: picSize ?? this.picSize,
+        picWidth: picWidth ?? this.picWidth,
+        picHeight: picHeight ?? this.picHeight,
+        picScale: picScale ?? this.picScale,
+        picFormat: picFormat ?? this.picFormat,
+        userId: userId ?? this.userId,
+        spaceId: spaceId ?? this.spaceId,
+        reviewStatus: reviewStatus ?? this.reviewStatus,
+        reviewMessage: reviewMessage ?? this.reviewMessage,
+        reviewerId: reviewerId ?? this.reviewerId,
+        reviewTime: reviewTime ?? this.reviewTime,
+        createTime: createTime ?? this.createTime,
+        editTime: editTime ?? this.editTime,
+        updateTime: updateTime ?? this.updateTime,
+        isDelete: isDelete ?? this.isDelete,
+      );
+
+  factory PictureItem.fromJson(Map<String, dynamic> json) => PictureItem(
+    id: json["id"],
+    url: json["url"],
+    thumbnailUrl: json["thumbnailUrl"],
+    name: json["name"],
+    introduction: json["introduction"],
+    category: json["category"],
+    tags: json["tags"],
+    picSize: json["picSize"],
+    picWidth: json["picWidth"],
+    picHeight: json["picHeight"],
+    picScale: json["picScale"]?.toDouble(),
+    picFormat: json["picFormat"],
+    userId: json["userId"],
+    spaceId: json["spaceId"],
+    reviewStatus: json["reviewStatus"],
+    reviewMessage: json["reviewMessage"],
+    reviewerId: json["reviewerId"]??"",
+    reviewTime: json["reviewTime"] != null
+        ? DateTime.fromMillisecondsSinceEpoch(json["reviewTime"])
+        : DateTime.now(),
+    createTime: json["createTime"] != null
+        ? DateTime.fromMillisecondsSinceEpoch(json["createTime"])
+        : DateTime.now(),
+    editTime: json["editTime"] != null
+        ? DateTime.fromMillisecondsSinceEpoch(json["editTime"])
+        : DateTime.now(),
+    updateTime: json["updateTime"] != null
+        ? DateTime.fromMillisecondsSinceEpoch(json["updateTime"])
+        : DateTime.now(),
+    isDelete: json["isDelete"],
+  );
+
+  Map<String, dynamic> toJson() => {
+    "id": id,
+    "url": url,
+    "thumbnailUrl": thumbnailUrl,
+    "name": name,
+    "introduction": introduction,
+    "category": category,
+    "tags": tags,
+    "picSize": picSize,
+    "picWidth": picWidth,
+    "picHeight": picHeight,
+    "picScale": picScale,
+    "picFormat": picFormat,
+    "userId": userId,
+    "spaceId": spaceId,
+    "reviewStatus": reviewStatus,
+    "reviewMessage": reviewMessage,
+    "reviewerId": reviewerId,
+    "reviewTime": reviewTime.millisecondsSinceEpoch,
+    "createTime": createTime.millisecondsSinceEpoch,
+    "editTime": editTime.millisecondsSinceEpoch,
+    "updateTime": updateTime.millisecondsSinceEpoch,
+    "isDelete": isDelete,
+  };
+}
 class PictureApi {
   /// 获取图片列表
   static Future<Page<PictureVO>> getList(Map<String, dynamic> data) async {
@@ -113,6 +272,15 @@ class PictureApi {
     );
 
     return result.toModel((json) => Page.fromJson(json, (item) => PictureVO.fromJson(item)));
+  }
+
+  static Future<Page<PictureItem>> getAllList(Map<String, dynamic> data) async {
+    final result = await Http.post<Result>(
+      "/picture/list/page",
+      data: data,
+    );
+
+    return result.toModel((json) => Page.fromJson(json, (item) => PictureItem.fromJson(item)));
   }
 static Future<bool> editPicture(Map<String, dynamic> data) async {
   final result = await Http.post<Result>(

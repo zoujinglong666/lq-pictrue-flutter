@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lq_picture/model/picture.dart';
+import '../utils/keyboard_utils.dart';
 
 class ImageEditPage extends StatefulWidget {
   final PictureVO? imageData;
@@ -13,7 +14,7 @@ class ImageEditPage extends StatefulWidget {
   State<ImageEditPage> createState() => _ImageEditPageState();
 }
 
-class _ImageEditPageState extends State<ImageEditPage> {
+class _ImageEditPageState extends State<ImageEditPage> with KeyboardDismissMixin {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _introductionController = TextEditingController();
@@ -130,7 +131,7 @@ class _ImageEditPageState extends State<ImageEditPage> {
   
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return buildWithKeyboardDismiss(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         backgroundColor: Colors.white,

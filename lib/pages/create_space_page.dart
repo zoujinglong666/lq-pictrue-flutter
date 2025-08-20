@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/keyboard_utils.dart';
 
 class CreateSpacePage extends StatefulWidget {
   const CreateSpacePage({super.key});
@@ -7,7 +8,7 @@ class CreateSpacePage extends StatefulWidget {
   State<CreateSpacePage> createState() => _CreateSpacePageState();
 }
 
-class _CreateSpacePageState extends State<CreateSpacePage> {
+class _CreateSpacePageState extends State<CreateSpacePage> with KeyboardDismissMixin {
   final _formKey = GlobalKey<FormState>();
   final _spaceNameController = TextEditingController();
   int _selectedSpaceLevel = 0; // 默认选择普通版
@@ -82,7 +83,7 @@ class _CreateSpacePageState extends State<CreateSpacePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return buildWithKeyboardDismiss(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         backgroundColor: Colors.white,

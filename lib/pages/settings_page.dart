@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lq_picture/widgets/SimpleWebView.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 
-class SettingsPage extends StatefulWidget {
+import '../providers/auth_provider.dart';
+
+class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
 
   @override
-  State<SettingsPage> createState() => _SettingsPageState();
+  ConsumerState<SettingsPage> createState() => _SettingsPageState();
 }
 
-class _SettingsPageState extends State<SettingsPage> {
+class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _notificationsEnabled = true;
   bool _darkModeEnabled = false;
   bool _autoSaveEnabled = true;
@@ -39,11 +44,74 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _calculateCacheSize() async {
-    // 模拟计算缓存大小
-    await Future.delayed(const Duration(seconds: 1));
-    setState(() {
-      _cacheSize = '128.5 MB';
-    });
+    try {
+      setState(() {
+        _cacheSize = '计算中...';
+      });
+
+      // 获取应用缓存目录
+      final tempDir = await getTemporaryDirectory();
+      final cacheDir = await getApplicationCacheDirectory();
+      
+      int totalSize = 0;
+      
+      // 计算临时目录大小
+      if (await tempDir.exists()) {
+        totalSize += await _calculateDirectorySize(tempDir);
+      }
+      
+      // 计算缓存目录大小
+      if (await cacheDir.exists()) {
+        totalSize += await _calculateDirectorySize(cacheDir);
+      }
+      
+      // 计算网络图片缓存大小（Flutter的默认缓存位置）
+      final appDir = await getApplicationSupportDirectory();
+      final flutterCacheDir = Directory('${appDir.path}/flutter_cache');
+      if (await flutterCacheDir.exists()) {
+        totalSize += await _calculateDirectorySize(flutterCacheDir);
+      }
+
+      setState(() {
+        _cacheSize = _formatBytes(totalSize);
+      });
+    } catch (e) {
+      setState(() {
+        _cacheSize = '计算失败';
+      });
+    }
+  }
+
+  Future<int> _calculateDirectorySize(Directory directory) async {
+    int size = 0;
+    try {
+      if (await directory.exists()) {
+        await for (final entity in directory.list(recursive: true, followLinks: false)) {
+          if (entity is File) {
+            try {
+              size += await entity.length();
+            } catch (e) {
+              // 忽略无法访问的文件
+            }
+          }
+        }
+      }
+    } catch (e) {
+      // 忽略无法访问的目录
+    }
+    return size;
+  }
+
+  String _formatBytes(int bytes) {
+    if (bytes < 1024) {
+      return '$bytes B';
+    } else if (bytes < 1024 * 1024) {
+      return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    } else if (bytes < 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    } else {
+      return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
+    }
   }
 
   Future<void> _clearCache() async {
@@ -69,22 +137,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
-              // 模拟清除缓存
-              setState(() {
-                _cacheSize = '清除中...';
-              });
-              await Future.delayed(const Duration(seconds: 2));
-              setState(() {
-                _cacheSize = '0 MB';
-              });
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('缓存清除成功'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              }
+              await _performClearCache();
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.orange,
@@ -98,6 +151,81 @@ class _SettingsPageState extends State<SettingsPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _performClearCache() async {
+    try {
+      setState(() {
+        _cacheSize = '清除中...';
+      });
+
+      // 清除临时目录
+      final tempDir = await getTemporaryDirectory();
+      if (await tempDir.exists()) {
+        await _clearDirectory(tempDir);
+      }
+
+      // 清除应用缓存目录
+      final cacheDir = await getApplicationCacheDirectory();
+      if (await cacheDir.exists()) {
+        await _clearDirectory(cacheDir);
+      }
+
+      // 清除Flutter网络图片缓存
+      final appDir = await getApplicationSupportDirectory();
+      final flutterCacheDir = Directory('${appDir.path}/flutter_cache');
+      if (await flutterCacheDir.exists()) {
+        await _clearDirectory(flutterCacheDir);
+      }
+
+      // 清除Flutter的图片缓存
+      PaintingBinding.instance.imageCache.clear();
+      PaintingBinding.instance.imageCache.clearLiveImages();
+
+      // 重新计算缓存大小
+      await _calculateCacheSize();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('缓存清除成功'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _cacheSize = '清除失败';
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('缓存清除失败: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _clearDirectory(Directory directory) async {
+    try {
+      if (await directory.exists()) {
+        await for (final entity in directory.list()) {
+          try {
+            if (entity is File) {
+              await entity.delete();
+            } else if (entity is Directory) {
+              await entity.delete(recursive: true);
+            }
+          } catch (e) {
+            // 忽略无法删除的文件/目录
+          }
+        }
+      }
+    } catch (e) {
+      // 忽略无法访问的目录
+    }
   }
 
   Future<void> _showLogoutDialog() async {
@@ -141,10 +269,10 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _logout() async {
     // 清除用户数据
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('user_token');
-    await prefs.remove('user_info');
-    
+
+    // 执行登出操作
+    final authNotifier = ref.read(authProvider.notifier);
+    authNotifier.logout();
     if (mounted) {
       // 显示退出成功提示
       ScaffoldMessenger.of(context).showSnackBar(

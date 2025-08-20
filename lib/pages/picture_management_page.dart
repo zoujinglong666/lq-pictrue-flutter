@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../apis/picture_api.dart';
+import '../utils/keyboard_utils.dart';
 
 class PictureManagementPage extends StatefulWidget {
   const PictureManagementPage({super.key});
@@ -7,7 +9,7 @@ class PictureManagementPage extends StatefulWidget {
   State<PictureManagementPage> createState() => _PictureManagementPageState();
 }
 
-class _PictureManagementPageState extends State<PictureManagementPage> {
+class _PictureManagementPageState extends State<PictureManagementPage> with KeyboardDismissMixin {
   final TextEditingController _searchController = TextEditingController();
   String _selectedStatus = '全部';
   String _selectedCategory = '全部';
@@ -31,67 +33,13 @@ class _PictureManagementPageState extends State<PictureManagementPage> {
     setState(() {
       _isLoading = true;
     });
-
-    // 模拟网络请求
-    await Future.delayed(const Duration(seconds: 1));
-
-    // 模拟数据
-    _pictures = [
-      PictureItem(
-        id: 1,
-        name: '美丽风景.jpg',
-        url: 'https://picsum.photos/300/400?random=1',
-        thumbnailUrl: 'https://picsum.photos/150/200?random=1',
-        category: '风景',
-        tags: ['自然', '山水'],
-        userId: 1001,
-        userName: '张三',
-        spaceId: 2001,
-        spaceName: '风景摄影',
-        reviewStatus: 0,
-        reviewMessage: '',
-        createTime: DateTime.now().subtract(const Duration(hours: 2)),
-        picSize: 2048576,
-        picWidth: 1920,
-        picHeight: 1080,
-      ),
-      PictureItem(
-        id: 2,
-        name: '城市夜景.png',
-        url: 'https://picsum.photos/300/500?random=2',
-        thumbnailUrl: 'https://picsum.photos/150/250?random=2',
-        category: '城市',
-        tags: ['夜景', '建筑'],
-        userId: 1002,
-        userName: '李四',
-        spaceId: 2002,
-        spaceName: '城市摄影',
-        reviewStatus: 1,
-        reviewMessage: '',
-        createTime: DateTime.now().subtract(const Duration(hours: 5)),
-        picSize: 3145728,
-        picWidth: 1080,
-        picHeight: 1920,
-      ),
-      PictureItem(
-        id: 3,
-        name: '人物肖像.jpg',
-        url: 'https://picsum.photos/400/400?random=3',
-        thumbnailUrl: 'https://picsum.photos/200/200?random=3',
-        category: '人物',
-        tags: ['肖像', '艺术'],
-        userId: 1003,
-        userName: '王五',
-        spaceId: 2003,
-        spaceName: '人像摄影',
-        reviewStatus: 2,
-        reviewMessage: '图片质量不符合要求',
-        createTime: DateTime.now().subtract(const Duration(days: 1)),
-        picSize: 1572864,
-        picWidth: 800,
-        picHeight: 800,
-      ),
-    ];
+    final res=await PictureApi.getAllList({
+      'current':1,
+      "pageSize":10
+    });
+    setState(() {
+      _pictures = res.records;
+    });
 
     _filteredPictures = List.from(_pictures);
 
@@ -105,7 +53,6 @@ class _PictureManagementPageState extends State<PictureManagementPage> {
       _filteredPictures = _pictures.where((picture) {
         bool matchesSearch = _searchController.text.isEmpty ||
             picture.name.toLowerCase().contains(_searchController.text.toLowerCase()) ||
-            picture.userName.toLowerCase().contains(_searchController.text.toLowerCase()) ||
             picture.category.toLowerCase().contains(_searchController.text.toLowerCase());
 
         bool matchesStatus = _selectedStatus == '全部' ||
@@ -126,9 +73,9 @@ class _PictureManagementPageState extends State<PictureManagementPage> {
     await Future.delayed(const Duration(milliseconds: 500));
 
     setState(() {
-      picture.reviewStatus = status;
-      picture.reviewMessage = message ?? '';
-      picture.reviewTime = DateTime.now();
+      // picture.reviewStatus = status;
+      // picture.reviewMessage = message ?? '';
+      // picture.reviewTime = DateTime.now();
     });
 
     if (mounted) {
@@ -278,14 +225,6 @@ class _PictureManagementPageState extends State<PictureManagementPage> {
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '上传者: ${picture.userName}',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 14,
-                              ),
                             ),
                           ],
                         ),
@@ -559,16 +498,12 @@ class _PictureManagementPageState extends State<PictureManagementPage> {
                         _buildDetailItem(Icons.tag_outlined, '标签', picture.tags.join(', ')),
                       ]),
                       const SizedBox(height: 20),
-                      // 用户信息
-                      _buildDetailSection('用户信息', [
-                        _buildDetailItem(Icons.person_outline, '上传用户', picture.userName),
-                        _buildDetailItem(Icons.folder_outlined, '所属空间', picture.spaceName),
-                      ]),
+
                       const SizedBox(height: 20),
                       // 文件信息
                       _buildDetailSection('文件信息', [
                         _buildDetailItem(Icons.photo_size_select_actual_outlined, '图片尺寸', '${picture.picWidth} × ${picture.picHeight}'),
-                        _buildDetailItem(Icons.storage_outlined, '文件大小', _formatFileSize(picture.picSize)),
+                        _buildDetailItem(Icons.storage_outlined, '文件大小', _formatFileSize( int.parse(picture.picSize))),
                         _buildDetailItem(Icons.access_time, '上传时间', _formatDateTime(picture.createTime)),
                       ]),
                       const SizedBox(height: 20),
@@ -711,7 +646,7 @@ class _PictureManagementPageState extends State<PictureManagementPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return buildWithKeyboardDismiss(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -947,7 +882,7 @@ class _PictureManagementPageState extends State<PictureManagementPage> {
                                       child: ClipRRect(
                                         borderRadius: BorderRadius.circular(12),
                                         child: Image.network(
-                                          picture.thumbnailUrl,
+                                          picture.thumbnailUrl??picture.url,
                                           fit: BoxFit.cover,
                                           errorBuilder: (context, error, stackTrace) =>
                                               Icon(Icons.image_not_supported_outlined, color: Colors.grey[400]),
@@ -974,14 +909,6 @@ class _PictureManagementPageState extends State<PictureManagementPage> {
                                         Row(
                                           children: [
                                             Icon(Icons.person_outline, size: 14, color: Colors.grey[600]),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              picture.userName,
-                                              style: TextStyle(
-                                                color: Colors.grey[600],
-                                                fontSize: 13,
-                                              ),
-                                            ),
                                             const SizedBox(width: 12),
                                             Container(
                                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -990,7 +917,7 @@ class _PictureManagementPageState extends State<PictureManagementPage> {
                                                 borderRadius: BorderRadius.circular(8),
                                               ),
                                               child: Text(
-                                                picture.category,
+                                                picture.category??'未分类',
                                                 style: const TextStyle(
                                                   fontSize: 11,
                                                   color: Color(0xFF00BCD4),
@@ -1016,7 +943,7 @@ class _PictureManagementPageState extends State<PictureManagementPage> {
                                             Icon(Icons.storage_outlined, size: 14, color: Colors.grey[600]),
                                             const SizedBox(width: 4),
                                             Text(
-                                              _formatFileSize(picture.picSize),
+                                              _formatFileSize( int.parse(picture.picSize)),
                                               style: TextStyle(
                                                 color: Colors.grey[600],
                                                 fontSize: 12,
@@ -1057,7 +984,7 @@ class _PictureManagementPageState extends State<PictureManagementPage> {
                                             ),
                                           ],
                                         ),
-                                        if (picture.reviewMessage.isNotEmpty) ...[
+                                        if (picture?.reviewMessage?.isNotEmpty??false) ...[
                                           const SizedBox(height: 6),
                                           Container(
                                             padding: const EdgeInsets.all(8),
@@ -1163,42 +1090,6 @@ class _PictureManagementPageState extends State<PictureManagementPage> {
   }
 }
 
-class PictureItem {
-  final int id;
-  final String name;
-  final String url;
-  final String thumbnailUrl;
-  final String category;
-  final List<String> tags;
-  final int userId;
-  final String userName;
-  final int spaceId;
-  final String spaceName;
-  int reviewStatus; // 0-待审核, 1-通过, 2-拒绝
-  String reviewMessage;
-  DateTime? reviewTime;
-  final DateTime createTime;
-  final int picSize;
-  final int picWidth;
-  final int picHeight;
 
-  PictureItem({
-    required this.id,
-    required this.name,
-    required this.url,
-    required this.thumbnailUrl,
-    required this.category,
-    required this.tags,
-    required this.userId,
-    required this.userName,
-    required this.spaceId,
-    required this.spaceName,
-    required this.reviewStatus,
-    required this.reviewMessage,
-    this.reviewTime,
-    required this.createTime,
-    required this.picSize,
-    required this.picWidth,
-    required this.picHeight,
-  });
-}
+
+
