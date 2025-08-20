@@ -16,4 +16,5 @@ class PictureApi {
 
     return result.toModel((json) => Page.fromJson(json, (item) => PictureVO.fromJson(item)));
   }
+
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:lq_picture/apis/space_api.dart';
+import 'package:lq_picture/model/picture.dart';
 import 'package:lq_picture/pages/SplashPage.dart';
 import 'package:lq_picture/pages/detail_page.dart';
 import 'package:lq_picture/pages/forgot_password_page.dart';
@@ -209,7 +211,7 @@ class AppRoutes {
     // 处理需要参数的路由
     switch (settings.name) {
       case detail:
-        final args = settings.arguments as Map<String, dynamic>?;
+        final args = settings.arguments as PictureVO?;
         return _createIOSRoute(
           page: DetailPage(imageData: args),
           settings: settings,
@@ -234,7 +236,13 @@ class AppRoutes {
           settings: settings,
           animationType: animationType,
         );
-
+      case mySpace:
+        final args = settings.arguments as SpaceVO?;
+        return _createIOSRoute(
+          page: MySpacePage(spaceVO: args),
+          settings: settings,
+          animationType: animationType,
+        );
       default:
       // 处理普通路由
         final builder = _routes[settings.name];

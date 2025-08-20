@@ -3,7 +3,11 @@ class Assets {
   Assets._();
 
   static const String apisPictureApi = 'lib/apis/picture_api.dart';
+  static const String apisSpaceApi = 'lib/apis/space_api.dart';
   static const String apisUserApi = 'lib/apis/user_api.dart';
+  static const String cacheImageCacheImage = 'lib/widgets/cacheImage/cache_image.dart';
+  static const String cacheImageCacheImageManager = 'lib/widgets/cacheImage/cache_image_manager.dart';
+  static const String cacheImageImageSize = 'lib/widgets/cacheImage/image_size.dart';
   static const String commonDecode = 'lib/common/decode.dart';
   static const String commonEventBus = 'lib/common/event_bus.dart';
   static const String commonHelper = 'lib/common/helper.dart';
@@ -18,6 +22,12 @@ class Assets {
   static const String interceptorsLoadingInterceptor = 'lib/http/interceptors/loading_interceptor.dart';
   static const String interceptorsLogInterceptor = 'lib/http/interceptors/log_interceptor.dart';
   static const String interceptorsTokenInterceptor = 'lib/http/interceptors/token_interceptor.dart';
+  static const String jsonConverterJsonTypeAdapter = 'lib/utils/jsonConverter/json_type_adapter.dart';
+  static const String jsonConverterSafeConvertModel = 'lib/utils/jsonConverter/safe_convert_model.dart';
+  static const String jsonConverterSafeDateTimeConverter = 'lib/utils/jsonConverter/safe_dateTime_converter.dart';
+  static const String jsonConverterSafeListConverter = 'lib/utils/jsonConverter/safe_list_converter.dart';
+  static const String jsonConverterSafeMapConverter = 'lib/utils/jsonConverter/safe_map_converter.dart';
+  static const String jsonConverterSafeNumConverter = 'lib/utils/jsonConverter/safe_num_converter.dart';
   static const String l18nStatusCodeMapping = 'lib/l18n/status_code_mapping.dart';
   static const String libMain = 'lib/main.dart';
   static const String modelApiResponse = 'lib/http/model/api_response.dart';
@@ -34,10 +44,13 @@ class Assets {
   static const String netRequest = 'lib/net/request.dart';
   static const String pagesCreateSpacePage = 'lib/pages/create_space_page.dart';
   static const String pagesDetailPage = 'lib/pages/detail_page.dart';
+  static const String pagesFavoritesPage = 'lib/pages/favorites_page.dart';
   static const String pagesForbiddenPage = 'lib/pages/forbidden_page.dart';
   static const String pagesForgotPasswordPage = 'lib/pages/forgot_password_page.dart';
   static const String pagesHomePage = 'lib/pages/home_page.dart';
+  static const String pagesImageEditPage = 'lib/pages/image_edit_page.dart';
   static const String pagesImagePreviewPage = 'lib/pages/image_preview_page.dart';
+  static const String pagesImageReviewStatusPage = 'lib/pages/image_review_status_page.dart';
   static const String pagesLoginPage = 'lib/pages/login_page.dart';
   static const String pagesMainPage = 'lib/pages/MainPage.dart';
   static const String pagesMySpacePage = 'lib/pages/my_space_page.dart';
@@ -55,6 +68,8 @@ class Assets {
   static const String pagesUserSettingsPage = 'lib/pages/user_settings_page.dart';
   static const String providersAuthProvider = 'lib/providers/auth_provider.dart';
   static const String routesAppRoutes = 'lib/routes/app_routes.dart';
+  static const String screenutilScreenAdapter = 'lib/utils/screenutil/screen_adapter.dart';
+  static const String screenutilScreenExtension = 'lib/utils/screenutil/screen_extension.dart';
   static const String utilsToastUtils = 'lib/utils/ToastUtils.dart';
   static const String widgetsCacheWebView = 'lib/widgets/CacheWebView.dart';
   static const String widgetsCachedImage = 'lib/widgets/cached_image.dart';

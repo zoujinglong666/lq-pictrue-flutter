@@ -69,16 +69,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   /// 刷新token
+/// 修复这个方法中的 token 变量未定义问题
+Future<void> setLoginUser(LoginUserVO user) async {
+  state = AuthState(
+    user: user,
+    token: state.token, // 使用 state.token 而不是未定义的 token 变量
+    isInitialized: true,
+  );
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString(_storageKey, jsonEncode(state.toJson()));
+}
 
-  Future<void> setLoginUser(LoginUserVO user) async {
-    state = AuthState(
-      user: user,
-      token: token,
-      isInitialized: true,
-    );
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_storageKey, jsonEncode(state.toJson()));
-  }
 
   /// ✅ 登出
   Future<void> logout() async {
@@ -93,6 +94,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   LoginUserVO? get user => state.user;
   String? get token => state.token;
   bool get isLoggedIn => state.isLoggedIn;
+  bool get isAdmin => state.user?.userRole == 'admin' || false;
   bool get isRefreshing => _isRefreshing;
 
   // ✅ Setter（并自动同步状态）

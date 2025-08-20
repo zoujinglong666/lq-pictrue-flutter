@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
-import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:lq_picture/model/picture.dart';
 
 import '../apis/picture_api.dart';
@@ -91,9 +90,9 @@ class _HomePageState extends State<HomePage> {
       final res = await PictureApi.getList({
         "current": _currentPage,
         "pageSize": 10,
-      });
+       });
 
-      setState(() {
+     setState(() {
         if (res.records != null) {
           _images.addAll(res.records!);
           _currentPage++;
@@ -220,7 +219,7 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
-            _buildDownSimple(context),
+            // _buildDownSimple(context),
             SizedBox(height: 16),
             // 瀑布流内容
             Expanded(
@@ -350,12 +349,7 @@ class _HomePageState extends State<HomePage> {
                         padding: const EdgeInsets.all(16),
                         child: _isLoading
                             ? const Center(
-                                child: TDLoading(
-                                  size: TDLoadingSize.small,
-                                  icon: TDLoadingIcon.circle,
-                                  text: '加载中…',
-                                  axis: Axis.horizontal,
-                                ),
+                          child: CircularProgressIndicator(),
                               )
                             : !_hasMore
                                 ? Center(
@@ -381,46 +375,6 @@ class _HomePageState extends State<HomePage> {
   }
 
 
-  TDDropdownMenu _buildDownSimple(BuildContext context) {
-  // 将 tagList 转换为下拉选项
-  List<TDDropdownItemOption> tagOptions = [
-    TDDropdownItemOption(label: '全部标签', value: 'all', selected: true),
-    ...tagList.map((tag) => TDDropdownItemOption(label: tag, value: tag)),
-  ];
 
-  // 将 categoryList 转换为下拉选项
-  List<TDDropdownItemOption> categoryOptions = [
-    TDDropdownItemOption(label: '全部分类', value: 'all', selected: true),
-    ...categoryList.map((category) => TDDropdownItemOption(label: category, value: category)),
-  ];
-
-  return TDDropdownMenu(
-    direction: TDDropdownMenuDirection.down,
-    onMenuOpened: (value) {
-      print('打开第$value个菜单');
-    },
-    onMenuClosed: (value) {
-      print('关闭第$value个菜单');
-    },
-    items: [
-      TDDropdownItem(
-        options: tagOptions,
-        onChange: (value) {
-          print('标签选择：$value');
-          // 在这里添加处理标签筛选的逻辑
-        },
-      ),
-      TDDropdownItem(
-        options: categoryOptions,
-        onChange: (value) {
-          print('分类选择：$value');
-          // 在这里添加处理分类筛选的逻辑
-        },
-      ),
-      // 保留原有的排序选项
-
-    ],
-  );
-}
 
 }

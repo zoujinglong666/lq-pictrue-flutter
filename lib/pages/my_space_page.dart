@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:lq_picture/apis/space_api.dart';
+import 'package:lq_picture/model/picture.dart';
+
+import '../apis/picture_api.dart';
+
 
 class MySpacePage extends StatefulWidget {
-  const MySpacePage({super.key});
+final SpaceVO? spaceVO;
 
-  @override
-  State<MySpacePage> createState() => _MySpacePageState();
+const MySpacePage({super.key, this.spaceVO});
+
+@override
+State<MySpacePage> createState() => _MySpacePageState();
 }
 
 class _MySpacePageState extends State<MySpacePage> {
@@ -16,76 +23,60 @@ class _MySpacePageState extends State<MySpacePage> {
   String? _selectedImageId;
   bool _showActionOverlay = false;
 
-  // 模拟空间信息
-  final Map<String, dynamic> _spaceInfo = {
-    'id': 1,
-    'spaceName': '我的摄影作品集',
-    'spaceLevel': 1, // 0-普通版 1-专业版 2-旗舰版
-    'spaceType': 0, // 0-私有 1-团队
-    'maxSize': 107374182400, // 100GB
-    'maxCount': 10000,
-    'totalSize': 21474836480, // 20GB
-    'totalCount': 156,
-    'createTime': '2024-01-15',
-    'user': {
-      'username': '摄影师小王',
-      'avatar': 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100',
-    },
-    'permissionList': ['upload', 'edit', 'delete', 'share'],
-  };
-
+  // 获取空间数据，如果为空则使用默认值
   // 模拟图片数据
-  List<Map<String, dynamic>> _images = [
-    {
-      'id': '1',
-      'url': 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400',
-      'title': '山景风光',
-      'size': '2.5MB',
-      'uploadTime': '2024-03-15',
-      'aspectRatio': 0.8,
-    },
-    {
-      'id': '2',
-      'url': 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400',
-      'title': '办公空间',
-      'size': '1.8MB',
-      'uploadTime': '2024-03-14',
-      'aspectRatio': 1.2,
-    },
-    {
-      'id': '3',
-      'url': 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400',
-      'title': '自然风光',
-      'size': '3.2MB',
-      'uploadTime': '2024-03-13',
-      'aspectRatio': 1.0,
-    },
-    {
-      'id': '4',
-      'url': 'https://images.unsplash.com/photo-1486312338219-ce68e2c6b7d3?w=400',
-      'title': '科技办公',
-      'size': '2.1MB',
-      'uploadTime': '2024-03-12',
-      'aspectRatio': 0.9,
-    },
+  List<PictureVO> _images = [
+
   ];
+
+  // 模拟图片详情数据
+  late SpaceVO spaceData;
+
+
 
   @override
   void initState() {
     super.initState();
+    spaceData = widget.spaceVO ?? SpaceVO.empty();
+    _loadData();
     _scrollController.addListener(_onScroll);
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
   }
 
   void _onScroll() {
     if (_scrollController.position.pixels >= 
         _scrollController.position.maxScrollExtent - 200) {
       _loadMoreImages();
+    }
+  }
+
+  Future<void> _loadData() async {
+    if (_isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final res = await PictureApi.getList({
+        "current": 1,
+        "pageSize": 10,
+        "spaceId": 27,
+      });
+
+      setState(() {
+        _images = res.records ?? [];
+        _isLoading = false;
+        _currentPage = 2; // 下一页为2
+        _hasMore = _images.length >= 10; // 如果返回数据少于请求数量，说明没有更多了
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      // 可以添加错误提示
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('加载失败，请重试')),
+      );
     }
   }
 
@@ -96,38 +87,32 @@ class _MySpacePageState extends State<MySpacePage> {
       _isLoading = true;
     });
 
-    // 模拟网络请求
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      final res = await PictureApi.getList({
+        "current": _currentPage,
+        "pageSize": 10,
+      });
 
-    // 模拟加载更多数据
-    List<Map<String, dynamic>> newImages = [
-      {
-        'id': '${_images.length + 1}',
-        'url': 'https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=400',
-        'title': '城市建筑 ${_images.length + 1}',
-        'size': '2.8MB',
-        'uploadTime': '2024-03-${10 - (_images.length % 10)}',
-        'aspectRatio': 1.3,
-      },
-      {
-        'id': '${_images.length + 2}',
-        'url': 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=400',
-        'title': '代码界面 ${_images.length + 2}',
-        'size': '1.5MB',
-        'uploadTime': '2024-03-${9 - (_images.length % 10)}',
-        'aspectRatio': 0.7,
-      },
-    ];
-
-    setState(() {
-      _images.addAll(newImages);
-      _isLoading = false;
-      _currentPage++;
-      // 模拟没有更多数据
-      if (_currentPage > 5) {
-        _hasMore = false;
-      }
-    });
+      setState(() {
+        if (res.records != null) {
+          _images.addAll(res.records!);
+          _currentPage++;
+          // 如果返回数据少于请求数量，说明没有更多了
+          _hasMore = res.records!.length >= 10;
+        } else {
+          _hasMore = false;
+        }
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      // 添加错误提示
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('加载更多失败，请重试')),
+      );
+    }
   }
 
   void _hideActionOverlay() {
@@ -166,7 +151,7 @@ class _MySpacePageState extends State<MySpacePage> {
 
     if (confirmed == true) {
       setState(() {
-        _images.removeWhere((image) => image['id'] == imageId);
+        _images.removeWhere((image) => image.id == imageId);
       });
       _hideActionOverlay();
       
@@ -183,8 +168,8 @@ class _MySpacePageState extends State<MySpacePage> {
 
   void _moveToTrash(String imageId) {
     setState(() {
-      final image = _images.firstWhere((img) => img['id'] == imageId);
-      image['isInTrash'] = true;
+      final image = _images.firstWhere((img) => img.id == imageId);
+      // image.isInTrash= true;
     });
     _hideActionOverlay();
     
@@ -197,8 +182,8 @@ class _MySpacePageState extends State<MySpacePage> {
             label: '撤销',
             onPressed: () {
               setState(() {
-                final image = _images.firstWhere((img) => img['id'] == imageId);
-                image['isInTrash'] = false;
+                final image = _images.firstWhere((img) => img.id == imageId);
+                // image.isInTrash = false;
               });
             },
           ),
@@ -232,6 +217,12 @@ class _MySpacePageState extends State<MySpacePage> {
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)}KB';
     if (bytes < 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(1)}MB';
     return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)}GB';
+  }
+
+  String _formatDate(int timestamp) {
+    if (timestamp == 0) return '未知';
+    final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 
   String _getSpaceLevelName(int level) {
@@ -330,7 +321,7 @@ class _MySpacePageState extends State<MySpacePage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                _spaceInfo['spaceName'],
+                                spaceData.spaceName.isNotEmpty ? spaceData.spaceName : "我的空间",
                                 style: const TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
@@ -345,14 +336,14 @@ class _MySpacePageState extends State<MySpacePage> {
                                       vertical: 4,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: _getSpaceLevelColor(_spaceInfo['spaceLevel']).withOpacity(0.1),
+                                      color: _getSpaceLevelColor(spaceData.spaceLevel).withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
-                                      _getSpaceLevelName(_spaceInfo['spaceLevel']),
+                                      _getSpaceLevelName(spaceData.spaceLevel),
                                       style: TextStyle(
                                         fontSize: 12,
-                                        color: _getSpaceLevelColor(_spaceInfo['spaceLevel']),
+                                        color: _getSpaceLevelColor(spaceData.spaceLevel),
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
@@ -368,7 +359,7 @@ class _MySpacePageState extends State<MySpacePage> {
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
-                                      _spaceInfo['spaceType'] == 0 ? '私有' : '团队',
+                                      (spaceData.spaceType == 0 || spaceData.spaceType == null) ? '私有' : '团队',
                                       style: const TextStyle(
                                         fontSize: 12,
                                         color: Colors.green,
@@ -383,7 +374,7 @@ class _MySpacePageState extends State<MySpacePage> {
                         ),
                         CircleAvatar(
                           radius: 24,
-                          backgroundImage: NetworkImage(_spaceInfo['user']['avatar']),
+                          backgroundImage: NetworkImage(spaceData.user.userAvatar ?? 'https://picsum.photos/200'),
                         ),
                       ],
                     ),
@@ -405,7 +396,7 @@ class _MySpacePageState extends State<MySpacePage> {
                               ),
                             ),
                             Text(
-                              '${_formatFileSize(_spaceInfo['totalSize'])} / ${_formatFileSize(_spaceInfo['maxSize'])}',
+                              '${_formatFileSize(int.tryParse(spaceData.totalSize) ?? 0)} / ${_formatFileSize(int.tryParse(spaceData.maxSize) ?? 0)}',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey[600],
@@ -415,12 +406,14 @@ class _MySpacePageState extends State<MySpacePage> {
                         ),
                         const SizedBox(height: 8),
                         LinearProgressIndicator(
-                          value: _spaceInfo['totalSize'] / _spaceInfo['maxSize'],
+                          value: (double.tryParse(widget.spaceVO!.totalSize) ?? 0) /
+                              (double.tryParse(widget.spaceVO!.maxSize) ?? 1), // 避免除以0
                           backgroundColor: Colors.grey[200],
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            _getSpaceLevelColor(_spaceInfo['spaceLevel']),
+                            _getSpaceLevelColor(widget.spaceVO!.spaceLevel),
                           ),
                         ),
+
                       ],
                     ),
 
@@ -432,7 +425,7 @@ class _MySpacePageState extends State<MySpacePage> {
                         Expanded(
                           child: _buildStatItem(
                             '图片数量',
-                            '${_spaceInfo['totalCount']} / ${_spaceInfo['maxCount']}',
+                            '${spaceData.totalCount} / ${spaceData.maxCount}',
                             Icons.photo_library_outlined,
                           ),
                         ),
@@ -440,7 +433,7 @@ class _MySpacePageState extends State<MySpacePage> {
                         Expanded(
                           child: _buildStatItem(
                             '创建时间',
-                            _spaceInfo['createTime'],
+                            _formatDate(spaceData.createTime),
                             Icons.calendar_today_outlined,
                           ),
                         ),
@@ -536,7 +529,7 @@ class _MySpacePageState extends State<MySpacePage> {
                 childCount: _images.length,
                 itemBuilder: (context, index) {
                   final image = _images[index];
-                  final isSelected = _selectedImageId == image['id'];
+                  final isSelected = _selectedImageId == image.id;
                   
                   return GestureDetector(
                     onTap: () {
@@ -546,19 +539,12 @@ class _MySpacePageState extends State<MySpacePage> {
                         Navigator.pushNamed(
                           context,
                           '/detail',
-                          arguments: {
-                            'id': image['id'],
-                            'url': image['url'],
-                            'title': image['title'],
-                            'likes': 0,
-                            'category': '我的图片',
-                            'aspectRatio': image['aspectRatio'],
-                          },
+                          arguments: image
                         );
                       }
                     },
                     onLongPress: () {
-                      _showImageActions(image['id']);
+                      _showImageActions(image.id);
                     },
                     child: Stack(
                       children: [
@@ -582,9 +568,9 @@ class _MySpacePageState extends State<MySpacePage> {
                                 Stack(
                                   children: [
                                     AspectRatio(
-                                      aspectRatio: image['aspectRatio'],
+                                      aspectRatio: image.picWidth/image.picHeight,
                                       child: Image.network(
-                                        image['url'],
+                                        image.thumbnailUrl??image.url,
                                         fit: BoxFit.cover,
                                         errorBuilder: (context, error, stackTrace) {
                                           return Container(
@@ -611,7 +597,7 @@ class _MySpacePageState extends State<MySpacePage> {
                                               context,
                                               '/image_edit',
                                               arguments: {
-                                                'imageId': image['id'],
+                                                'imageId': image.id,
                                                 'imageData': image,
                                               },
                                             );
@@ -638,7 +624,7 @@ class _MySpacePageState extends State<MySpacePage> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        image['title'],
+                                        image.name,
                                         style: const TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w500,
@@ -650,7 +636,7 @@ class _MySpacePageState extends State<MySpacePage> {
                                       Row(
                                         children: [
                                           Text(
-                                            image['size'],
+                                            image.picSize,
                                             style: TextStyle(
                                               fontSize: 12,
                                               color: Colors.grey[600],
@@ -658,7 +644,7 @@ class _MySpacePageState extends State<MySpacePage> {
                                           ),
                                           const Spacer(),
                                           Text(
-                                            image['uploadTime'],
+                                            image.updateTime.toString(),
                                             style: TextStyle(
                                               fontSize: 12,
                                               color: Colors.grey[500],
@@ -702,25 +688,25 @@ class _MySpacePageState extends State<MySpacePage> {
                                                 icon: Icons.share_outlined,
                                                 label: '分享',
                                                 color: Colors.blue,
-                                                onTap: () => _shareImage(image['id']),
+                                                onTap: () => _shareImage(image.id),
                                               ),
                                               _buildCompactActionButton(
                                                 icon: Icons.download_outlined,
                                                 label: '下载',
                                                 color: Colors.green,
-                                                onTap: () => _downloadImage(image['id']),
+                                                onTap: () => _downloadImage(image.id),
                                               ),
                                               _buildCompactActionButton(
                                                 icon: Icons.delete_outline,
                                                 label: '回收站',
                                                 color: Colors.orange,
-                                                onTap: () => _moveToTrash(image['id']),
+                                                onTap: () => _moveToTrash(image.id),
                                               ),
                                               _buildCompactActionButton(
                                                 icon: Icons.delete_forever_outlined,
                                                 label: '删除',
                                                 color: Colors.red,
-                                                onTap: () => _deleteImage(image['id']),
+                                                onTap: () => _deleteImage(image.id),
                                               ),
                                             ],
                                           ),
