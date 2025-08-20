@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lq_picture/model/picture.dart';
 import 'package:share_plus/share_plus.dart';
+import '../utils/index.dart';
 import 'image_preview_page.dart';
 import '../widgets/shimmer_effect.dart';
 import '../widgets/skeleton_widgets.dart';
@@ -434,21 +435,19 @@ class _DetailPageState extends State<DetailPage> {
                         const Divider(),
                         const SizedBox(height: 16),
 
-                        // 拍摄信息
                         const Text(
-                          '拍摄信息',
+                          '图片信息',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         const SizedBox(height: 12),
-                        // _buildInfoRow('相机', _imageDetails['camera']),
-                        // _buildInfoRow('镜头', _imageDetails['lens']),
-                        // _buildInfoRow('ISO', _imageDetails['iso']),
-                        // _buildInfoRow('光圈', _imageDetails['aperture']),
-                        // _buildInfoRow('快门速度', _imageDetails['shutterSpeed']),
-                        // _buildInfoRow('拍摄日期', _imageDetails['date']),
+
+                        _buildInfoRow('文件大小', formatFileSize(  int.parse(_imageDetails!.picSize))),
+                        _buildInfoRow('图片尺寸', '${_imageDetails?.picWidth} × ${_imageDetails?.picHeight}'),
+                        _buildInfoRow('图片比例', '${_imageDetails?.picScale?.toStringAsFixed(2)}'),
+                        _buildInfoRow('图片格式', _imageDetails!.picFormat),
 
                         const SizedBox(height: 16),
                         const Divider(),

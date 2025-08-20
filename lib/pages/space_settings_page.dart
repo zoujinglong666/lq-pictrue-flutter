@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../utils/index.dart';
+
 class SpaceSettingsPage extends StatefulWidget {
   const SpaceSettingsPage({super.key});
 
@@ -58,30 +60,7 @@ class _SpaceSettingsPageState extends State<SpaceSettingsPage> {
     }
   }
 
-  // String _formatFileSize(int bytes) {
-  //   if (bytes < 1024) return '${bytes}B';
-  //   if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)}KB';
-  //   if (bytes < 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(1)}MB';
-  //   return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)}GB';
-  // }
-  String _formatFileSize(int bytes) {
-  if (bytes < 0) return '0 B';
-  const List<String> units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  double size = bytes.toDouble();
-  int unitIndex = 0;
 
-  while (size >= 1024 && unitIndex < units.length - 1) {
-    size /= 1024;
-    unitIndex++;
-  }
-
-  // 对于字节单位显示整数，其他单位保留1位小数
-  if (unitIndex == 0) {
-    return '${size.toInt()} ${units[unitIndex]}';
-  } else {
-    return '${size.toStringAsFixed(1)} ${units[unitIndex]}';
-  }
-}
 
 
   @override
@@ -179,7 +158,7 @@ class _SpaceSettingsPageState extends State<SpaceSettingsPage> {
               [
                 _buildStorageItem(
                   '已用存储',
-                  '${_formatFileSize(_spaceInfo['totalSize'])} / ${_formatFileSize(_spaceInfo['maxSize'])}',
+                  '${formatFileSize(_spaceInfo['totalSize'])} / ${formatFileSize(_spaceInfo['maxSize'])}',
                   _spaceInfo['totalSize'] / _spaceInfo['maxSize'],
                 ),
                 const SizedBox(height: 16),

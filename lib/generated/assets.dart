@@ -71,9 +71,12 @@ class Assets {
   static const String screenutilScreenAdapter = 'lib/utils/screenutil/screen_adapter.dart';
   static const String screenutilScreenExtension = 'lib/utils/screenutil/screen_extension.dart';
   static const String utilsImageCompressor = 'lib/utils/ImageCompressor.dart';
+  static const String utilsIndex = 'lib/utils/index.dart';
+  static const String utilsKeyboardUtils = 'lib/utils/keyboard_utils.dart';
   static const String utilsToastUtils = 'lib/utils/ToastUtils.dart';
   static const String widgetsCacheWebView = 'lib/widgets/CacheWebView.dart';
   static const String widgetsCachedImage = 'lib/widgets/cached_image.dart';
+  static const String widgetsPaginationWidget = 'lib/widgets/pagination_widget.dart';
   static const String widgetsShimmerEffect = 'lib/widgets/shimmer_effect.dart';
   static const String widgetsSimpleWebView = 'lib/widgets/SimpleWebView.dart';
   static const String widgetsSkeletonWidgets = 'lib/widgets/skeleton_widgets.dart';

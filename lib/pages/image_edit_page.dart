@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lq_picture/model/picture.dart';
+import '../utils/index.dart';
 import '../utils/keyboard_utils.dart';
 
 class ImageEditPage extends StatefulWidget {
@@ -56,12 +57,7 @@ class _ImageEditPageState extends State<ImageEditPage> with KeyboardDismissMixin
     super.dispose();
   }
   
-  String _formatFileSize(int bytes) {
-    if (bytes < 1024) return '${bytes}B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)}KB';
-    if (bytes < 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(1)}MB';
-    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)}GB';
-  }
+
   
   void _addTag() {
     final tag = _tagController.text.trim();
@@ -238,9 +234,9 @@ class _ImageEditPageState extends State<ImageEditPage> with KeyboardDismissMixin
                           const SizedBox(height: 12),
                           
                           // 只读信息
-                          _buildInfoRow('文件大小', _formatFileSize(  int.parse(_imageInfo!.picSize))),
+                          _buildInfoRow('文件大小', formatFileSize(  int.parse(_imageInfo!.picSize))),
                           _buildInfoRow('图片尺寸', '${_imageInfo?.picWidth} × ${_imageInfo?.picHeight}'),
-                          _buildInfoRow('图片比例', '${_imageInfo?.picScale?.toStringAsFixed(2)}'),
+                          _buildInfoRow('图片比例', '${_imageInfo?.picScale.toStringAsFixed(2)}'),
                           _buildInfoRow('图片格式', _imageInfo!.picFormat),
                           _buildInfoRow('创建时间', _formatDateTime(_imageInfo?.createTime.toString())),
                           _buildInfoRow('更新时间', _formatDateTime(_imageInfo?.updateTime.toString())),
