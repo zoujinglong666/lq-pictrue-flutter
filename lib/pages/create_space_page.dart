@@ -18,7 +18,7 @@ class _CreateSpacePageState extends State<CreateSpacePage> {
       'level': 0,
       'name': '普通版',
       'description': '基础功能，适合个人使用',
-      'features': ['10GB 存储空间', '基础图片管理', '标准上传速度'],
+      'features': ['100MB 存储空间', '基础图片管理', '标准上传速度'],
       'price': '免费',
       'color': Colors.blue,
       'icon': Icons.photo_library_outlined,

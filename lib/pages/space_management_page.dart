@@ -30,11 +30,6 @@ class _SpaceManagementPageState extends State<SpaceManagementPage> {
     setState(() {
       _isLoading = true;
     });
-
-    // 模拟网络请求
-    await Future.delayed(const Duration(seconds: 1));
-
-    // 模拟数据
     _spaces = [
       SpaceItem(
         id: 1,

@@ -230,16 +230,14 @@ class AppRoutes {
         final args = settings.arguments as Map<String, dynamic>?;
         return _createIOSRoute(
           page: ImageEditPage(
-            imageId: args?['imageId'],
             imageData: args?['imageData'],
           ),
           settings: settings,
           animationType: animationType,
         );
       case mySpace:
-        final args = settings.arguments as SpaceVO?;
         return _createIOSRoute(
-          page: MySpacePage(spaceVO: args),
+          page: MySpacePage(),
           settings: settings,
           animationType: animationType,
         );

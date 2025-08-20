@@ -70,6 +70,7 @@ class Assets {
   static const String routesAppRoutes = 'lib/routes/app_routes.dart';
   static const String screenutilScreenAdapter = 'lib/utils/screenutil/screen_adapter.dart';
   static const String screenutilScreenExtension = 'lib/utils/screenutil/screen_extension.dart';
+  static const String utilsImageCompressor = 'lib/utils/ImageCompressor.dart';
   static const String utilsToastUtils = 'lib/utils/ToastUtils.dart';
   static const String widgetsCacheWebView = 'lib/widgets/CacheWebView.dart';
   static const String widgetsCachedImage = 'lib/widgets/cached_image.dart';

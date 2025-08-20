@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:lq_picture/model/picture.dart';
 
 class ImageEditPage extends StatefulWidget {
-  final String? imageId;
-  final Map<String, dynamic>? imageData;
+  final PictureVO? imageData;
 
   const ImageEditPage({
     super.key,
-    this.imageId,
     this.imageData,
   });
 
@@ -25,7 +24,7 @@ class _ImageEditPageState extends State<ImageEditPage> {
   final _tagController = TextEditingController();
   
   // 模拟图片数据
-  late Map<String, dynamic> _imageInfo;
+  late PictureVO? _imageInfo;
   bool _isLoading = false;
   
   @override
@@ -36,33 +35,14 @@ class _ImageEditPageState extends State<ImageEditPage> {
   
   void _initImageData() {
     // 模拟从服务器获取的完整图片信息
-    _imageInfo = widget.imageData ?? {
-      'id': widget.imageId ?? '1',
-      'url': 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400',
-      'thumbnailUrl': 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=200',
-      'name': '山景风光',
-      'introduction': '这是一张美丽的山景风光照片，拍摄于某个风景秀丽的山区。',
-      'tags': ['风景', '山景', '自然', '户外'],
-      'category': '风景摄影',
-      'picSize': 2621440, // 2.5MB
-      'picWidth': 1920,
-      'picHeight': 1080,
-      'picScale': 1.78,
-      'picFormat': 'JPEG',
-      'picColor': '#4A90E2',
-      'userId': 1,
-      'spaceId': 1,
-      'createTime': '2024-03-15T10:30:00Z',
-      'editTime': '2024-03-15T10:30:00Z',
-      'updateTime': '2024-03-15T10:30:00Z',
-    };
+    _imageInfo = widget.imageData;
     
     // 初始化表单数据
-    _nameController.text = _imageInfo['name'] ?? '';
-    _introductionController.text = _imageInfo['introduction'] ?? '';
-    _categoryController.text = _imageInfo['category'] ?? '';
-    _picColorController.text = _imageInfo['picColor'] ?? '';
-    _tags = List<String>.from(_imageInfo['tags'] ?? []);
+    _nameController.text = _imageInfo?.name ?? '';
+    _introductionController.text = _imageInfo?.introduction ?? '';
+    _categoryController.text = _imageInfo?.category ?? '';
+    _picColorController.text = _imageInfo?.picColor ?? '';
+    _tags = List<String>.from(_imageInfo?.tags ?? []);
   }
   
   @override
@@ -112,7 +92,7 @@ class _ImageEditPageState extends State<ImageEditPage> {
     
     // 构建更新数据
     final updateData = {
-      'id': _imageInfo['id'],
+      'id': _imageInfo?.id,
       'name': _nameController.text.trim(),
       'introduction': _introductionController.text.trim(),
       'category': _categoryController.text.trim(),
@@ -223,7 +203,7 @@ class _ImageEditPageState extends State<ImageEditPage> {
                       child: AspectRatio(
                         aspectRatio: 16 / 9,
                         child: Image.network(
-                          _imageInfo['url'],
+                          _imageInfo?.thumbnailUrl??_imageInfo?.url,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
                             return Container(
@@ -257,12 +237,12 @@ class _ImageEditPageState extends State<ImageEditPage> {
                           const SizedBox(height: 12),
                           
                           // 只读信息
-                          _buildInfoRow('文件大小', _formatFileSize(_imageInfo['picSize'])),
-                          _buildInfoRow('图片尺寸', '${_imageInfo['picWidth']} × ${_imageInfo['picHeight']}'),
-                          _buildInfoRow('图片比例', '${_imageInfo['picScale']?.toStringAsFixed(2)}'),
-                          _buildInfoRow('图片格式', _imageInfo['picFormat']),
-                          _buildInfoRow('创建时间', _formatDateTime(_imageInfo['createTime'])),
-                          _buildInfoRow('更新时间', _formatDateTime(_imageInfo['updateTime'])),
+                          _buildInfoRow('文件大小', _formatFileSize(  int.parse(_imageInfo!.picSize))),
+                          _buildInfoRow('图片尺寸', '${_imageInfo?.picWidth} × ${_imageInfo?.picHeight}'),
+                          _buildInfoRow('图片比例', '${_imageInfo?.picScale?.toStringAsFixed(2)}'),
+                          _buildInfoRow('图片格式', _imageInfo!.picFormat),
+                          _buildInfoRow('创建时间', _formatDateTime(_imageInfo?.createTime.toString())),
+                          _buildInfoRow('更新时间', _formatDateTime(_imageInfo?.updateTime.toString())),
                         ],
                       ),
                     ),

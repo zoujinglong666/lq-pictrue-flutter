@@ -225,7 +225,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => MySpacePage(spaceVO: spaceData),
+                        builder: (context) => MySpacePage(),
                       ),
                     );
                   },

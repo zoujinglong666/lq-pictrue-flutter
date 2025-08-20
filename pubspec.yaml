@@ -64,7 +64,7 @@ dependencies:
   # json解析
   json_annotation: ^4.9.0
   flutter_riverpod: ^2.6.1 #一个状态管理插件，它是 Provider 的改进版本，用于在 Flutter 应用中管理应用状态。
-
+  flutter_image_compress: ^2.4.0
   flutter_cache_manager: ^3.4.1
 flutter_launcher_icons:
   image_path: "lib/assets/images/icon.png"

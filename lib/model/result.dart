@@ -54,6 +54,19 @@ class Result extends Model<Result> {
     );
   }
 
+  bool toBoolean() {
+    try {
+      if (data is Map<String, dynamic>) {
+        final dataMap = data as Map<String, dynamic>;
+        return dataMap['data'] as bool? ?? false;
+      }
+      return data as bool? ?? false;
+    } catch (e) {
+      print('解析布尔值响应错误: $e');
+      return false;
+    }
+  }
+
   @override
   Map<String, dynamic> toJson() {
     return {
