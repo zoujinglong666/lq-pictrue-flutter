@@ -634,9 +634,7 @@ class _UploadPageState extends ConsumerState<UploadPage>
       });
 
       if(editRes){
-
         MyToast.showSuccess("图片信息更新成功");
-
       }
 
       // 清空所有数据，重置状态

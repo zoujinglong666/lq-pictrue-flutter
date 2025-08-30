@@ -50,8 +50,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
          print('加载数据失败: $e');
        }
      } finally {
-       if (mounted) {
-       }
+
      }
    }
   @override
@@ -73,7 +72,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                 child: Row(
                   children: [
-
                     const Text(
                       '我的',
                       style: TextStyle(

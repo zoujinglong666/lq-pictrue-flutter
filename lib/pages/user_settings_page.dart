@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:lq_picture/apis/user_api.dart';
+import 'package:lq_picture/common/toast.dart';
 import 'dart:io';
 import '../utils/keyboard_utils.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/auth_provider.dart';
+import '../model/user.dart';
 
-class UserSettingsPage extends StatefulWidget {
+class UserSettingsPage extends ConsumerStatefulWidget {
   const UserSettingsPage({super.key});
 
   @override
-  State<UserSettingsPage> createState() => _UserSettingsPageState();
+  ConsumerState<UserSettingsPage> createState() => _UserSettingsPageState();
 }
 
-class _UserSettingsPageState extends State<UserSettingsPage> with KeyboardDismissMixin {
+class _UserSettingsPageState extends ConsumerState<UserSettingsPage> with KeyboardDismissMixin {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _userNameController = TextEditingController();
   final TextEditingController _userAccountController = TextEditingController();
@@ -18,6 +23,7 @@ class _UserSettingsPageState extends State<UserSettingsPage> with KeyboardDismis
   
   String _userAvatar = '';
   String _userRole = 'user';
+  String _userId = '';
   bool _isLoading = false;
   bool _isEditing = false;
   File? _selectedImage;
@@ -36,28 +42,40 @@ class _UserSettingsPageState extends State<UserSettingsPage> with KeyboardDismis
     super.dispose();
   }
 
-  Future<void> _loadUserInfo() async {
-    setState(() {
-      _isLoading = true;
-    });
+ Future<void> _loadUserInfo() async {
+  setState(() {
+    _isLoading = true;
+  });
 
-    // 模拟网络请求加载用户信息
-    await Future.delayed(const Duration(seconds: 1));
+  try {
+    final res = await UserApi.getCurrentUser();
 
     // 模拟用户数据
     setState(() {
-      _userNameController.text = '张三';
-      _userAccountController.text = 'zhangsan@example.com';
-      _userProfileController.text = '热爱摄影的业余爱好者，喜欢记录生活中的美好瞬间。';
-      _userAvatar = 'https://picsum.photos/200/200?random=1';
-      _userRole = 'user';
+      _userNameController.text = res.userName ?? '';
+      _userAccountController.text = res.userAccount ?? '';
+      _userProfileController.text = res.userProfile ?? '';
+      _userAvatar = res.userAvatar ?? '';
+      _userRole = res.userRole ?? 'user';
+      _isEditing = true;
+      _isLoading = false;
+      _userId = res.id ?? '';
+    });
+  } catch (e) {
+    // 处理错误情况
+    setState(() {
       _isLoading = false;
     });
+
+    if (mounted) {
+      MyToast.showError('加载用户信息失败');
+    }
   }
+}
+
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
-    
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -171,26 +189,48 @@ class _UserSettingsPageState extends State<UserSettingsPage> with KeyboardDismis
       return;
     }
 
+    if(_userId.isEmpty){
+      MyToast.showError('用户ID不能为空');
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
+    final res = await UserApi.updateUser(
+      {
+        "id": _userId,
+        "userName": _userNameController.text,
+        "userProfile": _userProfileController.text,
+      }
+    );
 
-    // 模拟保存用户信息
-    await Future.delayed(const Duration(seconds: 2));
-
-    setState(() {
-      _isLoading = false;
-      _isEditing = false;
-    });
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('用户信息保存成功'),
-          backgroundColor: Colors.green,
-        ),
-      );
+    if(res){
+      // 更新全局状态
+      final currentUser = ref.read(authProvider).user;
+      if (currentUser != null) {
+        final updatedUser = LoginUserVO(
+          id: currentUser.id,
+          userName: _userNameController.text,
+          userAccount: currentUser.userAccount,
+          userAvatar: currentUser.userAvatar,
+          userProfile: _userProfileController.text,
+          userRole: currentUser.userRole,
+          createTime: currentUser.createTime,
+          updateTime: currentUser.updateTime,
+        );
+        await ref.read(authProvider.notifier).setLoginUser(updatedUser);
+      }
+      
+      setState(() {
+        _isLoading = false;
+        _isEditing = false;
+      });
+      if (mounted) {
+        MyToast.showSuccess('用户信息保存成功');
+      }
     }
+
   }
 
   Widget _buildInfoCard() {

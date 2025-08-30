@@ -37,61 +37,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
 
     // 模拟用户数据
     _users = [
-      UserItem(
-        id: 1,
-        userAccount: 'admin@example.com',
-        userName: '系统管理员',
-        userAvatar: '',
-        userProfile: '系统管理员账户，负责平台管理和维护',
-        userRole: 'admin',
-        isEnabled: true,
-        createTime: DateTime.now().subtract(const Duration(days: 365)),
-        editTime: DateTime.now().subtract(const Duration(days: 1)),
-      ),
-      UserItem(
-        id: 2,
-        userAccount: 'zhangsan@example.com',
-        userName: '张三',
-        userAvatar: '',
-        userProfile: '热爱摄影的业余爱好者，喜欢记录生活中的美好瞬间',
-        userRole: 'user',
-        isEnabled: true,
-        createTime: DateTime.now().subtract(const Duration(days: 30)),
-        editTime: DateTime.now().subtract(const Duration(days: 2)),
-      ),
-      UserItem(
-        id: 3,
-        userAccount: 'lisi@example.com',
-        userName: '李四',
-        userAvatar: '',
-        userProfile: '专业摄影师，专注于人像和风景摄影',
-        userRole: 'user',
-        isEnabled: false,
-        createTime: DateTime.now().subtract(const Duration(days: 15)),
-        editTime: DateTime.now().subtract(const Duration(days: 3)),
-      ),
-      UserItem(
-        id: 4,
-        userAccount: 'wangwu@example.com',
-        userName: '王五',
-        userAvatar: '',
-        userProfile: '商业摄影工作室创始人',
-        userRole: 'user',
-        isEnabled: true,
-        createTime: DateTime.now().subtract(const Duration(days: 7)),
-        editTime: DateTime.now().subtract(const Duration(hours: 5)),
-      ),
-      UserItem(
-        id: 5,
-        userAccount: 'zhaoliu@example.com',
-        userName: '赵六',
-        userAvatar: '',
-        userProfile: '违规用户，已被禁用',
-        userRole: 'user',
-        isEnabled: false,
-        createTime: DateTime.now().subtract(const Duration(days: 60)),
-        editTime: DateTime.now().subtract(const Duration(days: 10)),
-      ),
+
     ];
 
     _filteredUsers = List.from(_users);

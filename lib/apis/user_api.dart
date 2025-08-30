@@ -4,7 +4,7 @@ import '../model/user.dart';
 import '../net/request.dart';
 
 class UserDto {
-  int? id;
+  String? id;
   String? userName;
   String? userAccount;
   String? userAvatar;
@@ -28,26 +28,27 @@ class UserDto {
     this.editTime,
   });
 
-  factory UserDto.fromJson(Map<String, dynamic> json) {
-    return UserDto(
-      id: json['id'] as int?,
-      userName: json['userName'] as String?,
-      userAccount: json['userAccount'] as String?,
-      userAvatar: json['userAvatar'] as String?,
-      userProfile: json['userProfile'] as String?,
-      userRole: json['userRole'] as String?,
-      token: json['token'] as String?,
-      createTime: json['createTime'] == null
-          ? null
-          : DateTime.parse(json['createTime'] as String),
-      updateTime: json['updateTime'] == null
-          ? null
-          : DateTime.parse(json['updateTime'] as String),
-      editTime: json['editTime'] == null
-          ? null
-          : DateTime.parse(json['editTime'] as String),
-    );
-  }
+ factory UserDto.fromJson(Map<String, dynamic> json) {
+  return UserDto(
+    id: json['id'] as String?,
+    userName: json['userName'] as String?,
+    userAccount: json['userAccount'] as String?,
+    userAvatar: json['userAvatar'] as String?,
+    userProfile: json['userProfile'] as String?,
+    userRole: json['userRole'] as String?,
+    token: json['token'] as String?,
+    createTime: json['createTime'] == null
+        ? null
+        : DateTime.fromMillisecondsSinceEpoch(json['createTime'] as int),
+    updateTime: json['updateTime'] == null
+        ? null
+        : DateTime.fromMillisecondsSinceEpoch(json['updateTime'] as int),
+    editTime: json['editTime'] == null
+        ? null
+        : DateTime.fromMillisecondsSinceEpoch(json['editTime'] as int),
+  );
+}
+
 
   Map<String, dynamic> toJson() {
     return {
@@ -58,11 +59,12 @@ class UserDto {
       'userProfile': userProfile,
       'userRole': userRole,
       'token': token,
-      'createTime': createTime?.toIso8601String(),
-      'updateTime': updateTime?.toIso8601String(),
-      'editTime': editTime?.toIso8601String(),
+      'createTime': createTime?.millisecondsSinceEpoch,
+      'updateTime': updateTime?.millisecondsSinceEpoch,
+      'editTime': editTime?.millisecondsSinceEpoch,
     };
   }
+
 }
 
 
@@ -99,7 +101,7 @@ class UserApi {
 
   /// 获取当前用户信息
   static Future<UserDto> getCurrentUser() async {
-    final result = await Http.get<Result>("/user/current");
+    final result = await Http.get<Result>("/user/get/login");
     return result.toModel((json) => UserDto.fromJson(json));
   }
 
@@ -122,9 +124,9 @@ class UserApi {
   }
 
   /// 更新用户信息
-  static Future<bool> updateUser(String id, Map<String, dynamic> data) async {
-    final result = await Http.put<Result>(
-      "/users/$id",
+  static Future<bool> updateUser(Map<String, dynamic> data) async {
+    final result = await Http.post<Result>(
+      "/user/update/info",
       data: data,
     );
     return result.success;
