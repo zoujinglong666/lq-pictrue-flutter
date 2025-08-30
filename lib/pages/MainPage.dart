@@ -92,7 +92,7 @@ class _CustomTabBar extends StatelessWidget {
 
     return Container(
       height: barHeight,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         boxShadow: [

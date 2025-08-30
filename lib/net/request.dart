@@ -3,6 +3,7 @@ import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 
 import '../Consts/index.dart';
 import '../common/helper.dart';
+import '../common/toast.dart';
 import '../l18n/status_code_mapping.dart';
 import '../model/result.dart';
 import 'interceptor_cache.dart';
@@ -157,8 +158,6 @@ final class Http {
   /// ✅ 动态设置请求头（比如 token）
   static void setToken(String token) {
     dio.options.headers["satoken"] = "Bearer $token";
-    // 或者如果你后端要求 satoken
-    // dio.options.headers["satoken"] = "Bearer $token";
   }
 
   /// 清除 token
@@ -190,7 +189,7 @@ final class Http {
       }
       // 你可以统一进行错误提示，比如使用 Toast 进行展示。
       print("统一异常：$result");
-      // Toast.showMessage(result.message);
+      MyToast.showError(result.message);
 
       // 使用 throw 关键字可以将错误信息抛出
       // 这样后续调用者还可以继续处理此错误，不然其他地方将收不到任何异常信息；

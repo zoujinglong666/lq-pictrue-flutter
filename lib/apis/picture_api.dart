@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:lq_picture/model/picture.dart';
-import 'package:lq_picture/pages/picture_management_page.dart';
 
 import '../model/page.dart';
 import '../model/result.dart';
@@ -300,6 +299,27 @@ static Future<bool> editPicture(Map<String, dynamic> data) async {
   }
 }
 
+  static Future<bool> reviewPicture(Map<String, dynamic> data) async {
+    final result = await Http.post<Result>(
+      "/picture/review",
+      data: data,
+    );
+
+    // 直接访问 data 字段中的布尔值
+    try {
+      if (result.data is Map<String, dynamic>) {
+        return (result.data as Map<String, dynamic>)['data'] as bool? ?? false;
+      }
+      return result.data as bool? ?? false;
+    } catch (e) {
+      print('解析编辑响应错误: $e');
+      return false;
+    }
+  }
+
+
+
+
 
 
 
@@ -367,6 +387,8 @@ static Future<bool> editPicture(Map<String, dynamic> data) async {
       rethrow;
     }
   }
+
+
 
 
 

@@ -1,3 +1,4 @@
+import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lq_picture/routes/app_routes.dart';
@@ -13,7 +14,7 @@ void main() async {
     ),
   );
 }
-
+final botToastBuilder = BotToastInit();
 class MyApp extends StatelessWidget {
 
   const MyApp({super.key});
@@ -48,9 +49,11 @@ class MyApp extends StatelessWidget {
           CacheManager.observer, // 像这样注册进去就可以了
           // 添加路由观察者来处理页面切换时的焦点管理
           _KeyboardFocusObserver(),
+          BotToastNavigatorObserver(),
         ],
         builder: (context, child) {
           // 确保在构建时取消任何残留的焦点
+          child = botToastBuilder(context, child);
           return MediaQuery(
             data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
             child: child!,

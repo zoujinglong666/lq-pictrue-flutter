@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:lq_picture/apis/space_api.dart';
+import 'package:lq_picture/common/toast.dart';
 import '../utils/keyboard_utils.dart';
 
 class CreateSpacePage extends StatefulWidget {
@@ -8,12 +10,12 @@ class CreateSpacePage extends StatefulWidget {
   State<CreateSpacePage> createState() => _CreateSpacePageState();
 }
 
-class _CreateSpacePageState extends State<CreateSpacePage> with KeyboardDismissMixin {
+class _CreateSpacePageState extends State<CreateSpacePage>
+    with KeyboardDismissMixin {
   final _formKey = GlobalKey<FormState>();
   final _spaceNameController = TextEditingController();
   int _selectedSpaceLevel = 0; // 默认选择普通版
   bool _isLoading = false;
-
   final List<Map<String, dynamic>> _spaceLevels = [
     {
       'level': 0,
@@ -54,13 +56,15 @@ class _CreateSpacePageState extends State<CreateSpacePage> with KeyboardDismissM
     if (!_formKey.currentState!.validate()) {
       return;
     }
-
     setState(() {
       _isLoading = true;
     });
 
-    // 模拟创建空间请求
-    await Future.delayed(const Duration(seconds: 2));
+    final res = await SpaceApi.addSpace({
+      "spaceName": _spaceNameController.text,
+      "spaceLevel": _selectedSpaceLevel,
+    });
+    print("$res");
 
     setState(() {
       _isLoading = false;
@@ -68,16 +72,18 @@ class _CreateSpacePageState extends State<CreateSpacePage> with KeyboardDismissM
 
     // 创建成功
     if (mounted) {
+
+
+      MyToast.showSuccess('空间 "${_spaceNameController.text}" 创建成功！');
+
+
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('空间 "${_spaceNameController.text}" 创建成功！'),
           backgroundColor: Colors.green,
         ),
       );
-      Navigator.pop(context, {
-        'spaceName': _spaceNameController.text,
-        'spaceLevel': _selectedSpaceLevel,
-      });
     }
   }
 
@@ -89,10 +95,7 @@ class _CreateSpacePageState extends State<CreateSpacePage> with KeyboardDismissM
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios,
-            color: Colors.grey[800],
-          ),
+          icon: Icon(Icons.arrow_back_ios, color: Colors.grey[800]),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -151,7 +154,6 @@ class _CreateSpacePageState extends State<CreateSpacePage> with KeyboardDismissM
                 ),
 
                 const SizedBox(height: 32),
-
                 // 空间名称输入
                 Text(
                   '空间名称',
@@ -209,7 +211,6 @@ class _CreateSpacePageState extends State<CreateSpacePage> with KeyboardDismissM
                 ),
 
                 const SizedBox(height: 32),
-
                 // 空间级别选择
                 Text(
                   '选择空间级别',
@@ -241,16 +242,18 @@ class _CreateSpacePageState extends State<CreateSpacePage> with KeyboardDismissM
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: isSelected
-                                ? spaceLevel['color']
-                                : Colors.grey[300]!,
+                            color:
+                                isSelected
+                                    ? spaceLevel['color']
+                                    : Colors.grey[300]!,
                             width: isSelected ? 2 : 1,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: isSelected
-                                  ? spaceLevel['color'].withOpacity(0.2)
-                                  : Colors.grey.withOpacity(0.1),
+                              color:
+                                  isSelected
+                                      ? spaceLevel['color'].withOpacity(0.2)
+                                      : Colors.grey.withOpacity(0.1),
                               blurRadius: isSelected ? 15 : 10,
                               offset: const Offset(0, 5),
                             ),
@@ -277,7 +280,8 @@ class _CreateSpacePageState extends State<CreateSpacePage> with KeyboardDismissM
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Row(
                                         children: [
@@ -318,22 +322,25 @@ class _CreateSpacePageState extends State<CreateSpacePage> with KeyboardDismissM
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: isSelected
-                                          ? spaceLevel['color']
-                                          : Colors.grey[400]!,
+                                      color:
+                                          isSelected
+                                              ? spaceLevel['color']
+                                              : Colors.grey[400]!,
                                       width: 2,
                                     ),
-                                    color: isSelected
-                                        ? spaceLevel['color']
-                                        : Colors.transparent,
+                                    color:
+                                        isSelected
+                                            ? spaceLevel['color']
+                                            : Colors.transparent,
                                   ),
-                                  child: isSelected
-                                      ? const Icon(
-                                          Icons.check,
-                                          color: Colors.white,
-                                          size: 14,
-                                        )
-                                      : null,
+                                  child:
+                                      isSelected
+                                          ? const Icon(
+                                            Icons.check,
+                                            color: Colors.white,
+                                            size: 14,
+                                          )
+                                          : null,
                                 ),
                               ],
                             ),
@@ -341,26 +348,32 @@ class _CreateSpacePageState extends State<CreateSpacePage> with KeyboardDismissM
                             Wrap(
                               spacing: 8,
                               runSpacing: 8,
-                              children: (spaceLevel['features'] as List<String>)
-                                  .map((feature) => Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 6,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: spaceLevel['color'].withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(20),
-                                        ),
-                                        child: Text(
-                                          feature,
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: spaceLevel['color'],
-                                            fontWeight: FontWeight.w500,
+                              children:
+                                  (spaceLevel['features'] as List<String>)
+                                      .map(
+                                        (feature) => Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 6,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: spaceLevel['color']
+                                                .withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            feature,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: spaceLevel['color'],
+                                              fontWeight: FontWeight.w500,
+                                            ),
                                           ),
                                         ),
-                                      ))
-                                  .toList(),
+                                      )
+                                      .toList(),
                             ),
                           ],
                         ),
@@ -385,22 +398,23 @@ class _CreateSpacePageState extends State<CreateSpacePage> with KeyboardDismissM
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
+                    child:
+                        _isLoading
+                            ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                            : const Text(
+                              '创建空间',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          )
-                        : const Text(
-                            '创建空间',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
                   ),
                 ),
 
@@ -409,10 +423,7 @@ class _CreateSpacePageState extends State<CreateSpacePage> with KeyboardDismissM
                 // 说明文字
                 Text(
                   '创建后可以随时在设置中升级或降级空间级别',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[500],
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                   textAlign: TextAlign.center,
                 ),
               ],

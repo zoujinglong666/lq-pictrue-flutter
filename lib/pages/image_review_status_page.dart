@@ -10,57 +10,9 @@ class ImageReviewStatusPage extends StatefulWidget {
 class _ImageReviewStatusPageState extends State<ImageReviewStatusPage> {
   // 当前选中的审核状态过滤器
   String _currentFilter = '全部';
-  
   // 模拟图片审核数据
   final List<Map<String, dynamic>> _reviewImages = [
-    {
-      'id': 1,
-      'name': '风景照片_001.jpg',
-      'uploadTime': '2024-08-15 14:30',
-      'status': '待审核', // 待审核、已通过、已拒绝
-      'thumbnail': 'https://example.com/thumb1.jpg',
-      'reason': '',
-    },
-    {
-      'id': 2,
-      'name': '家庭合影_002.jpg',
-      'uploadTime': '2024-08-14 09:15',
-      'status': '已通过',
-      'thumbnail': 'https://example.com/thumb2.jpg',
-      'reason': '',
-    },
-    {
-      'id': 3,
-      'name': '产品展示_003.jpg',
-      'uploadTime': '2024-08-13 16:45',
-      'status': '已拒绝',
-      'thumbnail': 'https://example.com/thumb3.jpg',
-      'reason': '图片包含商业广告内容，违反社区规定',
-    },
-    {
-      'id': 4,
-      'name': '旅行照片_004.jpg',
-      'uploadTime': '2024-08-12 11:20',
-      'status': '已通过',
-      'thumbnail': 'https://example.com/thumb4.jpg',
-      'reason': '',
-    },
-    {
-      'id': 5,
-      'name': '宠物照片_005.jpg',
-      'uploadTime': '2024-08-11 15:50',
-      'status': '待审核',
-      'thumbnail': 'https://example.com/thumb5.jpg',
-      'reason': '',
-    },
-    {
-      'id': 6,
-      'name': '聚会照片_006.jpg',
-      'uploadTime': '2024-08-10 20:30',
-      'status': '已拒绝',
-      'thumbnail': 'https://example.com/thumb6.jpg',
-      'reason': '图片质量过低，请上传清晰图片',
-    },
+
   ];
 
   // 过滤器选项
@@ -194,7 +146,7 @@ class _ImageReviewStatusPageState extends State<ImageReviewStatusPage> {
           Text(
             _currentFilter == '全部' 
                 ? '您还没有上传过图片' 
-                : '没有${_currentFilter}状态的图片',
+                : '没有$_currentFilter状态的图片',
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[500],

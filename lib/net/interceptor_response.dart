@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-
 import '../model/result.dart';
 
 
@@ -18,6 +17,8 @@ final class ResponseInterceptor extends Interceptor {
         response.statusMessage = result.message;
         return handler.resolve(response);
       }
+
+
       // 业务异常（请求是正常的，Result 的 code 不是正常码）
       // 此处是将所有业务码为非正常值的统一归置到异常一类中
       // 这样，我们就可以在统一的通过 catchError 的来捕获这些信息了

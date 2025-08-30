@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lq_picture/common/toast.dart';
 import '../utils/keyboard_utils.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -34,9 +35,7 @@ class _RegisterPageState extends State<RegisterPage> with KeyboardDismissMixin {
     }
 
     if (!_agreeToTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请同意用户协议和隐私政策')),
-      );
+      MyToast.showInfo('请同意用户协议和隐私政策');
       return;
     }
 

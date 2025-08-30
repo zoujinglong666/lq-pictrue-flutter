@@ -4,6 +4,8 @@ import 'package:lq_picture/apis/user_api.dart';
 import 'package:lq_picture/model/user.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../net/request.dart';
+
 // ==== 登录状态结构 ====
 class AuthState {
   final String? token;
@@ -91,6 +93,7 @@ Future<void> setLoginUser(LoginUserVO user) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_storageKey);
     await prefs.remove('token');
+    Http.clearToken();
   }
 
 

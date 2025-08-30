@@ -38,9 +38,7 @@ Future<void> _checkAuthStatus() async {
 
     // 监听 auth 状态变化
     final authState = ref.read(authProvider);
-
     if (!mounted) return;
-
     // 根据认证状态导航
     final targetPage = authState.isLoggedIn
         ? const MainPage()
@@ -54,7 +52,7 @@ Future<void> _checkAuthStatus() async {
   } catch (e) {
     debugPrint('启动时发生错误: $e');
     if (!mounted) return;
-
+    Http.clearToken();
     // 错误时导航到登录页
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const LoginPage()),

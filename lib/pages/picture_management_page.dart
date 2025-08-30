@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart' hide Page;
+import 'package:lq_picture/common/toast.dart';
 import '../apis/picture_api.dart';
 import '../utils/keyboard_utils.dart';
 import '../widgets/pagination_widget.dart';
@@ -121,24 +122,13 @@ class _PictureManagementPageState extends State<PictureManagementPage> with Keyb
   }
 
   Future<void> _reviewPicture(PictureItem picture, int status, [String? message]) async {
-    // 模拟审核请求
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    setState(() {
-      // picture.reviewStatus = status;
-      // picture.reviewMessage = message ?? '';
-      // picture.reviewTime = DateTime.now();
+    final res = await PictureApi.reviewPicture({
+      'id': picture.id,
+      'reviewStatus':status,
     });
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(status == 1 ? '图片审核通过' : '图片审核拒绝'),
-          backgroundColor: status == 1 ? Colors.green : Colors.red,
-        ),
-      );
+    if(res){
+      MyToast.showSuccess(status == 1 ? '图片审核通过' : '图片审核拒绝');
     }
-
     _filterPictures();
   }
 
@@ -446,6 +436,38 @@ class _PictureManagementPageState extends State<PictureManagementPage> with Keyb
     );
   }
 
+  /// 将不同类型的数据转换为标签列表
+  List<String> _convertToTagList(dynamic tags) {
+    if (tags == null) {
+      return [];
+    }
+
+    if (tags is List<String>) {
+      // 已经是正确的类型
+      return tags;
+    }
+
+    if (tags is List) {
+      // 是列表但元素不是字符串，转换为字符串
+      return tags.map((tag) => tag.toString()).toList();
+    }
+
+    if (tags is String) {
+      // 是字符串，尝试按逗号分割
+      if (tags.isEmpty) {
+        return [];
+      }
+      return tags.split(',').map((tag) => tag.trim()).where((tag) => tag.isNotEmpty).toList();
+    }
+
+    // 其他情况，转换为字符串再处理
+    final tagString = tags.toString();
+    if (tagString.isEmpty) {
+      return [];
+    }
+    return tagString.split(',').map((tag) => tag.trim()).where((tag) => tag.isNotEmpty).toList();
+  }
+
   void _showPictureDetail(PictureItem picture) {
     showModalBottomSheet(
       context: context,
@@ -547,10 +569,8 @@ class _PictureManagementPageState extends State<PictureManagementPage> with Keyb
                       _buildDetailSection('基本信息', [
                         _buildDetailItem(Icons.image_outlined, '图片名称', picture.name),
                         _buildDetailItem(Icons.category_outlined, '分类', picture.category ?? '未分类'),
-                        _buildDetailItem(Icons.tag_outlined, '标签', (picture.tags ?? []).join(', ')),
+                        _buildDetailItem(Icons.tag_outlined, '标签', (_convertToTagList(picture.tags)?? []).join(', ')),
                       ]),
-                      const SizedBox(height: 20),
-
                       const SizedBox(height: 20),
                       // 文件信息
                       _buildDetailSection('文件信息', [

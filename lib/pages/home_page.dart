@@ -49,70 +49,96 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<void> _loadData() async {
-    if (_isLoading) return;
+Future<void> _loadData() async {
+  if (_isLoading) return;
 
-    setState(() {
-      _isLoading = true;
+  setState(() {
+    _isLoading = true;
+  });
+
+  try {
+    final res = await PictureApi.getList({
+      "current": 1,
+      "pageSize": 10,
+      "sortField": 'createTime',
+      "sortOrder": 'descend',
     });
 
-    try {
-      final res = await PictureApi.getList({
-        "current": 1,
-        "pageSize": 10,
-      });
-
-      setState(() {
-        _images = res.records ?? [];
-        _isLoading = false;
-        _currentPage = 2; // 下一页为2
-        _hasMore = _images.length >= 10; // 如果返回数据少于请求数量，说明没有更多了
-      });
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-      // 可以添加错误提示
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('加载失败，请重试')),
-      );
-    }
-  }
-
-  Future<void> _loadMoreImages() async {
-    if (_isLoading || !_hasMore) return;
-
     setState(() {
-      _isLoading = true;
+      _images = res.records ?? [];
+      _isLoading = false;
+      _currentPage = 2; // 下一页为2
+      _hasMore = (res.records?.length ?? 0) >= 10; // 如果返回数据少于请求数量，说明没有更多了
+    });
+  } catch (e) {
+    setState(() {
+      _isLoading = false;
+    });
+  }
+}
+
+Future<void> _loadMoreImages() async {
+  if (_isLoading || !_hasMore) return;
+
+  setState(() {
+    _isLoading = true;
+  });
+
+  try {
+    final res = await PictureApi.getList({
+      "current": _currentPage,
+      "pageSize": 10,
+      "sortField": 'createTime',
+      "sortOrder": 'descend',
     });
 
-    try {
-      final res = await PictureApi.getList({
-        "current": _currentPage,
-        "pageSize": 10,
-       });
-
-     setState(() {
-        if (res.records != null) {
-          _images.addAll(res.records!);
-          _currentPage++;
-          // 如果返回数据少于请求数量，说明没有更多了
-          _hasMore = res.records!.length >= 10;
-        } else {
-          _hasMore = false;
-        }
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-      // 添加错误提示
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('加载更多失败，请重试')),
-      );
-    }
+    setState(() {
+      if (res.records != null) {
+        _images.addAll(res.records!);
+        _currentPage++;
+        // 如果返回数据少于请求数量，说明没有更多了
+        _hasMore = res.records!.length >= 10;
+      } else {
+        _hasMore = false;
+      }
+      _isLoading = false;
+    });
+  } catch (e) {
+    setState(() {
+      _isLoading = false;
+    });
   }
+}
+
+// 添加一个新的方法用于下拉刷新
+Future<void> _refreshData() async {
+  setState(() {
+    _isLoading = true;
+    _hasMore = true;
+    _currentPage = 1;
+  });
+
+  try {
+    final res = await PictureApi.getList({
+      "current": 1,
+      "pageSize": 10,
+      "sortField": 'createTime',
+      "sortOrder": 'descend',
+    });
+
+    setState(() {
+      _images = res.records ?? [];
+      _isLoading = false;
+      _currentPage = 2; // 下一页为2
+      _hasMore = (res.records?.length ?? 0) >= 10;
+    });
+  } catch (e) {
+    setState(() {
+      _isLoading = false;
+    });
+  }
+}
+
 
 
   @override
@@ -225,12 +251,7 @@ class _HomePageState extends State<HomePage> {
             Expanded(
               child: RefreshIndicator(
                 onRefresh: () async {
-                  setState(() {
-                    _currentPage = 1;
-                    _hasMore = true;
-                    _images = _images.take(6).toList(); // 重置为初始数据
-                  });
-                  await _loadMoreImages();
+                  _refreshData();
                 },
                 child: CustomScrollView(
                   controller: _scrollController,

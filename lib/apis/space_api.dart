@@ -207,6 +207,16 @@ class SpaceApi {
 
     return result.toModel((json) => Page.fromJson(json, (item) => SpaceVO.fromJson(item)));
   }
+  static Future<Result> addSpace(Map<String, dynamic> data) async {
+    final result = await Http.post<Result>(
+      "/space/create",
+      data: data,
+    );
+
+    return result;
+  }
+
+
 
 
 

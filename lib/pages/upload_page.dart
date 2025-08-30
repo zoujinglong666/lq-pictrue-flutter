@@ -9,6 +9,8 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:image/image.dart' as img;
+import '../Consts/index.dart';
+import '../common/toast.dart';
 
 class UploadPage extends ConsumerStatefulWidget {
   final String? spaceId;
@@ -60,17 +62,8 @@ class _UploadPageState extends ConsumerState<UploadPage>
   // 通用字段
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  String _selectedCategory = '风景';
-  final List<String> _categories = [
-    '风景',
-    '人物',
-    '建筑',
-    '科技',
-    '商务',
-    '自然',
-    '艺术',
-    '其他',
-  ];
+  String _selectedCategory = '模板';
+  String _selectedTag = '热门';
 
   // 上传状态管理
   bool _isUploading = false;
@@ -403,7 +396,6 @@ class _UploadPageState extends ConsumerState<UploadPage>
   // 文件上传处理
   Future<void> _uploadFileImages(String userId) async {
     if(widget.spaceId!=null){
-      print("当前是空间模式");
       for (int i = 0; i < _selectedImages.length; i++) {
         final image = _selectedImages[i];
         final imageKey = 'file_$i';
@@ -467,7 +459,6 @@ class _UploadPageState extends ConsumerState<UploadPage>
             _uploadedImages.add(result);
           });
 
-          print('第${i + 1}张图片上传成功');
         } catch (e) {
           print('文件上传错误: $e');
           setState(() {
@@ -618,9 +609,8 @@ class _UploadPageState extends ConsumerState<UploadPage>
   // 最终提交方法
   Future<void> _submitImages() async {
     if (_titleController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('请输入标题')));
+
+      MyToast.showError("请输入标题");
       return;
     }
 
@@ -629,10 +619,6 @@ class _UploadPageState extends ConsumerState<UploadPage>
     });
 
     try {
-      // 这里可以调用更新图片信息的API
-      // 暂时只显示成功消息
-      await Future.delayed(const Duration(seconds: 1));
-
       final editRes = await PictureApi.editPicture({
         'name': _titleController.text
             .trim()
@@ -644,13 +630,13 @@ class _UploadPageState extends ConsumerState<UploadPage>
         'introduction': _descriptionController.text.trim(),
         'category': _selectedCategory,
         'id': _uploadedImages.first.id,
-        "tags": ['热门']
+        "tags": [_selectedTag],  // 把单个字符串包成 List
       });
 
       if(editRes){
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('图片信息更新成功')));
+
+        MyToast.showSuccess("图片信息更新成功");
+
       }
 
       // 清空所有数据，重置状态
@@ -661,14 +647,14 @@ class _UploadPageState extends ConsumerState<UploadPage>
         _titleController.clear();
         _descriptionController.clear();
         _urlController.clear();
-        _selectedCategory = '风景';
+        _selectedCategory = '模板';
+        _selectedTag = '热门';
         _showUploadedImages = false;
         _uploadProgress.clear();
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('提交失败: $e'), backgroundColor: Colors.red),
-      );
+
+      MyToast.showError("提交失败");
     } finally {
       setState(() {
         _isSubmitting = false;
@@ -1633,7 +1619,7 @@ class _UploadPageState extends ConsumerState<UploadPage>
                 }
               },
               items:
-                  _categories.map<DropdownMenuItem<String>>((String value) {
+              Consts.pictureOptions.categoryList.map<DropdownMenuItem<String>>((String value) {
                     return DropdownMenuItem<String>(
                       value: value,
                       child: Text(value),
@@ -1643,7 +1629,39 @@ class _UploadPageState extends ConsumerState<UploadPage>
           ),
         ),
 
-        const SizedBox(height: 32),
+        // 分类选择
+        const Text(
+          '标签',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: _selectedTag,
+              onChanged: (String? newValue) {
+                if (newValue != null) {
+                  setState(() {
+                    _selectedTag = newValue;
+                  });
+                }
+              },
+              items:
+              Consts.pictureOptions.tagList.map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
       ],
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lq_picture/common/toast.dart';
 import 'package:lq_picture/providers/auth_provider.dart';
 
 import '../apis/user_api.dart';
@@ -13,7 +14,8 @@ class LoginPage extends ConsumerStatefulWidget {
   ConsumerState<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends ConsumerState<LoginPage> with KeyboardDismissMixin {
+class _LoginPageState extends ConsumerState<LoginPage>
+    with KeyboardDismissMixin {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -36,25 +38,25 @@ class _LoginPageState extends ConsumerState<LoginPage> with KeyboardDismissMixin
       _isLoading = true;
     });
 
-    // 模拟登录请求
-    await Future.delayed(const Duration(seconds: 2));
-    setState(() {
-      _isLoading = false;
-    });
-
-    final loginRes=await UserApi.userLogin({
-      'userAccount': _usernameController.text,
-      'userPassword': _passwordController.text,
-    });
-    if(loginRes!= null){
-      ref.read(authProvider.notifier).login(loginRes, loginRes.token!);
-      Http.setToken(loginRes.token!);
-      // 登录成功后跳转到主页
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
+    try {
+      final loginRes = await UserApi.userLogin({
+        'userAccount': _usernameController.text,
+        'userPassword': _passwordController.text,
+      });
+      if (loginRes != null) {
+        ref.read(authProvider.notifier).login(loginRes, loginRes.token!);
+        Http.setToken(loginRes.token!);
+        MyToast.showSuccess("登录成功");
+        // 登录成功后跳转到主页
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/home');
+        }
       }
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
-
   }
 
   @override
@@ -68,7 +70,7 @@ class _LoginPageState extends ConsumerState<LoginPage> with KeyboardDismissMixin
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 60),
-              
+
               // Logo 区域
               Container(
                 alignment: Alignment.center,
@@ -106,17 +108,14 @@ class _LoginPageState extends ConsumerState<LoginPage> with KeyboardDismissMixin
                     const SizedBox(height: 8),
                     Text(
                       '欢迎回来',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                     ),
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 60),
-              
+
               // 登录表单
               Form(
                 key: _formKey,
@@ -155,24 +154,24 @@ class _LoginPageState extends ConsumerState<LoginPage> with KeyboardDismissMixin
                             horizontal: 16,
                             vertical: 16,
                           ),
-                          errorStyle: const TextStyle(
-                            height: 2,
-                          ),
+                          errorStyle: const TextStyle(height: 2),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return '请输入用户名';
                           }
-                          if (!RegExp(r'^[a-zA-Z][a-zA-Z0-9]*$').hasMatch(value)) {
+                          if (!RegExp(
+                            r'^[a-zA-Z][a-zA-Z0-9]*$',
+                          ).hasMatch(value)) {
                             return '用户名必须以字母开头，只能包含字母和数字';
                           }
                           return null;
                         },
                       ),
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     // 密码输入框
                     Container(
                       decoration: BoxDecoration(
@@ -220,9 +219,7 @@ class _LoginPageState extends ConsumerState<LoginPage> with KeyboardDismissMixin
                             horizontal: 16,
                             vertical: 16,
                           ),
-                          errorStyle: const TextStyle(
-                            height: 2,
-                          ),
+                          errorStyle: const TextStyle(height: 2),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -231,16 +228,18 @@ class _LoginPageState extends ConsumerState<LoginPage> with KeyboardDismissMixin
                           if (value.length < 6) {
                             return '密码长度至少6位';
                           }
-                          if (!RegExp(r'^[a-zA-Z0-9!@#$%^&*(),.?":{}|<>]*$').hasMatch(value)) {
+                          if (!RegExp(
+                            r'^[a-zA-Z0-9!@#$%^&*(),.?":{}|<>]*$',
+                          ).hasMatch(value)) {
                             return '密码只能包含字母、数字和特殊字符';
                           }
                           return null;
                         },
                       ),
                     ),
-                    
+
                     const SizedBox(height: 24),
-                    
+
                     // 登录按钮
                     SizedBox(
                       width: double.infinity,
@@ -255,59 +254,52 @@ class _LoginPageState extends ConsumerState<LoginPage> with KeyboardDismissMixin
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
+                        child:
+                            _isLoading
+                                ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                                : const Text(
+                                  '登录',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
-                              )
-                            : const Text(
-                                '登录',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
                       ),
                     ),
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // 忘记密码
               TextButton(
                 onPressed: () {
                   // TODO: 实现忘记密码功能
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('忘记密码功能待实现')),
-                  );
+
                 },
                 child: Text(
                   '忘记密码？',
-                  style: TextStyle(
-                    color: Colors.blue[600],
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: Colors.blue[600], fontSize: 14),
                 ),
               ),
-              
+
               const SizedBox(height: 40),
-              
+
               // 注册提示
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     '还没有账号？',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
                   ),
                   TextButton(
                     onPressed: () {
