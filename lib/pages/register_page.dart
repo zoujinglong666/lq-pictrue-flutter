@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lq_picture/common/toast.dart';
+import '../apis/user_api.dart';
 import '../utils/keyboard_utils.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -42,21 +43,32 @@ class _RegisterPageState extends State<RegisterPage> with KeyboardDismissMixin {
     setState(() {
       _isLoading = true;
     });
-
-    // 模拟注册请求
-    await Future.delayed(const Duration(seconds: 2));
-
-    setState(() {
-      _isLoading = false;
-    });
-
-    // 注册成功后跳转到登录页面
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('注册成功，请登录')),
-      );
-      Navigator.pushReplacementNamed(context, '/login');
+    try{
+      final res = await UserApi.userRegister({
+        'userAccount': _usernameController.text,
+        'userPassword': _passwordController.text,
+        'checkPassword': _confirmPasswordController.text
+      });
+      if (res.isNotEmpty) {
+        MyToast.showSuccess('注册成功');
+        if (mounted) {
+          Future.delayed(const Duration(milliseconds: 800), () {
+            Navigator.pushReplacementNamed(context, '/login');
+          });
+        }
+      }
+      setState(() {
+        _isLoading = false;
+      });
+    }catch(e){
+      setState(() {
+        _isLoading = false;
+      });
+      MyToast.showError('注册失败');
     }
+
+
+
   }
 
   @override

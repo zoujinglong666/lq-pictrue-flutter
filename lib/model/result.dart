@@ -67,6 +67,19 @@ class Result extends Model<Result> {
     }
   }
 
+  String modelToString() {
+    try {
+      if (data is Map<String, dynamic>) {
+        final dataMap = data as Map<String, dynamic>;
+        return dataMap['data'] as String? ?? '';
+      }
+      return data as String? ?? '';
+    } catch (e) {
+      print('解析字符串响应错误: $e');
+      return '';
+    }
+  }
+
   @override
   Map<String, dynamic> toJson() {
     return {

@@ -67,14 +67,7 @@ class UserDto {
 
 
 class UserApi {
-  /// 用户注册
-  static Future<UserDto> userRegister(Map<String, dynamic> data) async {
-    final result = await Http.post<Result>(
-      "/auth/register",
-      data: data,
-    );
-    return result.toModel((json) => UserDto.fromJson(json));
-  }
+
 
   /// 用户登录
   static Future<LoginUserVO> userLogin(Map<String, dynamic> data) async {
@@ -84,6 +77,17 @@ class UserApi {
     );
     return result.toModel((json) => LoginUserVO.fromJson(json));
   }
+
+  /// 用户注册
+
+  static Future<String> userRegister(Map<String, dynamic> data) async {
+    final result = await Http.post<Result>(
+      "/user/register",
+      data: data,
+    );
+    return result.modelToString();
+  }
+
 
 
   static Future<bool> userLogout() async {
