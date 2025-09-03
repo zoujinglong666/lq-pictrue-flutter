@@ -4,10 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lq_picture/routes/app_routes.dart';
 import 'package:lq_picture/utils/screenutil/screen_adapter.dart';
 import 'net/interceptor_cache.dart';
+import 'net/request.dart';
 
 void main() async {
   // 确保Flutter绑定初始化
   WidgetsFlutterBinding.ensureInitialized();
+  await Http.init(); // 初始化 baseUrl
   runApp(
     ProviderScope(
       child: MyApp(),

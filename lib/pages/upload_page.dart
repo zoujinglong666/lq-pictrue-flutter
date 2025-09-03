@@ -395,152 +395,78 @@ class _UploadPageState extends ConsumerState<UploadPage>
 
   // 文件上传处理
   Future<void> _uploadFileImages(String userId) async {
-    if(widget.spaceId!=null){
-      for (int i = 0; i < _selectedImages.length; i++) {
-        final image = _selectedImages[i];
-        final imageKey = 'file_$i';
+    for (int i = 0; i < _selectedImages.length; i++) {
+      final image = _selectedImages[i];
+      final imageKey = 'file_$i';
 
+      setState(() {
+        _uploadProgress[imageKey] = 0.0;
+      });
+
+      try {
+        // 压缩阶段 (0-30%)
         setState(() {
-          _uploadProgress[imageKey] = 0.0;
+          _uploadProgress[imageKey] = 0.1;
         });
 
-        try {
-          // 压缩阶段 (0-30%)
-          setState(() {
-            _uploadProgress[imageKey] = 0.1;
-          });
+        print('开始压缩第${i + 1}张图片...');
+        final compressedFile = await _compressImage(File(image.path));
+        final finalFile = compressedFile ?? File(image.path);
 
-          print('开始压缩第${i + 1}张图片...');
-          final compressedFile = await _compressImage(File(image.path));
-          final finalFile = compressedFile ?? File(image.path);
-
-          // 上传准备阶段 (30-50%)
-          setState(() {
-            _uploadProgress[imageKey] = 0.3;
-          });
-
-          // 模拟上传进度 (50-90%)
-          for (double progress = 0.5; progress < 0.9; progress += 0.1) {
-            setState(() {
-              _uploadProgress[imageKey] = progress;
-            });
-            await Future.delayed(const Duration(milliseconds: 100));
-          }
-
-          final result = await PictureApi.uploadPicture(
-            body: {
-              "spaceId":widget.spaceId ,
-            },
-            files: [finalFile],
-          );
-
-          if (result.thumbnailUrl!.isNotEmpty) {
-            try {
-              final editRes = await PictureApi.editPicture({
-                'name': _titleController.text
-                    .trim()
-                    .isEmpty
-                    ? '图片_${DateTime
-                    .now()
-                    .millisecondsSinceEpoch}'
-                    : _titleController.text.trim(),
-                'introduction': _descriptionController.text.trim(),
-                'category': _selectedCategory,
-                'id': result.id,
-                "tags": ['热门']
-              });
-            } catch (e) {
-              print('文件编辑错误: $e');
-            }
-          }
-
-          setState(() {
-            _uploadProgress[imageKey] = 1.0;
-            _uploadedImages.add(result);
-          });
-
-        } catch (e) {
-          print('文件上传错误: $e');
-          setState(() {
-            _uploadProgress[imageKey] = -1.0;
-          });
-        }
-      }
-    }else{
-      for (int i = 0; i < _selectedImages.length; i++) {
-        final image = _selectedImages[i];
-        final imageKey = 'file_$i';
-
+        // 上传准备阶段 (30-50%)
         setState(() {
-          _uploadProgress[imageKey] = 0.0;
+          _uploadProgress[imageKey] = 0.3;
         });
 
-        try {
-          // 压缩阶段 (0-30%)
+        // 模拟上传进度 (50-90%)
+        for (double progress = 0.5; progress < 0.9; progress += 0.1) {
           setState(() {
-            _uploadProgress[imageKey] = 0.1;
+            _uploadProgress[imageKey] = progress;
           });
-
-          print('开始压缩第${i + 1}张图片...');
-          final compressedFile = await _compressImage(File(image.path));
-          final finalFile = compressedFile ?? File(image.path);
-
-          // 上传准备阶段 (30-50%)
-          setState(() {
-            _uploadProgress[imageKey] = 0.3;
-          });
-
-          // 模拟上传进度 (50-90%)
-          for (double progress = 0.5; progress < 0.9; progress += 0.1) {
-            setState(() {
-              _uploadProgress[imageKey] = progress;
-            });
-            await Future.delayed(const Duration(milliseconds: 100));
-          }
-
-          final result = await PictureApi.uploadPicture(
-            body: {
-              "spaceId":widget.spaceId ,
-            },
-            files: [finalFile],
-          );
-
-          if (result.thumbnailUrl!.isNotEmpty) {
-            try {
-              final editRes = await PictureApi.editPicture({
-                'name': _titleController.text
-                    .trim()
-                    .isEmpty
-                    ? '图片_${DateTime
-                    .now()
-                    .millisecondsSinceEpoch}'
-                    : _titleController.text.trim(),
-                'introduction': _descriptionController.text.trim(),
-                'category': _selectedCategory,
-                'id': result.id,
-                "tags": ['热门']
-              });
-              print('文件编辑成功: $editRes');
-            } catch (e) {
-              print('文件编辑错误: $e');
-            }
-          }
-
-          setState(() {
-            _uploadProgress[imageKey] = 1.0;
-            _uploadedImages.add(result);
-          });
-
-          print('第${i + 1}张图片上传成功');
-        } catch (e) {
-          print('文件上传错误: $e');
-          setState(() {
-            _uploadProgress[imageKey] = -1.0;
-          });
+          await Future.delayed(const Duration(milliseconds: 100));
         }
+
+        // 上传接口
+        final result = await PictureApi.uploadPicture(
+          body: {
+            "spaceId": widget.spaceId,
+          },
+          files: [finalFile],
+        );
+
+        if (result.thumbnailUrl?.isNotEmpty ?? false) {
+          try {
+            final editRes = await PictureApi.editPicture({
+              'name': _titleController.text.trim().isEmpty
+                  ? '图片_${DateTime.now().millisecondsSinceEpoch}'
+                  : _titleController.text.trim(),
+              'introduction': _descriptionController.text.trim(),
+              'category': _selectedCategory,
+              'id': result.id,
+              "tags": [_selectedTag]
+            });
+
+            print('文件编辑成功: $editRes');
+          } catch (e) {
+            print('文件编辑错误: $e');
+          }
+        }
+
+        setState(() {
+          _uploadProgress[imageKey] = 1.0;
+          _uploadedImages.add(result);
+        });
+
+        print('第${i + 1}张图片上传成功');
+      } catch (e) {
+        print('文件上传错误: $e');
+        setState(() {
+          _uploadProgress[imageKey] = -1.0;
+        });
       }
     }
   }
+
 
   // URL上传处理
   Future<void> _uploadUrlImages(String userId) async {
@@ -586,7 +512,6 @@ class _UploadPageState extends ConsumerState<UploadPage>
           });
         }
       } catch (e) {
-        print('URL上传错误: $e');
         setState(() {
           _uploadProgress[imageKey] = -1.0;
         });

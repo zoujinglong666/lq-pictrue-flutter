@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:dio/dio.dart';
+
 final class Consts {
   Consts._();
 
@@ -8,7 +10,8 @@ final class Consts {
 
   /// About network request
   static const request = (
-  baseUrl: "http://192.168.101.23:8123/api",
+  baseUrl: "http://192.168.154.23:8123/api",
+  port:8123 ,
   socketUrl: "http://192.168.0.23:8123",
   minWaitingTime: Duration(milliseconds: 500),
   cachedTime: Duration(milliseconds: 2000),
@@ -20,11 +23,8 @@ final class Consts {
   );
 
 
-  /// 动态获取 baseUrl
-  static Future<String> getBaseUrl({int port = 8123}) async {
-    final ip = await NetworkUtils.getLocalIpAddress() ?? "127.0.0.1";
-    return "http://$ip:$port/api";
-  }
+
+
 
   /// 动态获取 socketUrl
   static Future<String> getSocketUrl({int port = 8123}) async {
