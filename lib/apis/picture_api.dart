@@ -273,6 +273,18 @@ class PictureApi {
     return result.toModel((json) => Page.fromJson(json, (item) => PictureVO.fromJson(item)));
   }
 
+  /// 获取图片列表
+  static Future<PictureUploadVO> uploadPictureByUrl(Map<String, dynamic> data) async {
+    final result = await Http.post<Result>(
+      "/picture/upload/url",
+      data: data,
+    );
+
+    return  result.toModel((json) => PictureUploadVO.fromJson(json));
+  }
+
+
+
   static Future<Page<PictureItem>> getAllList(Map<String, dynamic> data) async {
     final result = await Http.post<Result>(
       "/picture/list/page",
@@ -386,6 +398,9 @@ static Future<bool> editPicture(Map<String, dynamic> data) async {
       print('上传API错误: $e');
       rethrow;
     }
+
+
+
   }
 
 

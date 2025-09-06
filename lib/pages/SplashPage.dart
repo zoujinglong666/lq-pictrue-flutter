@@ -30,22 +30,39 @@ Future<void> _checkAuthStatus() async {
     // 等待 auth provider 初始化完成
     final authNotifier = ref.read(authProvider.notifier);
 
-    // 确保状态已经从存储中加载
-    while (!authNotifier.state.isInitialized) {
+    // 确保状态已经从存储中加载，但设置超时防止无限等待
+    int waitCount = 0;
+    const maxWaitCount = 50; // 最多等待5秒
+    
+    while (!authNotifier.state.isInitialized && waitCount < maxWaitCount) {
       await Future.delayed(const Duration(milliseconds: 100));
+      waitCount++;
       if (!mounted) return;
+    }
+
+    // 如果超时仍未初始化，强制初始化为未登录状态
+    if (!authNotifier.state.isInitialized) {
+      debugPrint('认证状态初始化超时，使用默认状态');
     }
 
     // 监听 auth 状态变化
     final authState = ref.read(authProvider);
     if (!mounted) return;
+    
     // 根据认证状态导航
     final targetPage = authState.isLoggedIn
         ? const MainPage()
         : const LoginPage();
 
     if (!mounted) return;
-    Http.setToken(authState.token!);
+    
+    // 只有在已登录且token不为空时才设置token
+    if (authState.isLoggedIn && authState.token != null) {
+      Http.setToken(authState.token!);
+    } else {
+      Http.clearToken();
+    }
+    
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => targetPage),
     );

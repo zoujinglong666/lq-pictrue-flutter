@@ -45,17 +45,26 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   /// ✅ 从本地加载登录信息
   Future<void> loadFromStorage() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_storageKey);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_storageKey);
 
-    if (raw != null) {
-      final map = jsonDecode(raw);
-      state = AuthState.fromJson(map);
-      
-      // 如果已登录，启动token检查
-      if (state.isLoggedIn) {
+      if (raw != null) {
+        final map = jsonDecode(raw);
+        state = AuthState.fromJson(map);
+        
+        // 如果已登录，启动token检查
+        if (state.isLoggedIn) {
+          // 可以在这里添加token验证逻辑
+        }
+      } else {
+        state = AuthState(isInitialized: true);
       }
-    } else {
+    } catch (e) {
+      // 如果解析失败，清除存储并初始化为未登录状态
+      print('加载认证状态失败: $e');
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_storageKey);
       state = AuthState(isInitialized: true);
     }
   }

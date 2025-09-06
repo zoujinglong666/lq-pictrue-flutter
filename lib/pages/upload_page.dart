@@ -75,6 +75,7 @@ class _UploadPageState extends ConsumerState<UploadPage>
   @override
   void initState() {
     super.initState();
+    _urlController.text = 'https://p3-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/42bf9da418ee47a8af327410f280aa92~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg6L2s6L2s5oqA5pyv5Zui6Zif:q75.awebp?rk3s=f64ab15b&x-expires=1757511371&x-signature=5CzWBhj9jlvAjNB5YuCu7XGRFJg%3D';
     _tabController = TabController(length: 2, vsync: this);
   }
 
@@ -305,6 +306,7 @@ class _UploadPageState extends ConsumerState<UploadPage>
       _urlImages.add(url);
       _urlController.clear();
     });
+    // _uploadSingleUrlImage(url,0);
   }
 
   void _removeUrlImage(int index) {
@@ -361,7 +363,7 @@ class _UploadPageState extends ConsumerState<UploadPage>
       if (_tabController.index == 0) {
         await _uploadFileImages(user.id.toString());
       } else {
-        await _uploadUrlImages(user.id.toString());
+        await _uploadUrlImages();
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -468,57 +470,58 @@ class _UploadPageState extends ConsumerState<UploadPage>
   }
 
 
-  // URL上传处理
-  Future<void> _uploadUrlImages(String userId) async {
-    for (int i = 0; i < _urlImages.length; i++) {
-      final imageUrl = _urlImages[i];
-      final imageKey = 'url_$i';
+  /// 单张 URL 上传
+  Future<void> _uploadSingleUrlImage(String imageUrl, int index) async {
+    final imageKey = 'url_$index';
 
-      setState(() {
-        _uploadProgress[imageKey] = 0.0;
+    if(imageUrl.isEmpty){
+      throw Exception('URL图片 ${index + 1} 为空');
+    }
+
+    setState(() {
+      _uploadProgress[imageKey] = 0.0;
+    });
+
+    try {
+      // 模拟上传进度
+      for (double progress = 0.2; progress < 1.0; progress += 0.2) {
+        setState(() {
+          _uploadProgress[imageKey] = progress;
+        });
+        await Future.delayed(const Duration(milliseconds: 150));
+      }
+
+      final result = await PictureApi.uploadPictureByUrl({
+        "spaceId": widget.spaceId,
+        "fileUrl": imageUrl,
       });
 
-      try {
-        // 模拟上传进度
-        for (double progress = 0.2; progress < 1.0; progress += 0.2) {
-          setState(() {
-            _uploadProgress[imageKey] = progress;
-          });
-          await Future.delayed(const Duration(milliseconds: 150));
-        }
+      setState(() {
+        _uploadProgress[imageKey] = 1.0;
+        _uploadedImages.add(result);
+      });
 
-        final uploadData = {
-          'name':
-              _titleController.text.trim().isEmpty
-                  ? 'URL图片_${DateTime.now().millisecondsSinceEpoch}'
-                  : _titleController.text.trim(),
-          'introduction': _descriptionController.text.trim(),
-          'category': _selectedCategory,
-          'userId': userId,
-          'url': imageUrl,
-        };
-
-        final result = await PictureApi.uploadPicture(body: uploadData);
-
+      // 只在第一张图片上传成功后自动填写标题
+      if (index == 0 && result.name != null && result.name!.isNotEmpty) {
         setState(() {
-          _uploadProgress[imageKey] = 1.0;
-          _uploadedImages.add(result);
+          _titleController.text = result.name!;
         });
-
-        // 只在第一张图片上传成功后自动填写标题
-        if (i == 0 && result.name != null && result.name!.isNotEmpty) {
-          setState(() {
-            _titleController.text = result.name!;
-          });
-        }
-      } catch (e) {
-        setState(() {
-          _uploadProgress[imageKey] = -1.0;
-        });
-        throw Exception('URL图片 ${i + 1} 上传失败: $e');
       }
+    } catch (e) {
+      setState(() {
+        _uploadProgress[imageKey] = -1.0;
+      });
+      throw Exception('URL图片 ${index + 1} 上传失败: $e');
     }
   }
+
+  /// 批量 URL 上传
+  Future<void> _uploadUrlImages() async {
+    for (int i = 0; i < _urlImages.length; i++) {
+      await _uploadSingleUrlImage(_urlImages[i], i);
+    }
+  }
+
 
   bool _hasImages() {
     if (_showUploadedImages) {
@@ -528,6 +531,93 @@ class _UploadPageState extends ConsumerState<UploadPage>
       return _selectedImages.isNotEmpty;
     } else {
       return _urlImages.isNotEmpty;
+    }
+  }
+
+  // 一键上传并提交方法
+  Future<void> _uploadAndSubmit() async {
+    bool hasImages = false;
+    String uploadType = '';
+
+    if (_tabController.index == 0) {
+      if (_selectedImages.isNotEmpty) {
+        hasImages = true;
+        uploadType = '文件';
+      }
+    } else {
+      if (_urlImages.isNotEmpty) {
+        hasImages = true;
+        uploadType = 'URL';
+      }
+    }
+
+    if (!hasImages) {
+      MyToast.showError("请选择至少一张图片");
+      return;
+    }
+
+    if (_titleController.text.trim().isEmpty) {
+      MyToast.showError("请输入标题");
+      return;
+    }
+
+    setState(() {
+      _isUploading = true;
+      _isSubmitting = true;
+      _uploadedImages.clear();
+      _uploadProgress.clear();
+    });
+
+    try {
+      final authState = ref.read(authProvider);
+      final user = authState.user;
+
+      if (user == null) {
+        throw Exception('用户未登录');
+      }
+
+      // 第一步：上传图片
+      if (_tabController.index == 0) {
+        await _uploadFileImages(user.id.toString());
+      } else {
+        await _uploadUrlImages();
+      }
+
+      // 第二步：更新图片信息
+      if (_uploadedImages.isNotEmpty) {
+        final editRes = await PictureApi.editPicture({
+          'name': _titleController.text.trim(),
+          'introduction': _descriptionController.text.trim(),
+          'category': _selectedCategory,
+          'id': _uploadedImages.first.id,
+          "tags": [_selectedTag],
+        });
+
+        if (editRes) {
+          MyToast.showSuccess("上传并提交成功！");
+          
+          // 清空所有数据，重置状态
+          setState(() {
+            _selectedImages.clear();
+            _urlImages.clear();
+            _uploadedImages.clear();
+            _titleController.clear();
+            _descriptionController.clear();
+            _urlController.clear();
+            _selectedCategory = '模板';
+            _selectedTag = '热门';
+            _showUploadedImages = false;
+            _uploadProgress.clear();
+          });
+        }
+      }
+    } catch (e) {
+      MyToast.showError("操作失败: $e");
+    } finally {
+      setState(() {
+        _isUploading = false;
+        _isSubmitting = false;
+      });
     }
   }
 
@@ -604,67 +694,105 @@ class _UploadPageState extends ConsumerState<UploadPage>
                   ),
                   const Spacer(),
                   if (_hasImages())
-                    TextButton(
-                      onPressed:
-                          (_isUploading || _isSubmitting)
-                              ? null
-                              : (_showUploadedImages
-                                  ? _submitImages
-                                  : _uploadImages),
-                      style: TextButton.styleFrom(
-                        backgroundColor:
-                            (_isUploading || _isSubmitting)
-                                ? Colors.grey.shade400
-                                : (_showUploadedImages
-                                    ? Colors.green
-                                    : const Color(0xFF00BCD4)),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                      child:
-                          _isUploading
-                              ? Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.white,
+                    Row(
+                      children: [
+                        // 一键上传并提交按钮
+                        if (!_showUploadedImages)
+                          TextButton(
+                            onPressed: (_isUploading || _isSubmitting) ? null : _uploadAndSubmit,
+                            style: TextButton.styleFrom(
+                              backgroundColor: (_isUploading || _isSubmitting)
+                                  ? Colors.grey.shade400
+                                  : Colors.green,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                            child: (_isUploading || _isSubmitting)
+                                ? Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation<Color>(
+                                            Colors.white,
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Text('上传中...'),
-                                ],
-                              )
-                              : _isSubmitting
-                              ? Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.white,
+                                      const SizedBox(width: 8),
+                                      Text(_isUploading ? '上传中...' : '提交中...'),
+                                    ],
+                                  )
+                                : const Text('一键提交'),
+                          ),
+                        
+                        // 分步操作按钮（保留原有功能）
+                        if (!_showUploadedImages) const SizedBox(width: 8),
+                        if (!_showUploadedImages)
+                          TextButton(
+                            onPressed: (_isUploading || _isSubmitting) ? null : _uploadImages,
+                            style: TextButton.styleFrom(
+                              backgroundColor: (_isUploading || _isSubmitting)
+                                  ? Colors.grey.shade400
+                                  : const Color(0xFF00BCD4),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                            child: const Text('仅上传'),
+                          ),
+                        
+                        // 已上传状态下的提交按钮
+                        if (_showUploadedImages)
+                          TextButton(
+                            onPressed: (_isUploading || _isSubmitting) ? null : _submitImages,
+                            style: TextButton.styleFrom(
+                              backgroundColor: (_isUploading || _isSubmitting)
+                                  ? Colors.grey.shade400
+                                  : Colors.green,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                            child: _isSubmitting
+                                ? Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation<Color>(
+                                            Colors.white,
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Text('提交中...'),
-                                ],
-                              )
-                              : Text(_showUploadedImages ? '提交图片' : '上传'),
+                                      const SizedBox(width: 8),
+                                      const Text('提交中...'),
+                                    ],
+                                  )
+                                : const Text('提交图片'),
+                          ),
+                      ],
                     ),
                 ],
               ),
