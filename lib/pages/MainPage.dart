@@ -33,7 +33,8 @@ class _MainPageState extends State<MainPage>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final bottomPadding = MediaQuery.of(context).padding.bottom + 64;
+    final keyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
+    final bottomPadding = keyboardOpen ? 0.0 : MediaQuery.of(context).padding.bottom + 64.0;
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
@@ -45,18 +46,19 @@ class _MainPageState extends State<MainPage>
             child: IndexedStack(index: selectedIndex, children: pages),
           ),
 
-          // 底部导航栏加 SafeArea
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: SafeArea(
-              top: false,
-              child: _CustomTabBar(
-                tabs: tabs,
-                selectedIndex: selectedIndex,
-                onTap: onTabTapped,
+          // 底部导航栏加 SafeArea（键盘弹出时隐藏）
+          if (!keyboardOpen)
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: SafeArea(
+                top: false,
+                child: _CustomTabBar(
+                  tabs: tabs,
+                  selectedIndex: selectedIndex,
+                  onTap: onTabTapped,
+                ),
               ),
             ),
-          ),
         ],
       ),
     );

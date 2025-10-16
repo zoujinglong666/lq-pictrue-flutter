@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui; // 关键：这里导入 ui
@@ -25,7 +26,13 @@ class ImageCompressor {
       return await _compressWithFallback(file, fileSizeInMB);
     }
   }
-
+  static Future<ui.Image> decodeImageFromListHelper(Uint8List data) {
+    final completer = Completer<ui.Image>();
+    ui.decodeImageFromList(data, (ui.Image img) {
+      completer.complete(img);
+    });
+    return completer.future;
+  }
   /// 使用 flutter_image_compress 压缩
   static Future<File?> _compressWithPlugin(File file, double fileSizeInMB) async {
     final tempDir = await getTemporaryDirectory();
@@ -43,7 +50,9 @@ class ImageCompressor {
     }
 
     // 获取原始尺寸（注意这里用 ui.decodeImageFromList）
-    final decodedImage = await ui.decodeImageFromList(await file.readAsBytes());
+    final Uint8List imgBytes = await file.readAsBytes();
+
+    final ui.Image decodedImage = await decodeImageFromListHelper(imgBytes);
     int minWidth = decodedImage.width > 1920 ? 1920 : decodedImage.width;
     int minHeight = decodedImage.height > 1080 ? 1080 : decodedImage.height;
 
