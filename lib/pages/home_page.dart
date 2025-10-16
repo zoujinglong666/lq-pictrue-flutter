@@ -256,6 +256,35 @@ Future<void> _refreshData() async {
                 child: CustomScrollView(
                   controller: _scrollController,
                   slivers: [
+                    if (_isLoading)
+                      const SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (_images.isEmpty)
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.image_outlined, size: 80, color: Colors.grey[300]),
+                            const SizedBox(height: 12),
+                            Text(
+                              '暂无图片',
+                              style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                            ),
+                            const SizedBox(height: 8),
+                            TextButton.icon(
+                              onPressed: _refreshData,
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('刷新试试'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: const Color(0xFF00BCD4),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     SliverPadding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       sliver: SliverMasonryGrid.count(

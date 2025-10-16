@@ -32,7 +32,6 @@ class _MainPageState extends State<MainPage>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final keyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
     final showTab = !keyboardOpen;
     final bottomPadding = keyboardOpen ? 0.0 : MediaQuery.of(context).padding.bottom + 64.0;
