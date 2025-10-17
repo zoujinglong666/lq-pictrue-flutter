@@ -96,14 +96,6 @@ class _PictureManagementPageState extends State<PictureManagementPage> with Keyb
       });
     } catch (e) {
       print('加载图片失败: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('加载图片失败: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
     } finally {
       setState(() {
         _isLoading = false;

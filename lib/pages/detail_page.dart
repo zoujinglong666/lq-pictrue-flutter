@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:lq_picture/apis/picture_like_api.dart';
+import 'package:lq_picture/common/toast.dart';
 import 'package:lq_picture/model/picture.dart';
 import 'package:share_plus/share_plus.dart';
 import '../utils/index.dart';
@@ -38,6 +40,7 @@ class _DetailPageState extends State<DetailPage> {
   void initState() {
     super.initState();
     _imageDetails = widget.imageData!;
+    _isFavorite = widget.imageData!.hasLiked;
 
     // 初始化模拟评论数据
     _initComments();
@@ -45,6 +48,7 @@ class _DetailPageState extends State<DetailPage> {
     // 监听滚动事件
     _scrollController.addListener(_onScroll);
   }
+
   /// 将不同类型的数据转换为标签列表
   List<String> _convertToTagList(dynamic tags) {
     if (tags == null) {
@@ -66,7 +70,11 @@ class _DetailPageState extends State<DetailPage> {
       if (tags.isEmpty) {
         return [];
       }
-      return tags.split(',').map((tag) => tag.trim()).where((tag) => tag.isNotEmpty).toList();
+      return tags
+          .split(',')
+          .map((tag) => tag.trim())
+          .where((tag) => tag.isNotEmpty)
+          .toList();
     }
 
     // 其他情况，转换为字符串再处理
@@ -74,7 +82,11 @@ class _DetailPageState extends State<DetailPage> {
     if (tagString.isEmpty) {
       return [];
     }
-    return tagString.split(',').map((tag) => tag.trim()).where((tag) => tag.isNotEmpty).toList();
+    return tagString
+        .split(',')
+        .map((tag) => tag.trim())
+        .where((tag) => tag.isNotEmpty)
+        .toList();
   }
 
   void _onScroll() {
@@ -174,11 +186,13 @@ class _DetailPageState extends State<DetailPage> {
                 SliverAppBar(
                   expandedHeight: MediaQuery.of(context).size.height * 0.6,
                   pinned: true,
-                  backgroundColor: _showAppBarBackground ? Colors.white : Colors.transparent,
+                  backgroundColor:
+                      _showAppBarBackground ? Colors.white : Colors.transparent,
                   elevation: _showAppBarBackground ? 4 : 0,
                   shadowColor: Colors.black26,
                   surfaceTintColor: Colors.transparent,
-                  foregroundColor: _showAppBarBackground ? Colors.black : Colors.white,
+                  foregroundColor:
+                      _showAppBarBackground ? Colors.black : Colors.white,
                   flexibleSpace: FlexibleSpaceBar(
                     background: Hero(
                       tag: 'image_${_imageDetails.id}',
@@ -199,10 +213,12 @@ class _DetailPageState extends State<DetailPage> {
                             child: Image.network(
                               _imageDetails.url,
                               fit: BoxFit.cover,
-                              loadingBuilder: (context, child, loadingProgress) {
+                              loadingBuilder:
+                                  (context, child, loadingProgress) {
                                 if (loadingProgress == null) {
                                   // 图片加载完成
-                                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                                  WidgetsBinding.instance
+                                      .addPostFrameCallback((_) {
                                     if (mounted) {
                                       setState(() {
                                         _isImageLoaded = true;
@@ -266,50 +282,61 @@ class _DetailPageState extends State<DetailPage> {
                     icon: _showAppBarBackground
                         ? const Icon(Icons.arrow_back, color: Colors.black)
                         : Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.3),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.arrow_back, color: Colors.white),
-                    ),
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.3),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.arrow_back,
+                                color: Colors.white),
+                          ),
                     onPressed: () => Navigator.pop(context),
                   ),
                   actions: [
                     IconButton(
                       icon: _showAppBarBackground
                           ? Icon(
-                        _isFavorite ? Icons.favorite : Icons.favorite_border,
-                        color: _isFavorite ? Colors.red : Colors.black,
-                      )
+                              _isFavorite
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                              color: _isFavorite ? Colors.red : Colors.black,
+                            )
                           : Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.3),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          _isFavorite ? Icons.favorite : Icons.favorite_border,
-                          color: _isFavorite ? Colors.red : Colors.white,
-                        ),
-                      ),
-                      onPressed: () {
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.3),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                _isFavorite
+                                    ? Icons.favorite
+                                    : Icons.favorite_border,
+                                color: _isFavorite ? Colors.red : Colors.white,
+                              ),
+                            ),
+                      onPressed: () async {
+                        final originalIsFavorite = _isFavorite;
                         setState(() {
-                          _isFavorite = !_isFavorite;
+                          _isFavorite = !originalIsFavorite;
                         });
+                        final res = await PictureLikeApi.pictureLikeToggle({
+                          "pictureId": _imageDetails.id,
+                        });
+
                       },
                     ),
                     IconButton(
                       icon: _showAppBarBackground
                           ? const Icon(Icons.share, color: Colors.black)
                           : Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.3),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.share, color: Colors.white),
-                      ),
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.3),
+                                shape: BoxShape.circle,
+                              ),
+                              child:
+                                  const Icon(Icons.share, color: Colors.white),
+                            ),
                       onPressed: () => _shareImage(),
                     ),
                     const SizedBox(width: 8),
@@ -317,15 +344,15 @@ class _DetailPageState extends State<DetailPage> {
                   // 添加标题，只在滚动时显示
                   title: _showAppBarBackground
                       ? Text(
-                    _imageDetails.name,
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  )
+                          _imageDetails.name,
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        )
                       : null,
                 ),
 
@@ -333,136 +360,128 @@ class _DetailPageState extends State<DetailPage> {
                 SliverToBoxAdapter(
                   child: _isImageLoaded
                       ? Container(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 标题和作者
-                        Text(
-                          _imageDetails.name,
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 16,
-                              backgroundColor: Colors.grey[300],
-                              child: const Icon(Icons.person, size: 20),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              _imageDetails.user.userAccount,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const Spacer(),
-                            TextButton(
-                              onPressed: () {
-                                // 关注作者
-                              },
-                              style: TextButton.styleFrom(
-                                foregroundColor: const Color(0xFF4FC3F7),
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                  side: const BorderSide(color: Color(0xFF4FC3F7)),
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // 标题和作者
+                              Text(
+                                _imageDetails.name,
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              child: const Text('关注'),
-                            ),
-                          ],
-                        ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 16,
+                                    backgroundColor: Colors.grey[300],
+                                    child: const Icon(Icons.person, size: 20),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    _imageDetails.user.userAccount,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  TextButton(
+                                    onPressed: () {
+                                      MyToast.showInfo("暂未实现");
+                                      // 关注作者
+                                    },
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: const Color(0xFF4FC3F7),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 12),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(20),
+                                        side: const BorderSide(
+                                            color: Color(0xFF4FC3F7)),
+                                      ),
+                                    ),
+                                    child: const Text('关注'),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              // 标签
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: _convertToTagList(_imageDetails.tags)
+                                    .map((tag) {
+                                  return Chip(
+                                    label: Text(tag),
+                                    backgroundColor: Colors.grey[100],
+                                    side:
+                                        BorderSide(color: Colors.grey.shade300),
+                                    padding: EdgeInsets.zero,
+                                    materialTapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  );
+                                }).toList(),
+                              ),
 
-                        const SizedBox(height: 16),
+                              const SizedBox(height: 16),
+                              const Text(
+                                '描述',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                _imageDetails.introduction ?? "暂无描述",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey[700],
+                                  height: 1.5,
+                                ),
+                              ),
 
-                        // 统计信息
-                        // Row(
-                        //   mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        //   children: [
-                        //     _buildStatItem(Icons.visibility, _imageDetails['views'], '浏览'),
-                        //     _buildStatItem(Icons.file_download, _imageDetails['downloads'], '下载'),
-                        //     _buildStatItem(Icons.favorite, _imageDetails['likes'], '喜欢'),
-                        //   ],
-                        // ),
+                              const SizedBox(height: 16),
+                              const Divider(),
+                              const SizedBox(height: 16),
 
-                        const SizedBox(height: 16),
-                        const Divider(),
-                        const SizedBox(height: 16),
+                              const Text(
+                                '图片信息',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
 
-                        // 标签
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: _convertToTagList(_imageDetails.tags).map((tag) {
-                            return Chip(
-                              label: Text(tag),
-                              backgroundColor: Colors.grey[100],
-                              side: BorderSide(color: Colors.grey.shade300),
-                              padding: EdgeInsets.zero,
-                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            );
-                          }).toList(),
-                        ),
+                              _buildInfoRow(
+                                  '文件大小',
+                                  formatFileSize(
+                                      int.parse(_imageDetails!.picSize))),
+                              _buildInfoRow('图片尺寸',
+                                  '${_imageDetails.picWidth} × ${_imageDetails.picHeight}'),
+                              _buildInfoRow('图片比例',
+                                  _imageDetails.picScale.toStringAsFixed(2)),
+                              _buildInfoRow('图片格式', _imageDetails.picFormat),
 
+                              const SizedBox(height: 16),
+                              const Divider(),
+                              const SizedBox(height: 16),
 
-                        const SizedBox(height: 16),
-
-                        // 描述
-                        const Text(
-                          '描述',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                              // 评论区
+                              Container(
+                                key: _commentsKey,
+                                child: _buildCommentsSection(),
+                              ),
+                              const SizedBox(height: 20),
+                              // 减少底部空间
+                            ],
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _imageDetails.introduction??"暂无描述",
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[700],
-                            height: 1.5,
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-                        const Divider(),
-                        const SizedBox(height: 16),
-
-                        const Text(
-                          '图片信息',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-
-                        _buildInfoRow('文件大小', formatFileSize(  int.parse(_imageDetails!.picSize))),
-                        _buildInfoRow('图片尺寸', '${_imageDetails?.picWidth} × ${_imageDetails?.picHeight}'),
-                        _buildInfoRow('图片比例', '${_imageDetails?.picScale?.toStringAsFixed(2)}'),
-                        _buildInfoRow('图片格式', _imageDetails!.picFormat),
-
-                        const SizedBox(height: 16),
-                        const Divider(),
-                        const SizedBox(height: 16),
-
-                        // 评论区
-                        Container(
-                          key: _commentsKey,
-                          child: _buildCommentsSection(),
-                        ),
-
-                        const SizedBox(height: 20), // 减少底部空间
-                      ],
-                    ),
-                  )
+                        )
                       : _buildContentSkeleton(), // 显示内容骨架屏
                 ),
               ],
@@ -487,7 +506,8 @@ class _DetailPageState extends State<DetailPage> {
                 left: 8,
                 right: 8,
                 top: 8,
-                bottom: 8 + (keyboardVisible ? 0 : mediaQuery.viewPadding.bottom),
+                bottom:
+                    8 + (keyboardVisible ? 0 : mediaQuery.viewPadding.bottom),
               ),
               child: Row(
                 children: [
@@ -512,9 +532,9 @@ class _DetailPageState extends State<DetailPage> {
                           ),
                           suffixIcon: _replyToUser != null
                               ? IconButton(
-                            icon: const Icon(Icons.close, size: 20),
-                            onPressed: _cancelReply,
-                          )
+                                  icon: const Icon(Icons.close, size: 20),
+                                  onPressed: _cancelReply,
+                                )
                               : null,
                         ),
                         maxLines: null,
@@ -564,7 +584,8 @@ class _DetailPageState extends State<DetailPage> {
 🔗 图片链接：${_imageDetails.url}
 
 #摄影 #图库 ${(_imageDetails.tags ?? [] as List<String>).map((tag) => '#$tag').join(' ')}
-    '''.trim();
+    '''
+        .trim();
 
     // 显示分享选项对话框
     showModalBottomSheet(
@@ -815,7 +836,6 @@ class _DetailPageState extends State<DetailPage> {
           ],
         ),
         const SizedBox(height: 16),
-
         if (_comments.isEmpty)
           Container(
             padding: const EdgeInsets.all(40),
@@ -859,13 +879,13 @@ class _DetailPageState extends State<DetailPage> {
       padding: isHighlighted ? const EdgeInsets.all(12) : EdgeInsets.zero,
       decoration: isHighlighted
           ? BoxDecoration(
-        color: const Color(0xFF4FC3F7).withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFF4FC3F7).withOpacity(0.2),
-          width: 1,
-        ),
-      )
+              color: const Color(0xFF4FC3F7).withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFF4FC3F7).withOpacity(0.2),
+                width: 1,
+              ),
+            )
           : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -998,9 +1018,9 @@ class _DetailPageState extends State<DetailPage> {
         borderRadius: BorderRadius.circular(8),
         border: isHighlighted
             ? Border.all(
-          color: const Color(0xFF4FC3F7).withOpacity(0.3),
-          width: 1,
-        )
+                color: const Color(0xFF4FC3F7).withOpacity(0.3),
+                width: 1,
+              )
             : null,
       ),
       child: Row(
@@ -1195,10 +1215,10 @@ class _DetailPageState extends State<DetailPage> {
       if (_replyToUser != null) {
         // 添加回复
         final parentComment = _comments.firstWhere(
-              (comment) => comment['user'] == _replyToUser,
+          (comment) => comment['user'] == _replyToUser,
           orElse: () => _comments.firstWhere(
-                (comment) => (comment['replies'] as List).any(
-                  (reply) => reply['user'] == _replyToUser,
+            (comment) => (comment['replies'] as List).any(
+              (reply) => reply['user'] == _replyToUser,
             ),
           ),
         );
@@ -1354,16 +1374,18 @@ class _DetailPageState extends State<DetailPage> {
           // 拍摄信息骨架
           const SkeletonBox(width: 100, height: 20),
           const SizedBox(height: 12),
-          ...List.generate(6, (index) => const Padding(
-            padding: EdgeInsets.symmetric(vertical: 6),
-            child: Row(
-              children: [
-                SkeletonBox(width: 80, height: 16),
-                SizedBox(width: 8),
-                SkeletonBox(width: 120, height: 16),
-              ],
-            ),
-          )),
+          ...List.generate(
+              6,
+              (index) => const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 6),
+                    child: Row(
+                      children: [
+                        SkeletonBox(width: 80, height: 16),
+                        SizedBox(width: 8),
+                        SkeletonBox(width: 120, height: 16),
+                      ],
+                    ),
+                  )),
 
           const SizedBox(height: 16),
           const Divider(),

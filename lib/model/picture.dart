@@ -2,31 +2,34 @@
 
 import 'dart:convert';
 
-PictureVO PictureVOFromJson(String str) => PictureVO.fromJson(json.decode(str));
+PictureVO pictureVoFromJson(String str) => PictureVO.fromJson(json.decode(str));
 
-String PictureVOToJson(PictureVO data) => json.encode(data.toJson());
+String pictureVoToJson(PictureVO data) => json.encode(data.toJson());
 
 class PictureVO {
-  final String id;
-  final String url;
-  final dynamic thumbnailUrl;
-  final String name;
-  final dynamic introduction;
-  final List<dynamic> tags;
-  final dynamic category;
-  final String picSize;
-  final int picWidth;
-  final int picHeight;
-  final double picScale;
-  final String picFormat;
-  final dynamic picColor;
-  final String userId;
-  final dynamic spaceId;
-  final int createTime;
-  final int editTime;
-  final int updateTime;
-  final User user;
-  final List<dynamic> permissionList;
+  String id;
+  String url;
+  String thumbnailUrl;
+  String name;
+  String introduction;
+  List<String> tags;
+  String category;
+  String picSize;
+  int picWidth;
+  int picHeight;
+  double picScale;
+  String picFormat;
+  dynamic picColor;
+  String userId;
+  dynamic spaceId;
+  int createTime;
+  int editTime;
+  int updateTime;
+  User user;
+  String likeCount;
+  bool hasLiked;
+  String commentCount;
+  List<dynamic> permissionList;
 
   PictureVO({
     required this.id,
@@ -48,53 +51,11 @@ class PictureVO {
     required this.editTime,
     required this.updateTime,
     required this.user,
+    required this.likeCount,
+    required this.hasLiked,
+    required this.commentCount,
     required this.permissionList,
   });
-
-  PictureVO copyWith({
-    String? id,
-    String? url,
-    dynamic thumbnailUrl,
-    String? name,
-    dynamic introduction,
-    List<dynamic>? tags,
-    dynamic category,
-    String? picSize,
-    int? picWidth,
-    int? picHeight,
-    double? picScale,
-    String? picFormat,
-    dynamic picColor,
-    String? userId,
-    dynamic spaceId,
-    int? createTime,
-    int? editTime,
-    int? updateTime,
-    User? user,
-    List<dynamic>? permissionList,
-  }) =>
-      PictureVO(
-        id: id ?? this.id,
-        url: url ?? this.url,
-        thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
-        name: name ?? this.name,
-        introduction: introduction ?? this.introduction,
-        tags: tags ?? this.tags,
-        category: category ?? this.category,
-        picSize: picSize ?? this.picSize,
-        picWidth: picWidth ?? this.picWidth,
-        picHeight: picHeight ?? this.picHeight,
-        picScale: picScale ?? this.picScale,
-        picFormat: picFormat ?? this.picFormat,
-        picColor: picColor ?? this.picColor,
-        userId: userId ?? this.userId,
-        spaceId: spaceId ?? this.spaceId,
-        createTime: createTime ?? this.createTime,
-        editTime: editTime ?? this.editTime,
-        updateTime: updateTime ?? this.updateTime,
-        user: user ?? this.user,
-        permissionList: permissionList ?? this.permissionList,
-      );
 
   factory PictureVO.fromJson(Map<String, dynamic> json) => PictureVO(
     id: json["id"],
@@ -102,7 +63,7 @@ class PictureVO {
     thumbnailUrl: json["thumbnailUrl"],
     name: json["name"],
     introduction: json["introduction"],
-    tags: List<dynamic>.from(json["tags"].map((x) => x)),
+    tags: List<String>.from(json["tags"].map((x) => x)),
     category: json["category"],
     picSize: json["picSize"],
     picWidth: json["picWidth"],
@@ -116,6 +77,9 @@ class PictureVO {
     editTime: json["editTime"],
     updateTime: json["updateTime"],
     user: User.fromJson(json["user"]),
+    likeCount: json["likeCount"],
+    hasLiked: json["hasLiked"],
+    commentCount: json["commentCount"],
     permissionList: List<dynamic>.from(json["permissionList"].map((x) => x)),
   );
 
@@ -139,6 +103,9 @@ class PictureVO {
     "editTime": editTime,
     "updateTime": updateTime,
     "user": user.toJson(),
+    "likeCount": likeCount,
+    "hasLiked": hasLiked,
+    "commentCount": commentCount,
     "permissionList": List<dynamic>.from(permissionList.map((x) => x)),
   };
 }

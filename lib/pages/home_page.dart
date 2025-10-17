@@ -25,17 +25,12 @@ class _HomePageState extends State<HomePage> {
   List<PictureVO> _images = [
 
   ];
-
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
     _loadData();
   }
-
-
-
-
   @override
   void dispose() {
     _scrollController.dispose();
@@ -355,7 +350,7 @@ Future<void> _refreshData() async {
                                               ),
                                               const SizedBox(width: 4),
                                               Text(
-                                                image.picWidth.toString(),
+                                                image.likeCount,
                                                 style: TextStyle(
                                                   fontSize: 12,
                                                   color: Colors.grey[600],
@@ -372,7 +367,7 @@ Future<void> _refreshData() async {
                                                   borderRadius: BorderRadius.circular(10),
                                                 ),
                                                 child: Text(
-                                                  image.category??"未分类",
+                                                  image.category,
                                                   style: const TextStyle(
                                                     fontSize: 10,
                                                     color: Color(0xFF00BCD4),
@@ -424,3 +419,4 @@ Future<void> _refreshData() async {
     );
   }
 }
+

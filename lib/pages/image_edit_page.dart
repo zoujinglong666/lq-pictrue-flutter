@@ -200,7 +200,7 @@ class _ImageEditPageState extends State<ImageEditPage> with KeyboardDismissMixin
                       child: AspectRatio(
                         aspectRatio: 16 / 9,
                         child: Image.network(
-                          _imageInfo?.thumbnailUrl??_imageInfo?.url,
+                          _imageInfo?.thumbnailUrl??_imageInfo!.url,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
                             return Container(

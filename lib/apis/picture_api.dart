@@ -129,6 +129,9 @@ class PictureItem {
   final DateTime editTime;
   final DateTime updateTime;
   final int isDelete;
+  final int likeCount;
+  final bool hasLiked;
+  final int commentCount;
 
   PictureItem({
     required this.id,
@@ -153,6 +156,9 @@ class PictureItem {
     required this.editTime,
     required this.updateTime,
     required this.isDelete,
+    required this.likeCount,
+    required this.hasLiked,
+    required this.commentCount,
   });
 
   PictureItem copyWith({
@@ -178,6 +184,10 @@ class PictureItem {
     DateTime? editTime,
     DateTime? updateTime,
     int? isDelete,
+    int? likeCount,
+    bool? hasLiked,
+    int? commentCount,
+
   }) =>
       PictureItem(
         id: id ?? this.id,
@@ -202,6 +212,11 @@ class PictureItem {
         editTime: editTime ?? this.editTime,
         updateTime: updateTime ?? this.updateTime,
         isDelete: isDelete ?? this.isDelete,
+        likeCount: likeCount??this.likeCount,
+        hasLiked: hasLiked??this.hasLiked,
+        commentCount: commentCount??this.commentCount,
+
+
       );
 
   factory PictureItem.fromJson(Map<String, dynamic> json) => PictureItem(
@@ -235,6 +250,9 @@ class PictureItem {
         ? DateTime.fromMillisecondsSinceEpoch(json["updateTime"])
         : DateTime.now(),
     isDelete: json["isDelete"],
+    likeCount: json["likeCount"],
+    hasLiked: json["hasLiked"],
+    commentCount: json["commentCount"],
   );
 
   Map<String, dynamic> toJson() => {
@@ -260,6 +278,9 @@ class PictureItem {
     "editTime": editTime.millisecondsSinceEpoch,
     "updateTime": updateTime.millisecondsSinceEpoch,
     "isDelete": isDelete,
+    "likeCount": likeCount,
+    "hasLiked": hasLiked,
+    "commentCount": commentCount,
   };
 }
 class PictureApi {
