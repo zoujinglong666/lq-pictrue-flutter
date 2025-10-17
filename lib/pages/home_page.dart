@@ -112,6 +112,7 @@ Future<void> _loadMoreImages() async {
 
 // 添加一个新的方法用于下拉刷新
 Future<void> _refreshData() async {
+  if (_isLoading) return;
   setState(() {
     _isLoading = true;
     _hasMore = true;
@@ -250,13 +251,12 @@ Future<void> _refreshData() async {
             // 瀑布流内容
             Expanded(
               child: RefreshIndicator(
-                onRefresh: () async {
-                  _refreshData();
-                },
+                onRefresh: _refreshData,
                 child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
                   controller: _scrollController,
                   slivers: [
-                    if (_isLoading)
+                    if (_isLoading && _images.isEmpty)
                       const SliverFillRemaining(
                         hasScrollBody: false,
                         child: Center(child: CircularProgressIndicator()),

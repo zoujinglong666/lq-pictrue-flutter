@@ -10,7 +10,6 @@ import 'net/request.dart';
 void main() async {
   // 确保Flutter绑定初始化
   WidgetsFlutterBinding.ensureInitialized();
-  await Http.init(); // 初始化 baseUrl
   // 启用沉浸式系统 UI（Edge-to-Edge）
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   // 透明状态栏与导航栏，去除底部黑色背景小白条
