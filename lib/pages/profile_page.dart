@@ -170,29 +170,69 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   }
 
   Widget _buildStatCard(String title, String value, IconData icon) {
+    final colorScheme = Theme.of(context).colorScheme;
+    Color iconColor;
+    Color valueColor;
+    
+    // 根据不同的图标设置不同的颜色主题
+    switch (icon) {
+      case Icons.upload:
+        iconColor = colorScheme.primary;
+        valueColor = colorScheme.primary;
+        break;
+      case Icons.favorite:
+        iconColor = Colors.redAccent;
+        valueColor = Colors.redAccent;
+        break;
+      case Icons.visibility:
+        iconColor = Colors.blueAccent;
+        valueColor = Colors.blueAccent;
+        break;
+      default:
+        iconColor = colorScheme.primary;
+        valueColor = colorScheme.primary;
+    }
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
+        gradient: LinearGradient(
+          colors: [
+            Colors.white,
+            iconColor.withOpacity(0.05),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.withOpacity(0.2), width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withOpacity(0.15),
             spreadRadius: 1,
-            blurRadius: 3,
-            offset: const Offset(0, 1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Column(
         children: [
-          Icon(icon, size: 24, color: Colors.grey[600]),
-          const SizedBox(height: 8),
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: iconColor.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 20, color: iconColor),
+          ),
+          const SizedBox(height: 12),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 20,
+            style: TextStyle(
+              fontSize: 18,
               fontWeight: FontWeight.bold,
+              color: valueColor,
             ),
           ),
           const SizedBox(height: 4),
@@ -200,7 +240,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             title,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey[600],
+              color: Colors.grey[700],
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
