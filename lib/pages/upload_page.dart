@@ -107,9 +107,7 @@ class _UploadPageState extends ConsumerState<UploadPage>
         });
 
         if (images.length > remainingSlots) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('已选择${imagesToAdd.length}张图片，最多只能选择6张')),
-          );
+          MyToast.showError('已选择${imagesToAdd.length}张图片，最多只能选择6张');
         }
       }
     } catch (e) {
@@ -122,9 +120,7 @@ class _UploadPageState extends ConsumerState<UploadPage>
   Future<void> _pickImageFromCamera() async {
     try {
       if (_selectedImages.length >= 6) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('最多只能选择6张图片')));
+        MyToast.showError('最多只能选择6张');
         return;
       }
 

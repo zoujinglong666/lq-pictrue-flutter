@@ -1,7 +1,8 @@
 import 'dart:convert';
-CommentVO CommentVOFromJson(String str) => CommentVO.fromJson(json.decode(str));
 
-String CommentVOToJson(CommentVO data) => json.encode(data.toJson());
+List<CommentVO> CommentVOFromJson(String str) => List<CommentVO>.from(json.decode(str).map((x) => CommentVO.fromJson(x)));
+
+String CommentVOToJson(List<CommentVO> data) => json.encode(List<dynamic>.from(data.map((x) => x.toJson())));
 
 class CommentVO {
   String id;
@@ -10,7 +11,7 @@ class CommentVO {
   String content;
   int createTime;
   User user;
-  List<dynamic> replies;
+  List<CommentVO> replies;
 
   CommentVO({
     required this.id,
@@ -29,7 +30,7 @@ class CommentVO {
     content: json["content"],
     createTime: json["createTime"],
     user: User.fromJson(json["user"]),
-    replies: List<dynamic>.from(json["replies"].map((x) => x)),
+    replies: List<CommentVO>.from(json["replies"].map((x) => CommentVO.fromJson(x))),
   );
 
   Map<String, dynamic> toJson() => {
@@ -39,7 +40,7 @@ class CommentVO {
     "content": content,
     "createTime": createTime,
     "user": user.toJson(),
-    "replies": List<dynamic>.from(replies.map((x) => x)),
+    "replies": List<dynamic>.from(replies.map((x) => x.toJson())),
   };
 }
 

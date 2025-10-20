@@ -1,4 +1,8 @@
 // user_dto.dart
+import 'dart:io';
+
+import 'package:dio/dio.dart';
+
 import '../model/result.dart';
 import '../model/user.dart';
 import '../net/request.dart';
@@ -137,4 +141,35 @@ class UserApi {
     final result = await Http.delete<Result>("/users/$id");
     return result.success;
   }
+
+  /// 上传用户头像
+  static Future<String> uploadAvatar(File file) async {
+    try {
+      final formData = FormData();
+
+      // 添加文件，字段名必须为 'file'
+      final fileName = file.path.split('/').last;
+      formData.files.add(MapEntry(
+        'file',
+        await MultipartFile.fromFile(
+          file.path,
+          filename: fileName,
+        ),
+      ));
+
+      final result = await Http.post<Result>(
+        "/user/avatar/upload",
+        data: formData,
+        options: Options(
+          contentType: 'multipart/form-data',
+        ),
+      );
+
+      return result.modelToString();
+    } catch (e) {
+      print('头像上传错误: $e');
+      rethrow;
+    }
+  }
+
 }

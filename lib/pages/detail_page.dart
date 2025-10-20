@@ -1,25 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lq_picture/apis/picture_comment_api.dart';
 import 'package:lq_picture/apis/picture_like_api.dart';
 import 'package:lq_picture/common/toast.dart';
 import 'package:lq_picture/model/picture.dart';
 import 'package:lq_picture/model/comment.dart';
 import 'package:share_plus/share_plus.dart';
+import '../model/add_comment_request.dart';
 import '../utils/index.dart';
 import 'image_preview_page.dart';
 import '../widgets/shimmer_effect.dart';
 import '../widgets/skeleton_widgets.dart';
 
-class DetailPage extends StatefulWidget {
+class DetailPage extends ConsumerStatefulWidget {
   final PictureVO? imageData;
 
   const DetailPage({super.key, this.imageData});
 
   @override
-  State<DetailPage> createState() => _DetailPageState();
+  ConsumerState<DetailPage> createState() => _DetailPageState();
 }
 
-class _DetailPageState extends State<DetailPage> {
+class _DetailPageState extends ConsumerState<DetailPage> {
   bool _isFavorite = false;
   bool _isImageLoaded = false; // 图片加载状态
   bool _showAppBarBackground = false; // 控制AppBar背景显示
@@ -28,9 +30,9 @@ class _DetailPageState extends State<DetailPage> {
   final ScrollController _scrollController = ScrollController(); // 滚动控制器
   final GlobalKey _commentsKey = GlobalKey(); // 评论区域的key
   String? _replyToUser;
-  int? _replyToCommentId;
-  int? _highlightedCommentId; // 高亮的评论ID
-  int? _highlightedReplyId; // 高亮的回复ID
+  String? _parentId;
+  String? _highlightedCommentId; // 高亮的评论ID
+  String? _highlightedReplyId; // 高亮的回复ID
 
   // 模拟图片详情数据
   late PictureVO _imageDetails;
@@ -124,7 +126,6 @@ class _DetailPageState extends State<DetailPage> {
         });
       }
     } catch (e) {
-      print('加载评论失败: $e');
       if (mounted) {
         setState(() {
           _commentsLoading = false;
@@ -284,10 +285,9 @@ class _DetailPageState extends State<DetailPage> {
                         setState(() {
                           _isFavorite = !originalIsFavorite;
                         });
-                        final res = await PictureLikeApi.pictureLikeToggle({
+                        await PictureLikeApi.pictureLikeToggle({
                           "pictureId": _imageDetails.id,
                         });
-
                       },
                     ),
                     IconButton(
@@ -862,7 +862,7 @@ class _DetailPageState extends State<DetailPage> {
 
   // 构建单个评论项
   Widget _buildCommentItem(CommentVO comment) {
-    final isHighlighted = _highlightedCommentId == comment.id;
+    final isHighlighted = _highlightedCommentId?.toString() == comment.id;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -1013,7 +1013,7 @@ class _DetailPageState extends State<DetailPage> {
 
   // 构建回复项
   Widget _buildReplyItem(CommentVO reply) {
-    final isHighlighted = _highlightedReplyId == reply.id;
+    final isHighlighted = _highlightedReplyId?.toString() == reply.id;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1165,9 +1165,9 @@ class _DetailPageState extends State<DetailPage> {
   // 回复评论
   void _replyToComment(CommentVO comment) {
     setState(() {
-      _replyToUser = comment.user.userName;
-      _replyToCommentId = int.tryParse(comment.id);
-      _highlightedCommentId = int.tryParse(comment.id); // 高亮当前评论
+      _replyToUser = comment.user.userName ?? '无名';
+      _parentId = comment.id;
+      _highlightedCommentId = comment.id; // 高亮当前评论
       _highlightedReplyId = null; // 清除回复高亮
     });
     // 延迟一帧后请求焦点，确保UI更新完成
@@ -1180,7 +1180,7 @@ class _DetailPageState extends State<DetailPage> {
   void _cancelReply() {
     setState(() {
       _replyToUser = null;
-      _replyToCommentId = null;
+      _parentId = null;
       _highlightedCommentId = null; // 清除评论高亮
       _highlightedReplyId = null; // 清除回复高亮
     });
@@ -1209,16 +1209,21 @@ class _DetailPageState extends State<DetailPage> {
 
   // 提交评论
   Future<void> _submitComment() async {
-    if (_commentController.text.trim().isEmpty) return;
-
     final String content = _commentController.text.trim();
+
+    // 检查评论内容是否为空
+    if (content.isEmpty) {
+      MyToast.showError('评论内容不能为空');
+      return;
+    }
 
     try {
       final res = await PictureCommentApi.addPictureComment(
-        {
-          "pictureId": _imageDetails.id,
-          "content": content,
-        }
+        AddCommentRequest(
+          pictureId: _imageDetails.id,
+          content: content,
+          parentId: _parentId,
+        )
       );
 
       if (res.isNotEmpty) {
@@ -1226,21 +1231,22 @@ class _DetailPageState extends State<DetailPage> {
         await _initComments();
 
         // 显示成功提示
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(_replyToUser != null ? '回复成功' : '评论成功'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(_replyToUser != null ? '回复成功' : '评论成功'),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
-          ),
-        );
+          );
+        }
       } else {
-        MyToast.showError( '评论失败');
+        MyToast.showError('评论失败');
       }
     } catch (e) {
-      print('评论失败: $e');
       MyToast.showError('评论失败，请重试');
     }
 
@@ -1404,28 +1410,7 @@ class _DetailPageState extends State<DetailPage> {
     super.dispose();
   }
 
-  Widget _buildStatItem(IconData icon, String value, String label) {
-    return Column(
-      children: [
-        Icon(icon, color: Colors.grey[600]),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-        Text(
-          label,
-          style: TextStyle(
-            color: Colors.grey[600],
-            fontSize: 12,
-          ),
-        ),
-      ],
-    );
-  }
+
 
   Widget _buildInfoRow(String label, String value) {
     return Padding(
