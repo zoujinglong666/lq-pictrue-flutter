@@ -314,6 +314,15 @@ class PictureApi {
 
     return result.toModel((json) => Page.fromJson(json, (item) => PictureItem.fromJson(item)));
   }
+
+  static Future<Page<PictureItem>> getMyLikes(Map<String, dynamic> data) async {
+    final result = await Http.get<Result>(
+      "/picture/my/likes",
+      query: data,
+    );
+
+    return result.toModel((json) => Page.fromJson(json, (item) => PictureItem.fromJson(item)));
+  }
 static Future<bool> editPicture(Map<String, dynamic> data) async {
   final result = await Http.post<Result>(
     "/picture/edit",
@@ -349,10 +358,6 @@ static Future<bool> editPicture(Map<String, dynamic> data) async {
       return false;
     }
   }
-
-
-
-
 
 
 
@@ -419,9 +424,6 @@ static Future<bool> editPicture(Map<String, dynamic> data) async {
       print('上传API错误: $e');
       rethrow;
     }
-
-
-
   }
 
 
