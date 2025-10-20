@@ -695,9 +695,12 @@ class _UploadPageState extends ConsumerState<UploadPage>
               child: Row(
                 children: [
 
-                  Text(
-                    widget.spaceId!=null?"个人图库${widget.spaceId }":"上传公共图库",
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                  Flexible(
+                    child: Text(
+                      widget.spaceId!=null?"个人图库${widget.spaceId }":"上传公共图库",
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   const Spacer(),
                   if (_hasImages())
@@ -942,7 +945,7 @@ class _UploadPageState extends ConsumerState<UploadPage>
                       children: [
                         // 图片数量提示
                         Padding(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(8),
                           child: Row(
                             children: [
                               Text(
@@ -962,7 +965,7 @@ class _UploadPageState extends ConsumerState<UploadPage>
                                   style: TextButton.styleFrom(
                                     foregroundColor: const Color(0xFF00BCD4),
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
+                                      horizontal: 4,
                                       vertical: 4,
                                     ),
                                   ),
@@ -974,12 +977,12 @@ class _UploadPageState extends ConsumerState<UploadPage>
                         Expanded(
                           child: GridView.builder(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
+                              horizontal: 8,
                               vertical: 8,
                             ),
                             gridDelegate:
                                 const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 3,
+                                  crossAxisCount: 4,
                                   crossAxisSpacing: 8,
                                   mainAxisSpacing: 8,
                                   childAspectRatio: 1.0,
