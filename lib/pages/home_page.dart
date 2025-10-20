@@ -37,6 +37,16 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
+  // 更新列表中的图片数据
+  void _updatePictureInList(PictureVO updatedPicture) {
+    setState(() {
+      final index = _images.indexWhere((picture) => picture.id == updatedPicture.id);
+      if (index != -1) {
+        _images[index] = updatedPicture;
+      }
+    });
+  }
+
   void _onScroll() {
     if (_scrollController.position.pixels >= 
         _scrollController.position.maxScrollExtent - 200) {
@@ -295,7 +305,12 @@ Future<void> _refreshData() async {
                                 context,
                                 '/detail',
                                 arguments: image,
-                              );
+                              ).then((updatedPicture) {
+                                // 如果详情页返回了更新后的图片数据，更新列表中的对应图片
+                                if (updatedPicture != null && updatedPicture is PictureVO) {
+                                  _updatePictureInList(updatedPicture);
+                                }
+                              });
                             },
                             child: Container(
                               decoration: BoxDecoration(
@@ -321,7 +336,7 @@ Future<void> _refreshData() async {
                                           color: Colors.grey[100],
                                         ),
                                         child:  CachedImage(
-                                        fit: BoxFit.cover, imageUrl: image.thumbnailUrl??image.url,
+                                        fit: BoxFit.cover, imageUrl: image.thumbnailUrl,
                                       ),
                                       ),
                                     ),
@@ -344,9 +359,9 @@ Future<void> _refreshData() async {
                                           Row(
                                             children: [
                                               Icon(
-                                                Icons.favorite_border_outlined,
+                                                image.hasLiked ? Icons.favorite : Icons.favorite_border_outlined,
                                                 size: 14,
-                                                color: Colors.grey[600],
+                                                color: image.hasLiked ? Colors.red[400] : Colors.grey[600],
                                               ),
                                               const SizedBox(width: 4),
                                               Text(

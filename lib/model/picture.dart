@@ -108,6 +108,58 @@ class PictureVO {
     "commentCount": commentCount,
     "permissionList": List<dynamic>.from(permissionList.map((x) => x)),
   };
+
+  PictureVO copyWith({
+    String? id,
+    String? url,
+    String? thumbnailUrl,
+    String? name,
+    String? introduction,
+    List<String>? tags,
+    String? category,
+    String? picSize,
+    int? picWidth,
+    int? picHeight,
+    double? picScale,
+    String? picFormat,
+    dynamic picColor,
+    String? userId,
+    dynamic spaceId,
+    int? createTime,
+    int? editTime,
+    int? updateTime,
+    User? user,
+    String? likeCount,
+    bool? hasLiked,
+    String? commentCount,
+    List<dynamic>? permissionList,
+  }) {
+    return PictureVO(
+      id: id ?? this.id,
+      url: url ?? this.url,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+      name: name ?? this.name,
+      introduction: introduction ?? this.introduction,
+      tags: tags ?? this.tags,
+      category: category ?? this.category,
+      picSize: picSize ?? this.picSize,
+      picWidth: picWidth ?? this.picWidth,
+      picHeight: picHeight ?? this.picHeight,
+      picScale: picScale ?? this.picScale,
+      picFormat: picFormat ?? this.picFormat,
+      picColor: picColor ?? this.picColor,
+      userId: userId ?? this.userId,
+      spaceId: spaceId ?? this.spaceId,
+      createTime: createTime ?? this.createTime,
+      editTime: editTime ?? this.editTime,
+      updateTime: updateTime ?? this.updateTime,
+      user: user ?? this.user,
+      likeCount: likeCount ?? this.likeCount,
+      hasLiked: hasLiked ?? this.hasLiked,
+      commentCount: commentCount ?? this.commentCount,
+      permissionList: permissionList ?? this.permissionList,
+    );
+  }
 }
 
 class User {

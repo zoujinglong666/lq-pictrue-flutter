@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lq_picture/apis/picture_api.dart';
 import 'package:lq_picture/model/picture.dart';
 import '../utils/index.dart';
 import '../utils/keyboard_utils.dart';
@@ -84,44 +85,43 @@ class _ImageEditPageState extends State<ImageEditPage> with KeyboardDismissMixin
       _isLoading = true;
     });
     
-    // 模拟保存到服务器
-    await Future.delayed(const Duration(seconds: 2));
-    
     // 构建更新数据
     final updateData = {
       'id': _imageInfo?.id,
       'name': _nameController.text.trim(),
       'introduction': _introductionController.text.trim(),
       'category': _categoryController.text.trim(),
-      'picColor': _picColorController.text.trim(),
       'tags': _tags,
     };
     
     setState(() {
       _isLoading = false;
     });
-    
     // 显示成功提示
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Row(
-            children: [
-              Icon(Icons.check_circle, color: Colors.white),
-              SizedBox(width: 8),
-              Text('图片信息更新成功'),
-            ],
+
+      final res=await PictureApi.editPicture(updateData);
+      if(res){
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 8),
+                Text('图片信息更新成功'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-      );
-      
-      // 返回上一页
-      Navigator.pop(context, updateData);
+        );
+        // 返回上一页
+        Navigator.pop(context, updateData);
+      }
+
     }
   }
   
@@ -307,26 +307,7 @@ class _ImageEditPageState extends State<ImageEditPage> with KeyboardDismissMixin
                         label: '分类',
                         hint: '请输入图片分类',
                       ),
-                      
                       const SizedBox(height: 20),
-                      
-                      // 主色调
-                      _buildTextField(
-                        controller: _picColorController,
-                        label: '图片主色调',
-                        hint: '例如: #4A90E2',
-                        validator: (value) {
-                          if (value != null && value.isNotEmpty) {
-                            if (!RegExp(r'^#[0-9A-Fa-f]{6}$').hasMatch(value)) {
-                              return '请输入正确的颜色格式，例如: #4A90E2';
-                            }
-                          }
-                          return null;
-                        },
-                      ),
-                      
-                      const SizedBox(height: 20),
-                      
                       // 标签
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -339,7 +320,6 @@ class _ImageEditPageState extends State<ImageEditPage> with KeyboardDismissMixin
                             ),
                           ),
                           const SizedBox(height: 8),
-                          
                           // 添加标签输入框
                           Row(
                             children: [

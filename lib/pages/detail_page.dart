@@ -256,7 +256,7 @@ class _DetailPageState extends ConsumerState<DetailPage> {
                             child: const Icon(Icons.arrow_back,
                                 color: Colors.white),
                           ),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: _navigateBack,
                   ),
                   actions: [
                     IconButton(
@@ -285,9 +285,30 @@ class _DetailPageState extends ConsumerState<DetailPage> {
                         setState(() {
                           _isFavorite = !originalIsFavorite;
                         });
-                        await PictureLikeApi.pictureLikeToggle({
-                          "pictureId": _imageDetails.id,
-                        });
+                        
+                        try {
+                          final result = await PictureLikeApi.pictureLikeToggle({
+                            "pictureId": _imageDetails.id,
+                          });
+                          
+                          // 更新图片详情数据
+                          setState(() {
+                            _imageDetails = _imageDetails.copyWith(
+                              hasLiked: result.liked,
+                              likeCount: result.likeCount.toString(),
+                            );
+                          });
+                          
+                          // 点赞成功，不自动返回，只在本地更新状态
+                          MyToast.showSuccess(_isFavorite ? '点赞成功' : '取消点赞');
+                          
+                        } catch (e) {
+                          // 如果点赞失败，恢复原来的状态
+                          setState(() {
+                            _isFavorite = originalIsFavorite;
+                          });
+                          MyToast.showError('点赞失败，请重试');
+                        }
                       },
                     ),
                     IconButton(
@@ -602,7 +623,7 @@ class _DetailPageState extends ConsumerState<DetailPage> {
                       title: '复制链接',
                       subtitle: '复制图片链接到剪贴板',
                       onTap: () {
-                        Navigator.pop(context);
+                        _navigateBack();
                         _copyLink();
                       },
                     ),
@@ -636,7 +657,7 @@ class _DetailPageState extends ConsumerState<DetailPage> {
                 child: SizedBox(
                   width: double.infinity,
                   child: TextButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: _navigateBack,
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
@@ -1408,6 +1429,17 @@ class _DetailPageState extends ConsumerState<DetailPage> {
     _commentFocusNode.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  // 通知首页更新点赞状态
+  void _notifyHomePageUpdate() {
+    // 通过Navigator传递更新数据给首页
+    Navigator.pop(context, _imageDetails);
+  }
+
+  // 重写返回按钮行为，返回更新后的数据
+  void _navigateBack() {
+    Navigator.pop(context, _imageDetails);
   }
 
 
