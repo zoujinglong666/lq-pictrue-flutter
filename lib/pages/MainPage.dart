@@ -34,17 +34,13 @@ class _MainPageState extends State<MainPage>
   Widget build(BuildContext context) {
     final keyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
     final showTab = !keyboardOpen;
-    final bottomPadding = keyboardOpen ? 0.0 : MediaQuery.of(context).padding.bottom + 64.0;
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           // 给页面内容预留底部空间
-          Padding(
-            padding: EdgeInsets.only(bottom: bottomPadding),
-            child: IndexedStack(index: selectedIndex, children: pages),
-          ),
+          IndexedStack(index: selectedIndex, children: pages),
 
           // 底部导航栏：带滑入/滑出与淡入/淡出动画
           Align(

@@ -71,26 +71,26 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               _buildUserProfileHeader(context, user),
 
               // 统计信息
-              // Padding(
-              //   padding: const EdgeInsets.symmetric(horizontal: 16),
-              //   child: Row(
-              //     children: [
-              //       Expanded(
-              //         child: _buildStatCard('上传图片', '128', Icons.upload),
-              //       ),
-              //       const SizedBox(width: 12),
-              //       Expanded(
-              //         child: _buildStatCard('收藏', '45', Icons.favorite),
-              //       ),
-              //       const SizedBox(width: 12),
-              //       Expanded(
-              //         child: _buildStatCard('浏览', '1.2k', Icons.visibility),
-              //       ),
-              //     ],
-              //   ),
-              // ),
-              //
-              // const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _buildStatCard('上传图片', '128', Icons.upload),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildStatCard('收藏', '45', Icons.favorite),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildStatCard('浏览', '1.2k', Icons.visibility),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
 
               // 我的功能区域
               _buildSectionTitle('我的图库'),

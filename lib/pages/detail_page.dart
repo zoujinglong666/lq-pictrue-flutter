@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:lq_picture/apis/picture_comment_api.dart';
 import 'package:lq_picture/apis/picture_like_api.dart';
 import 'package:lq_picture/common/toast.dart';
 import 'package:lq_picture/model/picture.dart';
+import 'package:lq_picture/model/comment.dart';
 import 'package:share_plus/share_plus.dart';
 import '../utils/index.dart';
 import 'image_preview_page.dart';
@@ -33,8 +35,9 @@ class _DetailPageState extends State<DetailPage> {
   // 模拟图片详情数据
   late PictureVO _imageDetails;
 
-  // 模拟评论数据
-  List<Map<String, dynamic>> _comments = [];
+  // 评论数据
+  List<CommentVO> _comments = [];
+  bool _commentsLoading = false;
 
   @override
   void initState() {
@@ -42,7 +45,7 @@ class _DetailPageState extends State<DetailPage> {
     _imageDetails = widget.imageData!;
     _isFavorite = widget.imageData!.hasLiked;
 
-    // 初始化模拟评论数据
+    // 初始化评论数据
     _initComments();
 
     // 监听滚动事件
@@ -102,71 +105,33 @@ class _DetailPageState extends State<DetailPage> {
     }
   }
 
-  void _initComments() {
-    _comments = [
-      {
-        'id': 1,
-        'user': '摄影爱好者',
-        'avatar': 'https://picsum.photos/40/40?random=1',
-        'content': '这张照片拍得真棒！构图和光线都很完美。',
-        'time': '2小时前',
-        'likes': 12,
-        'isLiked': false,
-        'replies': [
-          {
-            'id': 11,
-            'user': '风景摄影师',
-            'avatar': 'https://picsum.photos/40/40?random=2',
-            'content': '同意！特别是那个光影效果，很有层次感。',
-            'time': '1小时前',
-            'likes': 5,
-            'isLiked': true,
-            'replyTo': '摄影爱好者',
-          },
-          {
-            'id': 12,
-            'user': '小明同学',
-            'avatar': 'https://picsum.photos/40/40?random=3',
-            'content': '请问这是用什么相机拍的？',
-            'time': '30分钟前',
-            'likes': 2,
-            'isLiked': false,
-            'replyTo': '摄影爱好者',
-          },
-        ],
-      },
-      {
-        'id': 2,
-        'user': '自然风光',
-        'avatar': 'https://picsum.photos/40/40?random=4',
-        'content': '太美了！这个地方在哪里？有机会也想去拍拍。',
-        'time': '3小时前',
-        'likes': 8,
-        'isLiked': false,
-        'replies': [],
-      },
-      {
-        'id': 3,
-        'user': '摄影新手',
-        'avatar': 'https://picsum.photos/40/40?random=5',
-        'content': '学习了！请问后期是怎么处理的？',
-        'time': '5小时前',
-        'likes': 15,
-        'isLiked': true,
-        'replies': [
-          {
-            'id': 31,
-            'user': '后期大师',
-            'avatar': 'https://picsum.photos/40/40?random=6',
-            'content': '看起来像是调了对比度和饱和度，色温也稍微调暖了一点。',
-            'time': '4小时前',
-            'likes': 7,
-            'isLiked': false,
-            'replyTo': '摄影新手',
-          },
-        ],
-      },
-    ];
+  Future<void> _initComments() async {
+    if (_commentsLoading) return;
+
+    setState(() {
+      _commentsLoading = true;
+    });
+
+    try {
+      final res = await PictureCommentApi.getCommentList({
+        "pictureId":_imageDetails.id
+      } );
+
+      if (mounted) {
+        setState(() {
+          _comments =res.records ;
+          _commentsLoading = false;
+        });
+      }
+    } catch (e) {
+      print('加载评论失败: $e');
+      if (mounted) {
+        setState(() {
+          _commentsLoading = false;
+        });
+      }
+      MyToast.showError('加载评论失败');
+    }
   }
 
   @override
@@ -836,7 +801,32 @@ class _DetailPageState extends State<DetailPage> {
           ],
         ),
         const SizedBox(height: 16),
-        if (_comments.isEmpty)
+
+        if (_commentsLoading)
+          Container(
+            padding: const EdgeInsets.all(40),
+            child: Column(
+              children: [
+                SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.grey[400],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  '加载评论中...',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          )
+        else if (_comments.isEmpty)
           Container(
             padding: const EdgeInsets.all(40),
             child: Column(
@@ -871,8 +861,8 @@ class _DetailPageState extends State<DetailPage> {
   }
 
   // 构建单个评论项
-  Widget _buildCommentItem(Map<String, dynamic> comment) {
-    final isHighlighted = _highlightedCommentId == comment['id'];
+  Widget _buildCommentItem(CommentVO comment) {
+    final isHighlighted = _highlightedCommentId == comment.id;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -897,7 +887,28 @@ class _DetailPageState extends State<DetailPage> {
               // 头像
               CircleAvatar(
                 radius: 20,
-                backgroundImage: NetworkImage(comment['avatar']),
+                backgroundColor: Colors.grey[300],
+                child: comment.user.userAvatar != null
+                    ? ClipOval(
+                        child: Image.network(
+                          comment.user.userAvatar!,
+                          width: 40,
+                          height: 40,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Icon(
+                              Icons.person,
+                              size: 20,
+                              color: Colors.grey[600],
+                            );
+                          },
+                        ),
+                      )
+                    : Icon(
+                        Icons.person,
+                        size: 20,
+                        color: Colors.grey[600],
+                      ),
               ),
               const SizedBox(width: 12),
 
@@ -910,7 +921,7 @@ class _DetailPageState extends State<DetailPage> {
                     Row(
                       children: [
                         Text(
-                          comment['user'],
+                          comment.user.userName,
                           style: const TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
@@ -918,7 +929,7 @@ class _DetailPageState extends State<DetailPage> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          comment['time'],
+                          _formatTime(comment.createTime),
                           style: TextStyle(
                             color: Colors.grey[600],
                             fontSize: 12,
@@ -930,7 +941,7 @@ class _DetailPageState extends State<DetailPage> {
 
                     // 评论文本
                     Text(
-                      comment['content'],
+                      comment.content,
                       style: const TextStyle(
                         fontSize: 15,
                         height: 1.4,
@@ -942,21 +953,17 @@ class _DetailPageState extends State<DetailPage> {
                     Row(
                       children: [
                         GestureDetector(
-                          onTap: () => _toggleCommentLike(comment),
+                          onTap: () => _likeComment(comment),
                           child: Row(
                             children: [
                               Icon(
-                                comment['isLiked']
-                                    ? Icons.favorite
-                                    : Icons.favorite_border,
+                                Icons.favorite_border,
                                 size: 16,
-                                color: comment['isLiked']
-                                    ? Colors.red
-                                    : Colors.grey[600],
+                                color: Colors.grey[600],
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                '${comment['likes']}',
+                                '0',
                                 style: TextStyle(
                                   color: Colors.grey[600],
                                   fontSize: 12,
@@ -990,11 +997,11 @@ class _DetailPageState extends State<DetailPage> {
           ),
 
           // 回复列表
-          if (comment['replies'] != null && comment['replies'].isNotEmpty)
+          if (comment.replies.isNotEmpty)
             Container(
               margin: const EdgeInsets.only(left: 44, top: 12),
               child: Column(
-                children: (comment['replies'] as List).map<Widget>((reply) {
+                children: comment.replies.map<Widget>((reply) {
                   return _buildReplyItem(reply);
                 }).toList(),
               ),
@@ -1005,8 +1012,8 @@ class _DetailPageState extends State<DetailPage> {
   }
 
   // 构建回复项
-  Widget _buildReplyItem(Map<String, dynamic> reply) {
-    final isHighlighted = _highlightedReplyId == reply['id'];
+  Widget _buildReplyItem(CommentVO reply) {
+    final isHighlighted = _highlightedReplyId == reply.id;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1029,7 +1036,28 @@ class _DetailPageState extends State<DetailPage> {
           // 头像
           CircleAvatar(
             radius: 16,
-            backgroundImage: NetworkImage(reply['avatar']),
+            backgroundColor: Colors.grey[300],
+            child: reply.user.userAvatar != null
+                ? ClipOval(
+                    child: Image.network(
+                      reply.user.userAvatar!,
+                      width: 32,
+                      height: 32,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Icon(
+                          Icons.person,
+                          size: 16,
+                          color: Colors.grey[600],
+                        );
+                      },
+                    ),
+                  )
+                : Icon(
+                    Icons.person,
+                    size: 16,
+                    color: Colors.grey[600],
+                  ),
           ),
           const SizedBox(width: 10),
 
@@ -1042,7 +1070,7 @@ class _DetailPageState extends State<DetailPage> {
                 Row(
                   children: [
                     Text(
-                      reply['user'],
+                      reply.user.userName,
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 13,
@@ -1050,7 +1078,7 @@ class _DetailPageState extends State<DetailPage> {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      reply['time'],
+                      _formatTime(reply.createTime),
                       style: TextStyle(
                         color: Colors.grey[600],
                         fontSize: 11,
@@ -1061,25 +1089,12 @@ class _DetailPageState extends State<DetailPage> {
                 const SizedBox(height: 4),
 
                 // 回复文本
-                RichText(
-                  text: TextSpan(
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.black87,
-                      height: 1.3,
-                    ),
-                    children: [
-                      if (reply['replyTo'] != null) ...[
-                        TextSpan(
-                          text: '@${reply['replyTo']} ',
-                          style: const TextStyle(
-                            color: Color(0xFF4FC3F7),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                      TextSpan(text: reply['content']),
-                    ],
+                Text(
+                  reply.content,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.black87,
+                    height: 1.3,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -1088,21 +1103,17 @@ class _DetailPageState extends State<DetailPage> {
                 Row(
                   children: [
                     GestureDetector(
-                      onTap: () => _toggleReplyLike(reply),
+                      onTap: () => _likeComment(reply),
                       child: Row(
                         children: [
                           Icon(
-                            reply['isLiked']
-                                ? Icons.favorite
-                                : Icons.favorite_border,
+                            Icons.favorite_border,
                             size: 14,
-                            color: reply['isLiked']
-                                ? Colors.red
-                                : Colors.grey[600],
+                            color: Colors.grey[600],
                           ),
                           const SizedBox(width: 3),
                           Text(
-                            '${reply['likes']}',
+                            '0',
                             style: TextStyle(
                               color: Colors.grey[600],
                               fontSize: 11,
@@ -1113,7 +1124,7 @@ class _DetailPageState extends State<DetailPage> {
                     ),
                     const SizedBox(width: 16),
                     GestureDetector(
-                      onTap: () => _replyToReply(reply),
+                      onTap: () => _replyToComment(reply),
                       child: Text(
                         '回复',
                         style: TextStyle(
@@ -1141,50 +1152,23 @@ class _DetailPageState extends State<DetailPage> {
   int _getTotalCommentsCount() {
     int total = _comments.length;
     for (var comment in _comments) {
-      if (comment['replies'] != null) {
-        total += (comment['replies'] as List).length;
-      }
+      total += comment.replies.length;
     }
     return total;
   }
 
-  // 切换评论点赞
-  void _toggleCommentLike(Map<String, dynamic> comment) {
-    setState(() {
-      comment['isLiked'] = !comment['isLiked'];
-      comment['likes'] += comment['isLiked'] ? 1 : -1;
-    });
-  }
-
-  // 切换回复点赞
-  void _toggleReplyLike(Map<String, dynamic> reply) {
-    setState(() {
-      reply['isLiked'] = !reply['isLiked'];
-      reply['likes'] += reply['isLiked'] ? 1 : -1;
-    });
+  // 点赞评论
+  void _likeComment(CommentVO comment) {
+    MyToast.showInfo('点赞功能暂未实现');
   }
 
   // 回复评论
-  void _replyToComment(Map<String, dynamic> comment) {
+  void _replyToComment(CommentVO comment) {
     setState(() {
-      _replyToUser = comment['user'];
-      _replyToCommentId = comment['id'];
-      _highlightedCommentId = comment['id']; // 高亮当前评论
+      _replyToUser = comment.user.userName;
+      _replyToCommentId = int.tryParse(comment.id);
+      _highlightedCommentId = int.tryParse(comment.id); // 高亮当前评论
       _highlightedReplyId = null; // 清除回复高亮
-    });
-    // 延迟一帧后请求焦点，确保UI更新完成
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _commentFocusNode.requestFocus();
-    });
-  }
-
-  // 回复回复
-  void _replyToReply(Map<String, dynamic> reply) {
-    setState(() {
-      _replyToUser = reply['user'];
-      _replyToCommentId = reply['id'];
-      _highlightedReplyId = reply['id']; // 高亮当前回复
-      _highlightedCommentId = null; // 清除评论高亮
     });
     // 延迟一帧后请求焦点，确保UI更新完成
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1204,68 +1188,63 @@ class _DetailPageState extends State<DetailPage> {
     _commentFocusNode.unfocus();
   }
 
+  // 时间格式化
+  String _formatTime(int timestamp) {
+    final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    final now = DateTime.now();
+    final difference = now.difference(date);
+
+    if (difference.inMinutes < 1) {
+      return '刚刚';
+    } else if (difference.inHours < 1) {
+      return '${difference.inMinutes}分钟前';
+    } else if (difference.inDays < 1) {
+      return '${difference.inHours}小时前';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}天前';
+    } else {
+      return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    }
+  }
+
   // 提交评论
-  void _submitComment() {
+  Future<void> _submitComment() async {
     if (_commentController.text.trim().isEmpty) return;
 
     final String content = _commentController.text.trim();
-    final DateTime now = DateTime.now();
 
-    setState(() {
-      if (_replyToUser != null) {
-        // 添加回复
-        final parentComment = _comments.firstWhere(
-          (comment) => comment['user'] == _replyToUser,
-          orElse: () => _comments.firstWhere(
-            (comment) => (comment['replies'] as List).any(
-              (reply) => reply['user'] == _replyToUser,
+    try {
+      final res = await PictureCommentApi.addPictureComment(
+        {
+          "pictureId": _imageDetails.id,
+          "content": content,
+        }
+      );
+
+      if (res.isNotEmpty) {
+        // 重新加载评论列表
+        await _initComments();
+
+        // 显示成功提示
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_replyToUser != null ? '回复成功' : '评论成功'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
             ),
           ),
         );
-
-        if (parentComment['replies'] == null) {
-          parentComment['replies'] = [];
-        }
-
-        (parentComment['replies'] as List).add({
-          'id': DateTime.now().millisecondsSinceEpoch,
-          'user': '我',
-          'avatar': 'https://picsum.photos/40/40?random=999',
-          'content': content,
-          'time': '刚刚',
-          'likes': 0,
-          'isLiked': false,
-          'replyTo': _replyToUser,
-        });
       } else {
-        // 添加新评论
-        _comments.insert(0, {
-          'id': DateTime.now().millisecondsSinceEpoch,
-          'user': '我',
-          'avatar': 'https://picsum.photos/40/40?random=999',
-          'content': content,
-          'time': '刚刚',
-          'likes': 0,
-          'isLiked': false,
-          'replies': [],
-        });
+        MyToast.showError( '评论失败');
       }
-    });
+    } catch (e) {
+      print('评论失败: $e');
+      MyToast.showError('评论失败，请重试');
+    }
 
     _commentController.clear();
-
-    // 显示成功提示
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(_replyToUser != null ? '回复成功' : '评论成功'),
-        backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-      ),
-    );
-
     // 清除回复状态和高亮
     _cancelReply();
   }
