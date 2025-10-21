@@ -13,7 +13,6 @@ class ProfilePage extends ConsumerStatefulWidget {
 }
 
 class _ProfilePageState extends ConsumerState<ProfilePage> {
-
   SpaceVO spaceData = SpaceVO.empty();
 
   @override
@@ -23,36 +22,36 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     _loadData();
   }
 
-   Future<void> _loadData() async {
-     try {
-       // 获取用户认证状态
-       final authState = ref.read(authProvider);
-       // 访问用户信息
-       final user = authState.user;
-         final res = await SpaceApi.getList({
-           "current": 1,
-           "pageSize": 10,
-           "spaceType": 0,
-           "userId": user!.id,
-         });
-         print(res);
+  Future<void> _loadData() async {
+    try {
+      // 获取用户认证状态
+      final authState = ref.read(authProvider);
+      // 访问用户信息
+      final user = authState.user;
+      final res = await SpaceApi.getList({
+        "current": 1,
+        "pageSize": 10,
+        "spaceType": 0,
+        "userId": user!.id,
+      });
+      print(res);
 
-         if (res.records.isNotEmpty) {
-           setState(() {
-             // 刷新数据
-             spaceData = res.records[0];
-             print('空间数据加载成功: ${spaceData.spaceName}, ID: ${spaceData.id}');
-           });
-         } else {
-           print('没有找到空间数据');
-         }} catch (e) {
-       if (mounted) {
-         print('加载数据失败: $e');
-       }
-     } finally {
+      if (res.records.isNotEmpty) {
+        setState(() {
+          // 刷新数据
+          spaceData = res.records[0];
+          print('空间数据加载成功: ${spaceData.spaceName}, ID: ${spaceData.id}');
+        });
+      } else {
+        print('没有找到空间数据');
+      }
+    } catch (e) {
+      if (mounted) {
+        print('加载数据失败: $e');
+      }
+    } finally {}
+  }
 
-     }
-   }
   @override
   Widget build(BuildContext context) {
     // 获取用户认证状态
@@ -61,7 +60,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
     // 访问用户信息
     final user = authState.user;
-    final isAdmin = ref.watch(authProvider.select((value) => value.user?.userRole == 'admin'));
+    final isAdmin = ref
+        .watch(authProvider.select((value) => value.user?.userRole == 'admin'));
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -97,31 +97,46 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               _buildActionGrid(
                 context,
                 [
-                  if (spaceData.id.isEmpty)
+                  // 如果没有空间，则显示创建空间选项
+                  if (spaceData.id.isEmpty) ...[
                     {
                       'icon': Icons.add_photo_alternate,
                       'title': '创建空间',
-                      'onTap': () => Navigator.pushNamed(context, '/create_space'),
+                      'onTap': () =>
+                          Navigator.pushNamed(context, '/create_space'),
+                    }
+                  ]
+                  // 如果有空间，则显示相关操作
+                  else ...[
+                    {
+                      'icon': Icons.photo_library_outlined,
+                      'title': '我的空间',
+                      'onTap': () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => MySpacePage(
+                              onRefresh: _loadData,
+                            ),
+                          ),
+                        ).then((_) {
+                          // 从空间页面返回时刷新数据
+                          _loadData();
+                        });
+                      },
                     },
-                  {
-                    'icon': Icons.photo_library_outlined,
-                    'title': '我的空间',
-                    'onTap': () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => MySpacePage()),
-                      );
+                    {
+                      'icon': Icons.collections_outlined,
+                      'title': '我的图片',
+                      'onTap': () {},
                     },
-                  },
-                  {
-                    'icon': Icons.collections_outlined,
-                    'title': '我的图片',
-                    'onTap': () {},
-                  },
+                  ],
+                  // 其他通用选项
                   {
                     'icon': Icons.fact_check_outlined,
                     'title': '审核状态',
-                    'onTap': () => Navigator.pushNamed(context, '/image_review_status'),
+                    'onTap': () =>
+                        Navigator.pushNamed(context, '/image_review_status'),
                   },
                   {
                     'icon': Icons.favorite_border,
@@ -147,17 +162,20 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     {
                       'icon': Icons.admin_panel_settings_outlined,
                       'title': '图片管理',
-                      'onTap': () => Navigator.pushNamed(context, '/picture_management'),
+                      'onTap': () =>
+                          Navigator.pushNamed(context, '/picture_management'),
                     },
                     {
                       'icon': Icons.storage_outlined,
                       'title': '空间管理',
-                      'onTap': () => Navigator.pushNamed(context, '/space_management'),
+                      'onTap': () =>
+                          Navigator.pushNamed(context, '/space_management'),
                     },
                     {
                       'icon': Icons.people_outline,
                       'title': '用户管理',
-                      'onTap': () => Navigator.pushNamed(context, '/user_management'),
+                      'onTap': () =>
+                          Navigator.pushNamed(context, '/user_management'),
                     },
                   ],
                 ),
@@ -173,7 +191,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final colorScheme = Theme.of(context).colorScheme;
     Color iconColor;
     Color valueColor;
-    
+
     // 根据不同的图标设置不同的颜色主题
     switch (icon) {
       case Icons.upload:
@@ -192,7 +210,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         iconColor = colorScheme.primary;
         valueColor = colorScheme.primary;
     }
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -264,7 +282,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
-  Widget _buildActionGrid(BuildContext context, List<Map<String, dynamic>> actions) {
+  Widget _buildActionGrid(
+      BuildContext context, List<Map<String, dynamic>> actions) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: GridView.builder(
@@ -345,7 +364,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               gradient: LinearGradient(
                 colors: [
                   Theme.of(context).colorScheme.primary.withOpacity(0.9),
-                  Theme.of(context).colorScheme.primaryContainer.withOpacity(0.7),
+                  Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withOpacity(0.7),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -372,11 +394,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       backgroundColor: Colors.white,
                       child: CircleAvatar(
                         radius: 34,
-                        backgroundColor: Theme.of(context).colorScheme.background,
-                        backgroundImage: userAvatarUrl != null ? NetworkImage(userAvatarUrl) : null,
-                        child: userAvatarUrl == null
-                            ? Icon(Icons.person_outline, size: 36, color: Colors.grey[400])
-                            : null,
+                        backgroundColor:
+                            Theme.of(context).colorScheme.background,
+                        child: _buildUserAvatar(userAvatarUrl),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -391,7 +411,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
-                              shadows: [Shadow(blurRadius: 2.0, color: Colors.black26)],
+                              shadows: [
+                                Shadow(blurRadius: 2.0, color: Colors.black26)
+                              ],
                             ),
                           ),
                           const SizedBox(height: 6),
@@ -422,7 +444,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 shape: BoxShape.circle,
               ),
               child: IconButton(
-                icon: const Icon(Icons.settings_outlined, color: Colors.white, size: 20),
+                icon: const Icon(Icons.settings_outlined,
+                    color: Colors.white, size: 20),
                 onPressed: () => Navigator.pushNamed(context, '/settings'),
                 tooltip: '设置',
               ),
@@ -430,6 +453,52 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildUserAvatar(String? userAvatarUrl) {
+    if (userAvatarUrl == null) {
+      return Icon(Icons.person_outline, size: 36, color: Colors.grey[400]);
+    }
+
+    return TweenAnimationBuilder(
+      tween: Tween<double>(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 300),
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: ClipOval(
+            child: Image.network(
+              userAvatarUrl,
+              width: 68,
+              height: 68,
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Center(
+                  child: SizedBox(
+                    width: 30,
+                    height: 30,
+                    child: CircularProgressIndicator(
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded /
+                              loadingProgress.expectedTotalBytes!
+                          : null,
+                      strokeWidth: 2,
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(Colors.grey[400]!),
+                    ),
+                  ),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                return Icon(Icons.person_outline,
+                    size: 36, color: Colors.grey[400]);
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 }

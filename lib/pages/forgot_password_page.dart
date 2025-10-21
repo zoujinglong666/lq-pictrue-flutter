@@ -192,26 +192,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> with KeyboardDi
                 // 重置密码按钮
                 _buildResetPasswordButton(),
               ],
-
-              const SizedBox(height: 24),
-
-              // 返回登录
-              Center(
-                child: TextButton(
-                  onPressed: () => Navigator.pushNamedAndRemoveUntil(
-                    context,
-                    '/login',
-                    (route) => false,
-                  ),
-                  child: Text(
-                    '返回登录',
-                    style: TextStyle(
-                      color: Colors.blue[600],
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-              ),
             ],
           ),
         ),

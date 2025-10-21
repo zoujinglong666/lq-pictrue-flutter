@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class ForbiddenPage extends StatelessWidget {
-  const ForbiddenPage({Key? key}) : super(key: key);
+  const ForbiddenPage({super.key});
 
   @override
   Widget build(BuildContext context) {

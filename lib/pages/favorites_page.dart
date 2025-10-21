@@ -50,7 +50,7 @@ class _FavoritesPageState extends State<FavoritesPage>
   }
 
   Future getFavoriteImages() async {
-    final res = await PictureApi.getList({
+    final res = await PictureApi.getMyLikes({
       "current": 1,
       "pageSize": 10,
       "sortField": 'createTime',
@@ -360,13 +360,6 @@ class _FavoritesPageState extends State<FavoritesPage>
   double _getRandomHeight(int index) {
     final heights = [200.0, 250.0, 300.0, 350.0, 280.0, 320.0, 260.0, 380.0];
     return heights[index % heights.length];
-  }
-
-  String _formatNumber(int number) {
-    if (number >= 1000) {
-      return '${(number / 1000).toStringAsFixed(1)}k';
-    }
-    return number.toString();
   }
 
   void _toggleFavorite(PictureVO image) {

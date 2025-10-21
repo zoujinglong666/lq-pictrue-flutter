@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:lq_picture/apis/space_api.dart';
 import 'package:lq_picture/common/toast.dart';
 import '../utils/keyboard_utils.dart';
+import 'my_space_page.dart';
 
 class CreateSpacePage extends StatefulWidget {
-  const CreateSpacePage({super.key});
+  final VoidCallback? onSpaceCreated;
+  
+  const CreateSpacePage({super.key, this.onSpaceCreated});
 
   @override
   State<CreateSpacePage> createState() => _CreateSpacePageState();
@@ -73,16 +76,24 @@ class _CreateSpacePageState extends State<CreateSpacePage>
     // 创建成功
     if (mounted) {
 
-
       MyToast.showSuccess('空间 "${_spaceNameController.text}" 创建成功！');
-
-
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('空间 "${_spaceNameController.text}" 创建成功！'),
           backgroundColor: Colors.green,
         ),
+      );
+      
+      // 调用回调函数并跳转到空间页面
+      if (widget.onSpaceCreated != null) {
+        widget.onSpaceCreated!();
+      }
+      
+      // 跳转到我的空间页面
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const MySpacePage()),
       );
     }
   }

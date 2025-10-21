@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:lq_picture/apis/picture_api.dart';
+import 'package:lq_picture/model/picture.dart';
+import 'package:lq_picture/model/page.dart' as CustomPage;
+import 'package:lq_picture/utils/ToastUtils.dart';
 
 class ImageReviewStatusPage extends StatefulWidget {
   const ImageReviewStatusPage({super.key});
@@ -10,21 +14,82 @@ class ImageReviewStatusPage extends StatefulWidget {
 class _ImageReviewStatusPageState extends State<ImageReviewStatusPage> {
   // 当前选中的审核状态过滤器
   String _currentFilter = '全部';
-  // 模拟图片审核数据
-  final List<Map<String, dynamic>> _reviewImages = [
-
-  ];
+  // 真实图片审核数据
+  List<PictureItem> _reviewImages = [];
+  bool _isLoading = false;
+  bool _hasError = false;
+  int _currentPage = 1;
+  int _totalPages = 1;
+  int _totalRecords = 0;
 
   // 过滤器选项
   final List<String> _filterOptions = ['全部', '待审核', '已通过', '已拒绝'];
 
-  // 根据当前过滤器筛选图片
-  List<Map<String, dynamic>> get _filteredImages {
-    if (_currentFilter == '全部') {
-      return _reviewImages;
-    } else {
-      return _reviewImages.where((image) => image['status'] == _currentFilter).toList();
+  @override
+  void initState() {
+    super.initState();
+    _loadReviewData();
+  }
+
+  // 加载审核数据
+  Future<void> _loadReviewData({int page = 1}) async {
+    if (_isLoading) return;
+    
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+    });
+
+    try {
+      // 构建查询参数
+      Map<String, dynamic> queryParams = {
+        'current': page,
+        'pageSize': 20,
+      };
+
+      // 根据过滤器添加状态参数
+      if (_currentFilter != '全部') {
+        int status = 0;
+        switch (_currentFilter) {
+          case '待审核':
+            status = 0;
+            break;
+          case '已通过':
+            status = 1;
+            break;
+          case '已拒绝':
+            status = 2;
+            break;
+        }
+        queryParams['reviewStatus'] = status;
+      }
+
+      final CustomPage.Page<PictureItem> result = await PictureApi.getReviewStatusList(queryParams);
+      
+      setState(() {
+        _reviewImages = result.records ?? [];
+        _currentPage = int.tryParse(result.current.toString() ?? '1') ?? 1;
+        _totalPages = int.tryParse(result.pages.toString() ?? '1') ?? 1;
+        _totalRecords = int.tryParse(result.total.toString() ?? '0') ?? 0;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _hasError = true;
+        _isLoading = false;
+      });
+      ToastUtils.showError('加载审核数据失败: $e');
     }
+  }
+
+  // 刷新数据
+  Future<void> _refreshData() async {
+    await _loadReviewData(page: 1);
+  }
+
+  // 根据当前过滤器筛选图片
+  List<PictureItem> get _filteredImages {
+    return _reviewImages;
   }
 
   @override
@@ -50,74 +115,144 @@ class _ImageReviewStatusPageState extends State<ImageReviewStatusPage> {
           ),
         ),
       ),
-      body: Column(
-        children: [
-          // 过滤器选项
-          Container(
-            height: 60,
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            color: Colors.white,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: _filterOptions.length,
-              itemBuilder: (context, index) {
-                final option = _filterOptions[index];
-                final isSelected = option == _currentFilter;
-                
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _currentFilter = option;
-                    });
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.only(right: 12),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: isSelected ? Colors.blue[600] : Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: isSelected ? Colors.blue[600]! : Colors.grey[300]!,
-                      ),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      option,
-                      style: TextStyle(
-                        color: isSelected ? Colors.white : Colors.grey[700],
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          
-          // 分割线
-          Divider(height: 1, color: Colors.grey[200]),
-          
-          // 图片网格
-          Expanded(
-            child: _filteredImages.isEmpty
-                ? _buildEmptyState()
-                : GridView.builder(
-                    padding: const EdgeInsets.all(16),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 0.8,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                    ),
-                    itemCount: _filteredImages.length,
-                    itemBuilder: (context, index) {
-                      final image = _filteredImages[index];
-                      return _buildImageReviewGridItem(image);
+      body: RefreshIndicator(
+        onRefresh: _refreshData,
+        child: Column(
+          children: [
+            // 过滤器选项
+            Container(
+              height: 60,
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              color: Colors.white,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: _filterOptions.length,
+                itemBuilder: (context, index) {
+                  final option = _filterOptions[index];
+                  final isSelected = option == _currentFilter;
+                  
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _currentFilter = option;
+                      });
+                      _loadReviewData(page: 1);
                     },
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: isSelected ? Colors.blue[600] : Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: isSelected ? Colors.blue[600]! : Colors.grey[300]!,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        option,
+                        style: TextStyle(
+                          color: isSelected ? Colors.white : Colors.grey[700],
+                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            
+            // 分割线
+            Divider(height: 1, color: Colors.grey[200]),
+            
+            // 加载状态
+            if (_isLoading && _reviewImages.isEmpty)
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text('加载中...'),
+                    ],
                   ),
-          ),
-        ],
+                ),
+              ),
+            
+            // 错误状态
+            if (_hasError && _reviewImages.isEmpty)
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, size: 64, color: Colors.grey),
+                      SizedBox(height: 16),
+                      Text('加载失败'),
+                      SizedBox(height: 8),
+                      ElevatedButton(
+                        onPressed: _refreshData,
+                        child: Text('重试'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            
+            // 图片网格
+            if (!_isLoading && !_hasError || _reviewImages.isNotEmpty)
+              Expanded(
+                child: _filteredImages.isEmpty
+                    ? _buildEmptyState()
+                    : Column(
+                        children: [
+                          Expanded(
+                            child: GridView.builder(
+                              padding: const EdgeInsets.all(16),
+                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                childAspectRatio: 0.8,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                              ),
+                              itemCount: _filteredImages.length,
+                              itemBuilder: (context, index) {
+                                final image = _filteredImages[index];
+                                return _buildImageReviewGridItem(image);
+                              },
+                            ),
+                          ),
+                          // 分页信息
+                          if (_totalPages > 1)
+                            Container(
+                              padding: EdgeInsets.symmetric(vertical: 8),
+                              color: Colors.white,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  IconButton(
+                                    icon: Icon(Icons.chevron_left),
+                                    onPressed: _currentPage > 1
+                                        ? () => _loadReviewData(page: _currentPage - 1)
+                                        : null,
+                                  ),
+                                  Text('第 $_currentPage 页 / 共 $_totalPages 页'),
+                                  IconButton(
+                                    icon: Icon(Icons.chevron_right),
+                                    onPressed: _currentPage < _totalPages
+                                        ? () => _loadReviewData(page: _currentPage + 1)
+                                        : null,
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -158,29 +293,66 @@ class _ImageReviewStatusPageState extends State<ImageReviewStatusPage> {
   }
 
   // 获取状态颜色和图标
-  Map<String, dynamic> _getStatusInfo(String status) {
-    switch (status) {
-      case '待审核':
-        return {'color': Colors.orange, 'icon': Icons.hourglass_empty};
-      case '已通过':
-        return {'color': Colors.green, 'icon': Icons.check_circle_outline};
-      case '已拒绝':
-        return {'color': Colors.red, 'icon': Icons.cancel_outlined};
+  Map<String, dynamic> _getStatusInfo(int? reviewStatus) {
+    // 根据API返回的实际字段处理状态，如果没有reviewStatus字段，则显示默认状态
+    if (reviewStatus == null) {
+      return {
+        'color': Colors.grey, 
+        'icon': Icons.help_outline,
+        'text': '未知'
+      };
+    }
+    
+    switch (reviewStatus) {
+      case 0: // 待审核
+        return {
+          'color': Colors.orange, 
+          'icon': Icons.hourglass_empty,
+          'text': '待审核'
+        };
+      case 1: // 已通过
+        return {
+          'color': Colors.green, 
+          'icon': Icons.check_circle_outline,
+          'text': '已通过'
+        };
+      case 2: // 已拒绝
+        return {
+          'color': Colors.red, 
+          'icon': Icons.cancel_outlined,
+          'text': '已拒绝'
+        };
       default:
-        return {'color': Colors.grey, 'icon': Icons.help_outline};
+        return {
+          'color': Colors.grey, 
+          'icon': Icons.help_outline,
+          'text': '未知'
+        };
+    }
+  }
+
+  // 格式化时间戳
+  String _formatTime(int? timestamp) {
+    if (timestamp == null) return '';
+    try {
+      final dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
+      return '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')}';
+    } catch (e) {
+      return '';
     }
   }
 
   // 网格布局的图片审核项
-  Widget _buildImageReviewGridItem(Map<String, dynamic> image) {
-    final statusInfo = _getStatusInfo(image['status']);
+  Widget _buildImageReviewGridItem(PictureItem image) {
+    final statusInfo = _getStatusInfo(image.reviewStatus);
     final statusColor = statusInfo['color'] as Color;
     final statusIcon = statusInfo['icon'] as IconData;
+    final statusText = statusInfo['text'] as String;
     
     return GestureDetector(
       onTap: () {
         // 点击查看详情
-        if (image['status'] == '已拒绝' && image['reason'].isNotEmpty) {
+        if (image.reviewStatus == 2 && image.reviewMessage != null && image.reviewMessage.toString().isNotEmpty) {
           _showRejectReasonDialog(image);
         }
       },
@@ -212,11 +384,23 @@ class _ImageReviewStatusPageState extends State<ImageReviewStatusPage> {
                     ),
                     child: Container(
                       color: Colors.grey[200],
-                      child: const Icon(
-                        Icons.image,
-                        color: Colors.grey,
-                        size: 40,
-                      ),
+                      child: image.thumbnailUrl != null && image.thumbnailUrl!.isNotEmpty
+                          ? Image.network(
+                              image.thumbnailUrl!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Icon(
+                                  Icons.image,
+                                  color: Colors.grey,
+                                  size: 40,
+                                );
+                              },
+                            )
+                          : Icon(
+                              Icons.image,
+                              color: Colors.grey,
+                              size: 40,
+                            ),
                     ),
                   ),
                   // 状态标签
@@ -239,7 +423,7 @@ class _ImageReviewStatusPageState extends State<ImageReviewStatusPage> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            image['status'],
+                            statusText,
                             style: TextStyle(
                               fontSize: 10,
                               color: Colors.white,
@@ -251,7 +435,7 @@ class _ImageReviewStatusPageState extends State<ImageReviewStatusPage> {
                     ),
                   ),
                   // 拒绝提示
-                  if (image['status'] == '已拒绝')
+                  if (image.reviewStatus == 2)
                     Positioned(
                       bottom: 0,
                       left: 0,
@@ -281,7 +465,7 @@ class _ImageReviewStatusPageState extends State<ImageReviewStatusPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    image['name'],
+                    image.name ?? '未命名图片',
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 12,
@@ -291,7 +475,7 @@ class _ImageReviewStatusPageState extends State<ImageReviewStatusPage> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '上传: ${image['uploadTime'].split(' ')[0]}',
+                    '上传: ${_formatTime(image.createTime.millisecondsSinceEpoch)}',
                     style: TextStyle(
                       fontSize: 10,
                       color: Colors.grey[600],
@@ -307,7 +491,7 @@ class _ImageReviewStatusPageState extends State<ImageReviewStatusPage> {
   }
   
   // 显示拒绝原因对话框
-  void _showRejectReasonDialog(Map<String, dynamic> image) {
+  void _showRejectReasonDialog(PictureItem image) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -333,7 +517,7 @@ class _ImageReviewStatusPageState extends State<ImageReviewStatusPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '图片名称: ${image['name']}',
+              '图片名称: ${image.name}',
               style: const TextStyle(
                 fontWeight: FontWeight.w500,
                 fontSize: 14,
@@ -341,7 +525,7 @@ class _ImageReviewStatusPageState extends State<ImageReviewStatusPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              '上传时间: ${image['uploadTime']}',
+              '上传时间: ${_formatTime(image.createTime.millisecondsSinceEpoch)}',
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey[600],
@@ -365,7 +549,7 @@ class _ImageReviewStatusPageState extends State<ImageReviewStatusPage> {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                image['reason'],
+                image.reviewMessage?.toString() ?? '无具体原因',
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.red[800],

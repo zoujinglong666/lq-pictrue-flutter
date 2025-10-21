@@ -616,6 +616,12 @@ class _UploadPageState extends ConsumerState<UploadPage>
             _showUploadedImages = false;
             _uploadProgress.clear();
           });
+          
+          // 上传成功后返回true给调用页面
+          // 如果是通过导航跳转过来的（有spaceId参数），返回true表示上传成功
+          if (mounted && widget.spaceId != null) {
+            Navigator.of(context).pop(true);
+          }
         }
       }
     } catch (e) {
@@ -672,6 +678,12 @@ class _UploadPageState extends ConsumerState<UploadPage>
         _showUploadedImages = false;
         _uploadProgress.clear();
       });
+      
+      // 提交成功后返回true给调用页面
+      // 如果是通过导航跳转过来的（有spaceId参数），返回true表示上传成功
+      if (mounted && widget.spaceId != null) {
+        Navigator.of(context).pop(true);
+      }
     } catch (e) {
 
       MyToast.showError("提交失败");
@@ -703,6 +715,14 @@ class _UploadPageState extends ConsumerState<UploadPage>
                     ),
                   ),
                   const Spacer(),
+                  // 返回按钮
+                  IconButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(false);
+                    },
+                    icon: const Icon(Icons.arrow_back),
+                    tooltip: '返回',
+                  ),
                   if (_hasImages())
                     Row(
                       children: [
