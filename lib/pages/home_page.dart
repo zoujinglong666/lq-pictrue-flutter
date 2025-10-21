@@ -14,7 +14,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final ScrollController _scrollController = ScrollController();
-  int _unreadNotificationCount = 2; // 未读消息数量
+  int _unreadNotificationCount = 0; // 未读消息数量
   bool _isLoading = false;
   bool _hasMore = true;
   int _currentPage = 1;
@@ -73,7 +73,7 @@ Future<void> _loadData() async {
       _images = res.records ?? [];
       _isLoading = false;
       _currentPage = 2; // 下一页为2
-      _hasMore = (res.records?.length ?? 0) >= 10; // 如果返回数据少于请求数量，说明没有更多了
+      _hasMore = (res.records.length ?? 0) >= 10; // 如果返回数据少于请求数量，说明没有更多了
     });
   } catch (e) {
     setState(() {

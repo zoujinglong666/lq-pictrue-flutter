@@ -11,65 +11,6 @@ class ProfilePage extends ConsumerStatefulWidget {
   @override
   ConsumerState<ProfilePage> createState() => _ProfilePageState();
 }
-
-class _UserAvatar extends StatelessWidget {
-  final String? url;
-
-  const _UserAvatar({Key? key, this.url}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
-
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.8, end: 1.0),
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeOutBack,
-      builder: (context, scale, child) {
-        return Transform.scale(
-          scale: scale,
-          child: Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: primary.withOpacity(0.3),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: CircleAvatar(
-              radius: 36,
-              backgroundColor: Colors.white,
-              child: CircleAvatar(
-                radius: 34,
-                backgroundColor: Theme.of(context).colorScheme.background,
-                child: ClipOval(
-                  child: url == null
-                      ? Icon(Icons.person_outline,
-                      size: 36, color: Colors.grey[400])
-                      : FadeInImage.assetNetwork(
-                    placeholder: 'assets/avatar_placeholder.png',
-                    image: url!,
-                    width: 68,
-                    height: 68,
-                    fit: BoxFit.cover,
-                    imageErrorBuilder: (_, __, ___) => Icon(
-                      Icons.person_outline,
-                      size: 36,
-                      color: Colors.grey[400],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
 class _GridActionItem extends StatefulWidget {
   final IconData icon;
   final String title;
@@ -77,12 +18,12 @@ class _GridActionItem extends StatefulWidget {
   final Color color;
 
   const _GridActionItem({
-    super.key,
+    Key? key,
     required this.icon,
     required this.title,
     this.onTap,
     required this.color,
-  });
+  }) : super(key: key);
 
   @override
   State<_GridActionItem> createState() => _GridActionItemState();
@@ -477,75 +418,116 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
+  Widget _buildGridItem(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            ),
+            child: Icon(
+              icon,
+              color: Theme.of(context).colorScheme.primary,
+              size: 24,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[800],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildUserProfileHeader(BuildContext context, dynamic user) {
-    final colorScheme = Theme.of(context).colorScheme;
+    // 从认证状态中获取用户头像，如果不存在则使用默认图标
     final userAvatarUrl = user?.userAvatar;
-    final userName = user?.userName ?? '点击登录';
-    final userProfile = user?.userProfile ?? '编辑个性签名，展示最好的你';
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       child: Stack(
         children: [
-          // 背景层
+          // 背景和装饰
           Container(
             height: 180,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(24),
               gradient: LinearGradient(
                 colors: [
-                  colorScheme.primary.withOpacity(0.95),
-                  colorScheme.primaryContainer.withOpacity(0.7),
+                  Theme.of(context).colorScheme.primary.withOpacity(0.9),
+                  Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withOpacity(0.7),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: colorScheme.primary.withOpacity(0.35),
-                  blurRadius: 20,
-                  spreadRadius: 2,
-                  offset: const Offset(0, 10),
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                  blurRadius: 15,
+                  offset: const Offset(0, 8),
                 ),
               ],
             ),
           ),
-
-          // 内容层
+          // 内容
           Positioned.fill(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(24),
-              onTap: () => Navigator.pushNamed(context, '/user_settings'),
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: GestureDetector(
+                onTap: () => Navigator.pushNamed(context, '/user_settings'),
                 child: Row(
                   children: [
-                    _UserAvatar(url: userAvatarUrl),
-                    const SizedBox(width: 18),
+                    CircleAvatar(
+                      radius: 36,
+                      backgroundColor: Colors.white,
+                      child: CircleAvatar(
+                        radius: 34,
+                        backgroundColor:
+                            Theme.of(context).colorScheme.background,
+                        child: _buildUserAvatar(userAvatarUrl),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
                     Expanded(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          AnimatedDefaultTextStyle(
-                            duration: const Duration(milliseconds: 250),
-                            style: TextStyle(
+                          Text(
+                            user?.userName ?? '点击登录',
+                            style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
-                              shadows: const [
-                                Shadow(
-                                  blurRadius: 3,
-                                  color: Colors.black26,
-                                  offset: Offset(0, 1),
-                                ),
+                              shadows: [
+                                Shadow(blurRadius: 2.0, color: Colors.black26)
                               ],
                             ),
-                            child: Text(userName),
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            userProfile,
+                            user?.userProfile ?? '编辑个性签名，展示最好的你',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -561,22 +543,21 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               ),
             ),
           ),
-
           // 设置按钮
           Positioned(
             top: 12,
             right: 12,
-            child: IconButton(
-              style: ButtonStyle(
-                backgroundColor: WidgetStatePropertyAll(
-                  Colors.black.withOpacity(0.15),
-                ),
-                shape: WidgetStatePropertyAll(const CircleBorder()),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.15),
+                shape: BoxShape.circle,
               ),
-              icon: const Icon(Icons.settings_outlined,
-                  color: Colors.white, size: 20),
-              tooltip: '设置',
-              onPressed: () => Navigator.pushNamed(context, '/settings'),
+              child: IconButton(
+                icon: const Icon(Icons.settings_outlined,
+                    color: Colors.white, size: 20),
+                onPressed: () => Navigator.pushNamed(context, '/settings'),
+                tooltip: '设置',
+              ),
             ),
           ),
         ],
