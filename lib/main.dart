@@ -1,5 +1,6 @@
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lq_picture/routes/app_routes.dart';
 import 'package:lq_picture/utils/screenutil/screen_adapter.dart';
@@ -9,7 +10,16 @@ import 'net/request.dart';
 void main() async {
   // 确保Flutter绑定初始化
   WidgetsFlutterBinding.ensureInitialized();
-  await Http.init(); // 初始化 baseUrl
+  // 启用沉浸式系统 UI（Edge-to-Edge）
+  // SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  // 透明状态栏与导航栏，去除底部黑色背景小白条
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarDividerColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.dark,
+    systemNavigationBarIconBrightness: Brightness.dark,
+  ));
   runApp(
     ProviderScope(
       child: MyApp(),
@@ -58,7 +68,7 @@ class MyApp extends StatelessWidget {
           child = botToastBuilder(context, child);
           return MediaQuery(
             data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
-            child: child!,
+            child: child,
           );
         },
       ),

@@ -15,41 +15,10 @@ final class Http {
 
   static Http? _instance;
   factory Http() => _instance ??= Http._();
-  /// 动态获取 baseUrl
-  static Future<String> getBaseUrl({int port = 8123}) async {
-    final ip = await NetworkUtils.getLocalIpAddress();
-    final candidateIps = [
-      ip,
-      "127.0.0.1",
-      "192.168.0.100", // 固定开发机
-    ];
 
-    for (final candidate in candidateIps) {
-      if (candidate == null) continue;
-      final url = "http://$candidate:$port/api";
-      if (await _ping(url)) return url;
-    }
-
-    // 兜底：直接返回生产环境
-    return Consts.request.baseUrl;
-  }
-
-  static Future<bool> _ping(String url) async {
-    try {
-      final resp = await Dio().get("$url/ping").timeout(const Duration(seconds: 1));
-      return resp.statusCode == 200;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  static Future<void> init() async {
-    final baseUrl = await getBaseUrl(port: Consts.request.port);
-    changeBaseUrl(baseUrl);
-  }
   Http._() {
     _dio = Dio(BaseOptions(
-      baseUrl:Consts.request.baseUrl,
+      baseUrl: Consts.request.baseUrl,
       headers: {"version": "1.0.0", "flutter": "3.10.0"},
       sendTimeout: Consts.request.sendTimeout,
       connectTimeout: Consts.request.connectTimeout,
@@ -57,7 +26,6 @@ final class Http {
       contentType: Headers.jsonContentType,
       responseType: ResponseType.json,
     ));
-    /// 需要在 app 启动时调用一次
 
     // Log printer
     _dio.interceptors.add(PrettyDioLogger(
@@ -190,6 +158,8 @@ final class Http {
   /// ✅ 动态设置请求头（比如 token）
   static void setToken(String token) {
     dio.options.headers["satoken"] = "Bearer $token";
+    // 或者如果你后端要求 satoken
+    // dio.options.headers["satoken"] = "Bearer $token";
   }
 
   /// 清除 token
@@ -211,7 +181,7 @@ final class Http {
       }
       final remaining = Duration(milliseconds: waitingTime - usedTime);
       return Future.delayed(remaining, () => resp.data!);
-    }).catchError((err) async {
+    }).catchError((err) {
       // 统一捕获异常信息并集中信息提示
       Result result;
       if (err is DioException && err.error is Result) {
@@ -221,11 +191,8 @@ final class Http {
       }
       // 你可以统一进行错误提示，比如使用 Toast 进行展示。
       print("统一异常：$result");
+      // Toast.showMessage(result.message);
       MyToast.showError(result.message);
-
-
-      String url=  await getBaseUrl(port: 8123);
-      print(url);
 
       // 使用 throw 关键字可以将错误信息抛出
       // 这样后续调用者还可以继续处理此错误，不然其他地方将收不到任何异常信息；

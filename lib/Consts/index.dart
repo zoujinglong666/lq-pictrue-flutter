@@ -10,9 +10,9 @@ final class Consts {
 
   /// About network request
   static const request = (
-  baseUrl: "http://192.168.154.23:8123/api",
+  baseUrl: "http://10.9.17.161:8123/api",
   port:8123 ,
-  socketUrl: "http://192.168.0.23:8123",
+  socketUrl: "http://10.9.17.161:8123",
   minWaitingTime: Duration(milliseconds: 500),
   cachedTime: Duration(milliseconds: 2000),
   sendTimeout: Duration(seconds: 5),

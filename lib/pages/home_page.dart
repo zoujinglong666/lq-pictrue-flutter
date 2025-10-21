@@ -14,7 +14,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final ScrollController _scrollController = ScrollController();
-  int _unreadNotificationCount = 2; // 未读消息数量
+  int _unreadNotificationCount = 0; // 未读消息数量
   bool _isLoading = false;
   bool _hasMore = true;
   int _currentPage = 1;
@@ -25,21 +25,26 @@ class _HomePageState extends State<HomePage> {
   List<PictureVO> _images = [
 
   ];
-
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
     _loadData();
   }
-
-
-
-
   @override
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  // 更新列表中的图片数据
+  void _updatePictureInList(PictureVO updatedPicture) {
+    setState(() {
+      final index = _images.indexWhere((picture) => picture.id == updatedPicture.id);
+      if (index != -1) {
+        _images[index] = updatedPicture;
+      }
+    });
   }
 
   void _onScroll() {
@@ -68,7 +73,7 @@ Future<void> _loadData() async {
       _images = res.records ?? [];
       _isLoading = false;
       _currentPage = 2; // 下一页为2
-      _hasMore = (res.records?.length ?? 0) >= 10; // 如果返回数据少于请求数量，说明没有更多了
+      _hasMore = (res.records.length ?? 0) >= 10; // 如果返回数据少于请求数量，说明没有更多了
     });
   } catch (e) {
     setState(() {
@@ -112,6 +117,7 @@ Future<void> _loadMoreImages() async {
 
 // 添加一个新的方法用于下拉刷新
 Future<void> _refreshData() async {
+  if (_isLoading) return;
   setState(() {
     _isLoading = true;
     _hasMore = true;
@@ -250,12 +256,40 @@ Future<void> _refreshData() async {
             // 瀑布流内容
             Expanded(
               child: RefreshIndicator(
-                onRefresh: () async {
-                  _refreshData();
-                },
+                onRefresh: _refreshData,
                 child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
                   controller: _scrollController,
                   slivers: [
+                    if (_isLoading && _images.isEmpty)
+                      const SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (_images.isEmpty)
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.image_outlined, size: 80, color: Colors.grey[300]),
+                            const SizedBox(height: 12),
+                            Text(
+                              '暂无图片',
+                              style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                            ),
+                            const SizedBox(height: 8),
+                            TextButton.icon(
+                              onPressed: _refreshData,
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('刷新试试'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: const Color(0xFF00BCD4),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     SliverPadding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       sliver: SliverMasonryGrid.count(
@@ -271,7 +305,12 @@ Future<void> _refreshData() async {
                                 context,
                                 '/detail',
                                 arguments: image,
-                              );
+                              ).then((updatedPicture) {
+                                // 如果详情页返回了更新后的图片数据，更新列表中的对应图片
+                                if (updatedPicture != null && updatedPicture is PictureVO) {
+                                  _updatePictureInList(updatedPicture);
+                                }
+                              });
                             },
                             child: Container(
                               decoration: BoxDecoration(
@@ -297,7 +336,7 @@ Future<void> _refreshData() async {
                                           color: Colors.grey[100],
                                         ),
                                         child:  CachedImage(
-                                        fit: BoxFit.cover, imageUrl: image.thumbnailUrl??image.url,
+                                        fit: BoxFit.cover, imageUrl: image.thumbnailUrl,
                                       ),
                                       ),
                                     ),
@@ -320,13 +359,13 @@ Future<void> _refreshData() async {
                                           Row(
                                             children: [
                                               Icon(
-                                                Icons.favorite_border_outlined,
+                                                image.hasLiked ? Icons.favorite : Icons.favorite_border_outlined,
                                                 size: 14,
-                                                color: Colors.grey[600],
+                                                color: image.hasLiked ? Colors.red[400] : Colors.grey[600],
                                               ),
                                               const SizedBox(width: 4),
                                               Text(
-                                                image.picWidth.toString(),
+                                                image.likeCount,
                                                 style: TextStyle(
                                                   fontSize: 12,
                                                   color: Colors.grey[600],
@@ -343,7 +382,7 @@ Future<void> _refreshData() async {
                                                   borderRadius: BorderRadius.circular(10),
                                                 ),
                                                 child: Text(
-                                                  image.category??"未分类",
+                                                  image.category,
                                                   style: const TextStyle(
                                                     fontSize: 10,
                                                     color: Color(0xFF00BCD4),
@@ -395,3 +434,4 @@ Future<void> _refreshData() async {
     );
   }
 }
+

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:lq_picture/apis/picture_api.dart';
+
+import '../model/picture.dart';
 
 class FavoritesPage extends StatefulWidget {
   const FavoritesPage({super.key});
@@ -17,80 +20,7 @@ class _FavoritesPageState extends State<FavoritesPage>
   double _scrollOffset = 0;
 
   // 模拟收藏数据
-  final List<Map<String, dynamic>> _favoriteImages = [
-    {
-      'id': 1,
-      'url': 'https://picsum.photos/400/600?random=1',
-      'title': '美丽的风景',
-      'author': '摄影师A',
-      'likes': 1234,
-      'isLiked': true,
-      'category': '风景',
-    },
-    {
-      'id': 2,
-      'url': 'https://picsum.photos/400/800?random=2',
-      'title': '城市夜景',
-      'author': '摄影师B',
-      'likes': 856,
-      'isLiked': true,
-      'category': '城市',
-    },
-    {
-      'id': 3,
-      'url': 'https://picsum.photos/400/500?random=3',
-      'title': '可爱的小猫',
-      'author': '摄影师C',
-      'likes': 2341,
-      'isLiked': true,
-      'category': '动物',
-    },
-    {
-      'id': 4,
-      'url': 'https://picsum.photos/400/700?random=4',
-      'title': '美食摄影',
-      'author': '摄影师D',
-      'likes': 567,
-      'isLiked': true,
-      'category': '美食',
-    },
-    {
-      'id': 5,
-      'url': 'https://picsum.photos/400/650?random=5',
-      'title': '建筑艺术',
-      'author': '摄影师E',
-      'likes': 1890,
-      'isLiked': true,
-      'category': '建筑',
-    },
-    {
-      'id': 6,
-      'url': 'https://picsum.photos/400/550?random=6',
-      'title': '人像摄影',
-      'author': '摄影师F',
-      'likes': 3456,
-      'isLiked': true,
-      'category': '人像',
-    },
-    {
-      'id': 7,
-      'url': 'https://picsum.photos/400/750?random=7',
-      'title': '自然风光',
-      'author': '摄影师G',
-      'likes': 2890,
-      'isLiked': true,
-      'category': '风景',
-    },
-    {
-      'id': 8,
-      'url': 'https://picsum.photos/400/450?random=8',
-      'title': '街头摄影',
-      'author': '摄影师H',
-      'likes': 1567,
-      'isLiked': true,
-      'category': '城市',
-    },
-  ];
+  late List<PictureVO> _favoriteImages = [];
 
   final List<String> _categories = ['全部', '风景', '城市', '动物', '美食', '建筑', '人像'];
   String _selectedCategory = '全部';
@@ -101,6 +31,7 @@ class _FavoritesPageState extends State<FavoritesPage>
     _tabController = TabController(length: _categories.length, vsync: this);
     _scrollController = ScrollController();
     _scrollController.addListener(_onScroll);
+    getFavoriteImages();
   }
 
   @override
@@ -118,12 +49,25 @@ class _FavoritesPageState extends State<FavoritesPage>
     });
   }
 
-  List<Map<String, dynamic>> get _filteredImages {
+  Future getFavoriteImages() async {
+    final res = await PictureApi.getMyLikes({
+      "current": 1,
+      "pageSize": 10,
+      "sortField": 'createTime',
+      "sortOrder": 'descend',
+    });
+
+    setState(() {
+      _favoriteImages = res.records;
+    });
+  }
+
+  List<PictureVO> get _filteredImages {
     if (_selectedCategory == '全部') {
       return _favoriteImages;
     }
     return _favoriteImages
-        .where((image) => image['category'] == _selectedCategory)
+        .where((image) => image.category == _selectedCategory)
         .toList();
   }
 
@@ -185,33 +129,31 @@ class _FavoritesPageState extends State<FavoritesPage>
                     padding: const EdgeInsets.fromLTRB(16, 50, 16, 20),
                     child: Align(
                       alignment: Alignment.bottomLeft,
-                      child: Flexible(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              '我的收藏',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            '我的收藏',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '${_favoriteImages.length} 张图片',
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.8),
-                                fontSize: 12,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${_favoriteImages.length} 张图片',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.8),
+                              fontSize: 12,
                             ),
-                          ],
-                        ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -279,11 +221,11 @@ class _FavoritesPageState extends State<FavoritesPage>
     );
   }
 
-  Widget _buildImageCard(Map<String, dynamic> image, int index) {
+  Widget _buildImageCard(PictureVO image, int index) {
     return GestureDetector(
       onTap: () => _openImageDetail(image, index),
       child: Hero(
-        tag: 'favorite_image_${image['id']}',
+        tag: 'favorite_image_${image.id}',
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
@@ -306,7 +248,7 @@ class _FavoritesPageState extends State<FavoritesPage>
                   decoration: BoxDecoration(
                     color: Colors.grey[900],
                     image: DecorationImage(
-                      image: NetworkImage(image['url']),
+                      image: NetworkImage(image.url),
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -341,7 +283,7 @@ class _FavoritesPageState extends State<FavoritesPage>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        image['title'],
+                        image.name,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 14,
@@ -355,7 +297,7 @@ class _FavoritesPageState extends State<FavoritesPage>
                         children: [
                           Expanded(
                             child: Text(
-                              image['author'],
+                              image.user.userName,
                               style: TextStyle(
                                 color: Colors.white.withOpacity(0.8),
                                 fontSize: 12,
@@ -372,7 +314,7 @@ class _FavoritesPageState extends State<FavoritesPage>
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                _formatNumber(image['likes']),
+                                image.likeCount,
                                 style: TextStyle(
                                   color: Colors.white.withOpacity(0.8),
                                   fontSize: 12,
@@ -400,8 +342,8 @@ class _FavoritesPageState extends State<FavoritesPage>
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        image['isLiked'] ? Icons.favorite : Icons.favorite_border,
-                        color: image['isLiked'] ? Colors.red[400] : Colors.white,
+                        image.hasLiked ? Icons.favorite : Icons.favorite_border,
+                        color: image.hasLiked ? Colors.red[400] : Colors.white,
                         size: 18,
                       ),
                     ),
@@ -420,24 +362,17 @@ class _FavoritesPageState extends State<FavoritesPage>
     return heights[index % heights.length];
   }
 
-  String _formatNumber(int number) {
-    if (number >= 1000) {
-      return '${(number / 1000).toStringAsFixed(1)}k';
-    }
-    return number.toString();
-  }
-
-  void _toggleFavorite(Map<String, dynamic> image) {
+  void _toggleFavorite(PictureVO image) {
     setState(() {
-      image['isLiked'] = !image['isLiked'];
+      image.hasLiked = !image.hasLiked;
     });
-    
+
     HapticFeedback.lightImpact();
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          image['isLiked'] ? '已添加到收藏' : '已取消收藏',
+          image.hasLiked ? '已添加到收藏' : '已取消收藏',
         ),
         duration: const Duration(seconds: 1),
         backgroundColor: Colors.grey[800],
@@ -445,7 +380,7 @@ class _FavoritesPageState extends State<FavoritesPage>
     );
   }
 
-  void _openImageDetail(Map<String, dynamic> image, int index) {
+  void _openImageDetail(PictureVO image, int index) {
     Navigator.push(
       context,
       PageRouteBuilder(
@@ -597,7 +532,8 @@ class _CategoryTabDelegate extends SliverPersistentHeaderDelegate {
   });
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
       height: maxExtent,
       color: Colors.black,
@@ -631,13 +567,14 @@ class _CategoryTabDelegate extends SliverPersistentHeaderDelegate {
   double get minExtent => 48.0;
 
   @override
-  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) => true;
+  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) =>
+      true;
 }
 
 // 收藏图片详情页面
 class FavoriteImageDetailPage extends StatefulWidget {
-  final Map<String, dynamic> image;
-  final List<Map<String, dynamic>> images;
+  final PictureVO image;
+  final List<PictureVO> images;
   final int initialIndex;
 
   const FavoriteImageDetailPage({
@@ -648,7 +585,8 @@ class FavoriteImageDetailPage extends StatefulWidget {
   });
 
   @override
-  State<FavoriteImageDetailPage> createState() => _FavoriteImageDetailPageState();
+  State<FavoriteImageDetailPage> createState() =>
+      _FavoriteImageDetailPageState();
 }
 
 class _FavoriteImageDetailPageState extends State<FavoriteImageDetailPage> {
@@ -686,14 +624,14 @@ class _FavoriteImageDetailPageState extends State<FavoriteImageDetailPage> {
             itemBuilder: (context, index) {
               final image = widget.images[index];
               return Hero(
-                tag: 'favorite_image_${image['id']}',
+                tag: 'favorite_image_${image.id}',
                 child: InteractiveViewer(
                   child: Container(
                     width: double.infinity,
                     height: double.infinity,
                     decoration: BoxDecoration(
                       image: DecorationImage(
-                        image: NetworkImage(image['url']),
+                        image: NetworkImage(image.url),
                         fit: BoxFit.contain,
                       ),
                     ),
@@ -724,7 +662,8 @@ class _FavoriteImageDetailPageState extends State<FavoriteImageDetailPage> {
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+                      icon:
+                          const Icon(Icons.arrow_back_ios, color: Colors.white),
                       onPressed: () => Navigator.pop(context),
                     ),
                     Expanded(
@@ -772,7 +711,7 @@ class _FavoriteImageDetailPageState extends State<FavoriteImageDetailPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.images[_currentIndex]['title'],
+                      widget.images[_currentIndex].name,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 18,
@@ -784,7 +723,7 @@ class _FavoriteImageDetailPageState extends State<FavoriteImageDetailPage> {
                       children: [
                         Expanded(
                           child: Text(
-                            '作者: ${widget.images[_currentIndex]['author']}',
+                            '作者: ${widget.images[_currentIndex].user.userName}',
                             style: TextStyle(
                               color: Colors.white.withOpacity(0.8),
                               fontSize: 14,
@@ -800,7 +739,7 @@ class _FavoriteImageDetailPageState extends State<FavoriteImageDetailPage> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              '${widget.images[_currentIndex]['likes']}',
+                              widget.images[_currentIndex].likeCount,
                               style: TextStyle(
                                 color: Colors.white.withOpacity(0.8),
                                 fontSize: 14,

@@ -1,21 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lq_picture/apis/picture_comment_api.dart';
+import 'package:lq_picture/apis/picture_like_api.dart';
+import 'package:lq_picture/common/toast.dart';
 import 'package:lq_picture/model/picture.dart';
+import 'package:lq_picture/model/comment.dart';
 import 'package:share_plus/share_plus.dart';
+import '../model/add_comment_request.dart';
 import '../utils/index.dart';
 import 'image_preview_page.dart';
 import '../widgets/shimmer_effect.dart';
 import '../widgets/skeleton_widgets.dart';
 
-class DetailPage extends StatefulWidget {
+class DetailPage extends ConsumerStatefulWidget {
   final PictureVO? imageData;
 
   const DetailPage({super.key, this.imageData});
 
   @override
-  State<DetailPage> createState() => _DetailPageState();
+  ConsumerState<DetailPage> createState() => _DetailPageState();
 }
 
-class _DetailPageState extends State<DetailPage> {
+class _DetailPageState extends ConsumerState<DetailPage> {
   bool _isFavorite = false;
   bool _isImageLoaded = false; // 图片加载状态
   bool _showAppBarBackground = false; // 控制AppBar背景显示
@@ -24,27 +30,30 @@ class _DetailPageState extends State<DetailPage> {
   final ScrollController _scrollController = ScrollController(); // 滚动控制器
   final GlobalKey _commentsKey = GlobalKey(); // 评论区域的key
   String? _replyToUser;
-  int? _replyToCommentId;
-  int? _highlightedCommentId; // 高亮的评论ID
-  int? _highlightedReplyId; // 高亮的回复ID
+  String? _parentId;
+  String? _highlightedCommentId; // 高亮的评论ID
+  String? _highlightedReplyId; // 高亮的回复ID
 
   // 模拟图片详情数据
   late PictureVO _imageDetails;
 
-  // 模拟评论数据
-  List<Map<String, dynamic>> _comments = [];
+  // 评论数据
+  List<CommentVO> _comments = [];
+  bool _commentsLoading = false;
 
   @override
   void initState() {
     super.initState();
     _imageDetails = widget.imageData!;
+    _isFavorite = widget.imageData!.hasLiked;
 
-    // 初始化模拟评论数据
+    // 初始化评论数据
     _initComments();
 
     // 监听滚动事件
     _scrollController.addListener(_onScroll);
   }
+
   /// 将不同类型的数据转换为标签列表
   List<String> _convertToTagList(dynamic tags) {
     if (tags == null) {
@@ -66,7 +75,11 @@ class _DetailPageState extends State<DetailPage> {
       if (tags.isEmpty) {
         return [];
       }
-      return tags.split(',').map((tag) => tag.trim()).where((tag) => tag.isNotEmpty).toList();
+      return tags
+          .split(',')
+          .map((tag) => tag.trim())
+          .where((tag) => tag.isNotEmpty)
+          .toList();
     }
 
     // 其他情况，转换为字符串再处理
@@ -74,7 +87,11 @@ class _DetailPageState extends State<DetailPage> {
     if (tagString.isEmpty) {
       return [];
     }
-    return tagString.split(',').map((tag) => tag.trim()).where((tag) => tag.isNotEmpty).toList();
+    return tagString
+        .split(',')
+        .map((tag) => tag.trim())
+        .where((tag) => tag.isNotEmpty)
+        .toList();
   }
 
   void _onScroll() {
@@ -90,71 +107,32 @@ class _DetailPageState extends State<DetailPage> {
     }
   }
 
-  void _initComments() {
-    _comments = [
-      {
-        'id': 1,
-        'user': '摄影爱好者',
-        'avatar': 'https://picsum.photos/40/40?random=1',
-        'content': '这张照片拍得真棒！构图和光线都很完美。',
-        'time': '2小时前',
-        'likes': 12,
-        'isLiked': false,
-        'replies': [
-          {
-            'id': 11,
-            'user': '风景摄影师',
-            'avatar': 'https://picsum.photos/40/40?random=2',
-            'content': '同意！特别是那个光影效果，很有层次感。',
-            'time': '1小时前',
-            'likes': 5,
-            'isLiked': true,
-            'replyTo': '摄影爱好者',
-          },
-          {
-            'id': 12,
-            'user': '小明同学',
-            'avatar': 'https://picsum.photos/40/40?random=3',
-            'content': '请问这是用什么相机拍的？',
-            'time': '30分钟前',
-            'likes': 2,
-            'isLiked': false,
-            'replyTo': '摄影爱好者',
-          },
-        ],
-      },
-      {
-        'id': 2,
-        'user': '自然风光',
-        'avatar': 'https://picsum.photos/40/40?random=4',
-        'content': '太美了！这个地方在哪里？有机会也想去拍拍。',
-        'time': '3小时前',
-        'likes': 8,
-        'isLiked': false,
-        'replies': [],
-      },
-      {
-        'id': 3,
-        'user': '摄影新手',
-        'avatar': 'https://picsum.photos/40/40?random=5',
-        'content': '学习了！请问后期是怎么处理的？',
-        'time': '5小时前',
-        'likes': 15,
-        'isLiked': true,
-        'replies': [
-          {
-            'id': 31,
-            'user': '后期大师',
-            'avatar': 'https://picsum.photos/40/40?random=6',
-            'content': '看起来像是调了对比度和饱和度，色温也稍微调暖了一点。',
-            'time': '4小时前',
-            'likes': 7,
-            'isLiked': false,
-            'replyTo': '摄影新手',
-          },
-        ],
-      },
-    ];
+  Future<void> _initComments() async {
+    if (_commentsLoading) return;
+
+    setState(() {
+      _commentsLoading = true;
+    });
+
+    try {
+      final res = await PictureCommentApi.getCommentList({
+        "pictureId":_imageDetails.id
+      } );
+
+      if (mounted) {
+        setState(() {
+          _comments =res.records ;
+          _commentsLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _commentsLoading = false;
+        });
+      }
+      MyToast.showError('加载评论失败');
+    }
   }
 
   @override
@@ -174,11 +152,13 @@ class _DetailPageState extends State<DetailPage> {
                 SliverAppBar(
                   expandedHeight: MediaQuery.of(context).size.height * 0.6,
                   pinned: true,
-                  backgroundColor: _showAppBarBackground ? Colors.white : Colors.transparent,
+                  backgroundColor:
+                      _showAppBarBackground ? Colors.white : Colors.transparent,
                   elevation: _showAppBarBackground ? 4 : 0,
                   shadowColor: Colors.black26,
                   surfaceTintColor: Colors.transparent,
-                  foregroundColor: _showAppBarBackground ? Colors.black : Colors.white,
+                  foregroundColor:
+                      _showAppBarBackground ? Colors.black : Colors.white,
                   flexibleSpace: FlexibleSpaceBar(
                     background: Hero(
                       tag: 'image_${_imageDetails.id}',
@@ -199,10 +179,12 @@ class _DetailPageState extends State<DetailPage> {
                             child: Image.network(
                               _imageDetails.url,
                               fit: BoxFit.cover,
-                              loadingBuilder: (context, child, loadingProgress) {
+                              loadingBuilder:
+                                  (context, child, loadingProgress) {
                                 if (loadingProgress == null) {
                                   // 图片加载完成
-                                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                                  WidgetsBinding.instance
+                                      .addPostFrameCallback((_) {
                                     if (mounted) {
                                       setState(() {
                                         _isImageLoaded = true;
@@ -266,50 +248,81 @@ class _DetailPageState extends State<DetailPage> {
                     icon: _showAppBarBackground
                         ? const Icon(Icons.arrow_back, color: Colors.black)
                         : Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.3),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.arrow_back, color: Colors.white),
-                    ),
-                    onPressed: () => Navigator.pop(context),
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.3),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.arrow_back,
+                                color: Colors.white),
+                          ),
+                    onPressed: _navigateBack,
                   ),
                   actions: [
                     IconButton(
                       icon: _showAppBarBackground
                           ? Icon(
-                        _isFavorite ? Icons.favorite : Icons.favorite_border,
-                        color: _isFavorite ? Colors.red : Colors.black,
-                      )
+                              _isFavorite
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                              color: _isFavorite ? Colors.red : Colors.black,
+                            )
                           : Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.3),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          _isFavorite ? Icons.favorite : Icons.favorite_border,
-                          color: _isFavorite ? Colors.red : Colors.white,
-                        ),
-                      ),
-                      onPressed: () {
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.3),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                _isFavorite
+                                    ? Icons.favorite
+                                    : Icons.favorite_border,
+                                color: _isFavorite ? Colors.red : Colors.white,
+                              ),
+                            ),
+                      onPressed: () async {
+                        final originalIsFavorite = _isFavorite;
                         setState(() {
-                          _isFavorite = !_isFavorite;
+                          _isFavorite = !originalIsFavorite;
                         });
+                        
+                        try {
+                          final result = await PictureLikeApi.pictureLikeToggle({
+                            "pictureId": _imageDetails.id,
+                          });
+                          
+                          // 更新图片详情数据
+                          setState(() {
+                            _imageDetails = _imageDetails.copyWith(
+                              hasLiked: result.liked,
+                              likeCount: result.likeCount.toString(),
+                            );
+                          });
+                          
+                          // 点赞成功，不自动返回，只在本地更新状态
+                          MyToast.showSuccess(_isFavorite ? '点赞成功' : '取消点赞');
+                          
+                        } catch (e) {
+                          // 如果点赞失败，恢复原来的状态
+                          setState(() {
+                            _isFavorite = originalIsFavorite;
+                          });
+                          MyToast.showError('点赞失败，请重试');
+                        }
                       },
                     ),
                     IconButton(
                       icon: _showAppBarBackground
                           ? const Icon(Icons.share, color: Colors.black)
                           : Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.3),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.share, color: Colors.white),
-                      ),
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.3),
+                                shape: BoxShape.circle,
+                              ),
+                              child:
+                                  const Icon(Icons.share, color: Colors.white),
+                            ),
                       onPressed: () => _shareImage(),
                     ),
                     const SizedBox(width: 8),
@@ -317,15 +330,15 @@ class _DetailPageState extends State<DetailPage> {
                   // 添加标题，只在滚动时显示
                   title: _showAppBarBackground
                       ? Text(
-                    _imageDetails.name,
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  )
+                          _imageDetails.name,
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        )
                       : null,
                 ),
 
@@ -333,136 +346,128 @@ class _DetailPageState extends State<DetailPage> {
                 SliverToBoxAdapter(
                   child: _isImageLoaded
                       ? Container(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 标题和作者
-                        Text(
-                          _imageDetails.name,
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 16,
-                              backgroundColor: Colors.grey[300],
-                              child: const Icon(Icons.person, size: 20),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              _imageDetails.user.userAccount,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const Spacer(),
-                            TextButton(
-                              onPressed: () {
-                                // 关注作者
-                              },
-                              style: TextButton.styleFrom(
-                                foregroundColor: const Color(0xFF4FC3F7),
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                  side: const BorderSide(color: Color(0xFF4FC3F7)),
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // 标题和作者
+                              Text(
+                                _imageDetails.name,
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              child: const Text('关注'),
-                            ),
-                          ],
-                        ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 16,
+                                    backgroundColor: Colors.grey[300],
+                                    child: const Icon(Icons.person, size: 20),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    _imageDetails.user.userAccount,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  TextButton(
+                                    onPressed: () {
+                                      MyToast.showInfo("暂未实现");
+                                      // 关注作者
+                                    },
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: const Color(0xFF4FC3F7),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 12),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(20),
+                                        side: const BorderSide(
+                                            color: Color(0xFF4FC3F7)),
+                                      ),
+                                    ),
+                                    child: const Text('关注'),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              // 标签
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: _convertToTagList(_imageDetails.tags)
+                                    .map((tag) {
+                                  return Chip(
+                                    label: Text(tag),
+                                    backgroundColor: Colors.grey[100],
+                                    side:
+                                        BorderSide(color: Colors.grey.shade300),
+                                    padding: EdgeInsets.zero,
+                                    materialTapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  );
+                                }).toList(),
+                              ),
 
-                        const SizedBox(height: 16),
+                              const SizedBox(height: 16),
+                              const Text(
+                                '描述',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                _imageDetails.introduction ?? "暂无描述",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey[700],
+                                  height: 1.5,
+                                ),
+                              ),
 
-                        // 统计信息
-                        // Row(
-                        //   mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        //   children: [
-                        //     _buildStatItem(Icons.visibility, _imageDetails['views'], '浏览'),
-                        //     _buildStatItem(Icons.file_download, _imageDetails['downloads'], '下载'),
-                        //     _buildStatItem(Icons.favorite, _imageDetails['likes'], '喜欢'),
-                        //   ],
-                        // ),
+                              const SizedBox(height: 16),
+                              const Divider(),
+                              const SizedBox(height: 16),
 
-                        const SizedBox(height: 16),
-                        const Divider(),
-                        const SizedBox(height: 16),
+                              const Text(
+                                '图片信息',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
 
-                        // 标签
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: _convertToTagList(_imageDetails.tags).map((tag) {
-                            return Chip(
-                              label: Text(tag),
-                              backgroundColor: Colors.grey[100],
-                              side: BorderSide(color: Colors.grey.shade300),
-                              padding: EdgeInsets.zero,
-                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            );
-                          }).toList(),
-                        ),
+                              _buildInfoRow(
+                                  '文件大小',
+                                  formatFileSize(
+                                      int.parse(_imageDetails!.picSize))),
+                              _buildInfoRow('图片尺寸',
+                                  '${_imageDetails.picWidth} × ${_imageDetails.picHeight}'),
+                              _buildInfoRow('图片比例',
+                                  _imageDetails.picScale.toStringAsFixed(2)),
+                              _buildInfoRow('图片格式', _imageDetails.picFormat),
 
+                              const SizedBox(height: 16),
+                              const Divider(),
+                              const SizedBox(height: 16),
 
-                        const SizedBox(height: 16),
-
-                        // 描述
-                        const Text(
-                          '描述',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                              // 评论区
+                              Container(
+                                key: _commentsKey,
+                                child: _buildCommentsSection(),
+                              ),
+                              const SizedBox(height: 20),
+                              // 减少底部空间
+                            ],
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _imageDetails.introduction??"暂无描述",
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[700],
-                            height: 1.5,
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-                        const Divider(),
-                        const SizedBox(height: 16),
-
-                        const Text(
-                          '图片信息',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-
-                        _buildInfoRow('文件大小', formatFileSize(  int.parse(_imageDetails!.picSize))),
-                        _buildInfoRow('图片尺寸', '${_imageDetails?.picWidth} × ${_imageDetails?.picHeight}'),
-                        _buildInfoRow('图片比例', '${_imageDetails?.picScale?.toStringAsFixed(2)}'),
-                        _buildInfoRow('图片格式', _imageDetails!.picFormat),
-
-                        const SizedBox(height: 16),
-                        const Divider(),
-                        const SizedBox(height: 16),
-
-                        // 评论区
-                        Container(
-                          key: _commentsKey,
-                          child: _buildCommentsSection(),
-                        ),
-
-                        const SizedBox(height: 20), // 减少底部空间
-                      ],
-                    ),
-                  )
+                        )
                       : _buildContentSkeleton(), // 显示内容骨架屏
                 ),
               ],
@@ -487,7 +492,8 @@ class _DetailPageState extends State<DetailPage> {
                 left: 8,
                 right: 8,
                 top: 8,
-                bottom: 8 + (keyboardVisible ? 0 : mediaQuery.viewPadding.bottom),
+                bottom:
+                    8 + (keyboardVisible ? 0 : mediaQuery.viewPadding.bottom),
               ),
               child: Row(
                 children: [
@@ -512,9 +518,9 @@ class _DetailPageState extends State<DetailPage> {
                           ),
                           suffixIcon: _replyToUser != null
                               ? IconButton(
-                            icon: const Icon(Icons.close, size: 20),
-                            onPressed: _cancelReply,
-                          )
+                                  icon: const Icon(Icons.close, size: 20),
+                                  onPressed: _cancelReply,
+                                )
                               : null,
                         ),
                         maxLines: null,
@@ -564,7 +570,8 @@ class _DetailPageState extends State<DetailPage> {
 🔗 图片链接：${_imageDetails.url}
 
 #摄影 #图库 ${(_imageDetails.tags ?? [] as List<String>).map((tag) => '#$tag').join(' ')}
-    '''.trim();
+    '''
+        .trim();
 
     // 显示分享选项对话框
     showModalBottomSheet(
@@ -616,7 +623,7 @@ class _DetailPageState extends State<DetailPage> {
                       title: '复制链接',
                       subtitle: '复制图片链接到剪贴板',
                       onTap: () {
-                        Navigator.pop(context);
+                        _navigateBack();
                         _copyLink();
                       },
                     ),
@@ -650,7 +657,7 @@ class _DetailPageState extends State<DetailPage> {
                 child: SizedBox(
                   width: double.infinity,
                   child: TextButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: _navigateBack,
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
@@ -816,7 +823,31 @@ class _DetailPageState extends State<DetailPage> {
         ),
         const SizedBox(height: 16),
 
-        if (_comments.isEmpty)
+        if (_commentsLoading)
+          Container(
+            padding: const EdgeInsets.all(40),
+            child: Column(
+              children: [
+                SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.grey[400],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  '加载评论中...',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          )
+        else if (_comments.isEmpty)
           Container(
             padding: const EdgeInsets.all(40),
             child: Column(
@@ -851,21 +882,21 @@ class _DetailPageState extends State<DetailPage> {
   }
 
   // 构建单个评论项
-  Widget _buildCommentItem(Map<String, dynamic> comment) {
-    final isHighlighted = _highlightedCommentId == comment['id'];
+  Widget _buildCommentItem(CommentVO comment) {
+    final isHighlighted = _highlightedCommentId?.toString() == comment.id;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: isHighlighted ? const EdgeInsets.all(12) : EdgeInsets.zero,
       decoration: isHighlighted
           ? BoxDecoration(
-        color: const Color(0xFF4FC3F7).withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFF4FC3F7).withOpacity(0.2),
-          width: 1,
-        ),
-      )
+              color: const Color(0xFF4FC3F7).withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFF4FC3F7).withOpacity(0.2),
+                width: 1,
+              ),
+            )
           : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -877,7 +908,28 @@ class _DetailPageState extends State<DetailPage> {
               // 头像
               CircleAvatar(
                 radius: 20,
-                backgroundImage: NetworkImage(comment['avatar']),
+                backgroundColor: Colors.grey[300],
+                child: comment.user.userAvatar != null
+                    ? ClipOval(
+                        child: Image.network(
+                          comment.user.userAvatar!,
+                          width: 40,
+                          height: 40,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Icon(
+                              Icons.person,
+                              size: 20,
+                              color: Colors.grey[600],
+                            );
+                          },
+                        ),
+                      )
+                    : Icon(
+                        Icons.person,
+                        size: 20,
+                        color: Colors.grey[600],
+                      ),
               ),
               const SizedBox(width: 12),
 
@@ -890,7 +942,7 @@ class _DetailPageState extends State<DetailPage> {
                     Row(
                       children: [
                         Text(
-                          comment['user'],
+                          comment.user.userName,
                           style: const TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
@@ -898,7 +950,7 @@ class _DetailPageState extends State<DetailPage> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          comment['time'],
+                          _formatTime(comment.createTime),
                           style: TextStyle(
                             color: Colors.grey[600],
                             fontSize: 12,
@@ -910,7 +962,7 @@ class _DetailPageState extends State<DetailPage> {
 
                     // 评论文本
                     Text(
-                      comment['content'],
+                      comment.content,
                       style: const TextStyle(
                         fontSize: 15,
                         height: 1.4,
@@ -922,21 +974,17 @@ class _DetailPageState extends State<DetailPage> {
                     Row(
                       children: [
                         GestureDetector(
-                          onTap: () => _toggleCommentLike(comment),
+                          onTap: () => _likeComment(comment),
                           child: Row(
                             children: [
                               Icon(
-                                comment['isLiked']
-                                    ? Icons.favorite
-                                    : Icons.favorite_border,
+                                Icons.favorite_border,
                                 size: 16,
-                                color: comment['isLiked']
-                                    ? Colors.red
-                                    : Colors.grey[600],
+                                color: Colors.grey[600],
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                '${comment['likes']}',
+                                '0',
                                 style: TextStyle(
                                   color: Colors.grey[600],
                                   fontSize: 12,
@@ -970,11 +1018,11 @@ class _DetailPageState extends State<DetailPage> {
           ),
 
           // 回复列表
-          if (comment['replies'] != null && comment['replies'].isNotEmpty)
+          if (comment.replies.isNotEmpty)
             Container(
               margin: const EdgeInsets.only(left: 44, top: 12),
               child: Column(
-                children: (comment['replies'] as List).map<Widget>((reply) {
+                children: comment.replies.map<Widget>((reply) {
                   return _buildReplyItem(reply);
                 }).toList(),
               ),
@@ -985,8 +1033,8 @@ class _DetailPageState extends State<DetailPage> {
   }
 
   // 构建回复项
-  Widget _buildReplyItem(Map<String, dynamic> reply) {
-    final isHighlighted = _highlightedReplyId == reply['id'];
+  Widget _buildReplyItem(CommentVO reply) {
+    final isHighlighted = _highlightedReplyId?.toString() == reply.id;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -998,9 +1046,9 @@ class _DetailPageState extends State<DetailPage> {
         borderRadius: BorderRadius.circular(8),
         border: isHighlighted
             ? Border.all(
-          color: const Color(0xFF4FC3F7).withOpacity(0.3),
-          width: 1,
-        )
+                color: const Color(0xFF4FC3F7).withOpacity(0.3),
+                width: 1,
+              )
             : null,
       ),
       child: Row(
@@ -1009,7 +1057,28 @@ class _DetailPageState extends State<DetailPage> {
           // 头像
           CircleAvatar(
             radius: 16,
-            backgroundImage: NetworkImage(reply['avatar']),
+            backgroundColor: Colors.grey[300],
+            child: reply.user.userAvatar != null
+                ? ClipOval(
+                    child: Image.network(
+                      reply.user.userAvatar!,
+                      width: 32,
+                      height: 32,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Icon(
+                          Icons.person,
+                          size: 16,
+                          color: Colors.grey[600],
+                        );
+                      },
+                    ),
+                  )
+                : Icon(
+                    Icons.person,
+                    size: 16,
+                    color: Colors.grey[600],
+                  ),
           ),
           const SizedBox(width: 10),
 
@@ -1022,7 +1091,7 @@ class _DetailPageState extends State<DetailPage> {
                 Row(
                   children: [
                     Text(
-                      reply['user'],
+                      reply.user.userName,
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 13,
@@ -1030,7 +1099,7 @@ class _DetailPageState extends State<DetailPage> {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      reply['time'],
+                      _formatTime(reply.createTime),
                       style: TextStyle(
                         color: Colors.grey[600],
                         fontSize: 11,
@@ -1041,25 +1110,12 @@ class _DetailPageState extends State<DetailPage> {
                 const SizedBox(height: 4),
 
                 // 回复文本
-                RichText(
-                  text: TextSpan(
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.black87,
-                      height: 1.3,
-                    ),
-                    children: [
-                      if (reply['replyTo'] != null) ...[
-                        TextSpan(
-                          text: '@${reply['replyTo']} ',
-                          style: const TextStyle(
-                            color: Color(0xFF4FC3F7),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                      TextSpan(text: reply['content']),
-                    ],
+                Text(
+                  reply.content,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.black87,
+                    height: 1.3,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -1068,21 +1124,17 @@ class _DetailPageState extends State<DetailPage> {
                 Row(
                   children: [
                     GestureDetector(
-                      onTap: () => _toggleReplyLike(reply),
+                      onTap: () => _likeComment(reply),
                       child: Row(
                         children: [
                           Icon(
-                            reply['isLiked']
-                                ? Icons.favorite
-                                : Icons.favorite_border,
+                            Icons.favorite_border,
                             size: 14,
-                            color: reply['isLiked']
-                                ? Colors.red
-                                : Colors.grey[600],
+                            color: Colors.grey[600],
                           ),
                           const SizedBox(width: 3),
                           Text(
-                            '${reply['likes']}',
+                            '0',
                             style: TextStyle(
                               color: Colors.grey[600],
                               fontSize: 11,
@@ -1093,7 +1145,7 @@ class _DetailPageState extends State<DetailPage> {
                     ),
                     const SizedBox(width: 16),
                     GestureDetector(
-                      onTap: () => _replyToReply(reply),
+                      onTap: () => _replyToComment(reply),
                       child: Text(
                         '回复',
                         style: TextStyle(
@@ -1121,50 +1173,23 @@ class _DetailPageState extends State<DetailPage> {
   int _getTotalCommentsCount() {
     int total = _comments.length;
     for (var comment in _comments) {
-      if (comment['replies'] != null) {
-        total += (comment['replies'] as List).length;
-      }
+      total += comment.replies.length;
     }
     return total;
   }
 
-  // 切换评论点赞
-  void _toggleCommentLike(Map<String, dynamic> comment) {
-    setState(() {
-      comment['isLiked'] = !comment['isLiked'];
-      comment['likes'] += comment['isLiked'] ? 1 : -1;
-    });
-  }
-
-  // 切换回复点赞
-  void _toggleReplyLike(Map<String, dynamic> reply) {
-    setState(() {
-      reply['isLiked'] = !reply['isLiked'];
-      reply['likes'] += reply['isLiked'] ? 1 : -1;
-    });
+  // 点赞评论
+  void _likeComment(CommentVO comment) {
+    MyToast.showInfo('点赞功能暂未实现');
   }
 
   // 回复评论
-  void _replyToComment(Map<String, dynamic> comment) {
+  void _replyToComment(CommentVO comment) {
     setState(() {
-      _replyToUser = comment['user'];
-      _replyToCommentId = comment['id'];
-      _highlightedCommentId = comment['id']; // 高亮当前评论
+      _replyToUser = comment.user.userName ?? '无名';
+      _parentId = comment.id;
+      _highlightedCommentId = comment.id; // 高亮当前评论
       _highlightedReplyId = null; // 清除回复高亮
-    });
-    // 延迟一帧后请求焦点，确保UI更新完成
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _commentFocusNode.requestFocus();
-    });
-  }
-
-  // 回复回复
-  void _replyToReply(Map<String, dynamic> reply) {
-    setState(() {
-      _replyToUser = reply['user'];
-      _replyToCommentId = reply['id'];
-      _highlightedReplyId = reply['id']; // 高亮当前回复
-      _highlightedCommentId = null; // 清除评论高亮
     });
     // 延迟一帧后请求焦点，确保UI更新完成
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1176,7 +1201,7 @@ class _DetailPageState extends State<DetailPage> {
   void _cancelReply() {
     setState(() {
       _replyToUser = null;
-      _replyToCommentId = null;
+      _parentId = null;
       _highlightedCommentId = null; // 清除评论高亮
       _highlightedReplyId = null; // 清除回复高亮
     });
@@ -1184,68 +1209,69 @@ class _DetailPageState extends State<DetailPage> {
     _commentFocusNode.unfocus();
   }
 
+  // 时间格式化
+  String _formatTime(int timestamp) {
+    final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    final now = DateTime.now();
+    final difference = now.difference(date);
+
+    if (difference.inMinutes < 1) {
+      return '刚刚';
+    } else if (difference.inHours < 1) {
+      return '${difference.inMinutes}分钟前';
+    } else if (difference.inDays < 1) {
+      return '${difference.inHours}小时前';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}天前';
+    } else {
+      return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    }
+  }
+
   // 提交评论
-  void _submitComment() {
-    if (_commentController.text.trim().isEmpty) return;
-
+  Future<void> _submitComment() async {
     final String content = _commentController.text.trim();
-    final DateTime now = DateTime.now();
 
-    setState(() {
-      if (_replyToUser != null) {
-        // 添加回复
-        final parentComment = _comments.firstWhere(
-              (comment) => comment['user'] == _replyToUser,
-          orElse: () => _comments.firstWhere(
-                (comment) => (comment['replies'] as List).any(
-                  (reply) => reply['user'] == _replyToUser,
+    // 检查评论内容是否为空
+    if (content.isEmpty) {
+      MyToast.showError('评论内容不能为空');
+      return;
+    }
+
+    try {
+      final res = await PictureCommentApi.addPictureComment(
+        AddCommentRequest(
+          pictureId: _imageDetails.id,
+          content: content,
+          parentId: _parentId,
+        )
+      );
+
+      if (res.isNotEmpty) {
+        // 重新加载评论列表
+        await _initComments();
+
+        // 显示成功提示
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(_replyToUser != null ? '回复成功' : '评论成功'),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
-          ),
-        );
-
-        if (parentComment['replies'] == null) {
-          parentComment['replies'] = [];
+          );
         }
-
-        (parentComment['replies'] as List).add({
-          'id': DateTime.now().millisecondsSinceEpoch,
-          'user': '我',
-          'avatar': 'https://picsum.photos/40/40?random=999',
-          'content': content,
-          'time': '刚刚',
-          'likes': 0,
-          'isLiked': false,
-          'replyTo': _replyToUser,
-        });
       } else {
-        // 添加新评论
-        _comments.insert(0, {
-          'id': DateTime.now().millisecondsSinceEpoch,
-          'user': '我',
-          'avatar': 'https://picsum.photos/40/40?random=999',
-          'content': content,
-          'time': '刚刚',
-          'likes': 0,
-          'isLiked': false,
-          'replies': [],
-        });
+        MyToast.showError('评论失败');
       }
-    });
+    } catch (e) {
+      MyToast.showError('评论失败，请重试');
+    }
 
     _commentController.clear();
-
-    // 显示成功提示
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(_replyToUser != null ? '回复成功' : '评论成功'),
-        backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-      ),
-    );
-
     // 清除回复状态和高亮
     _cancelReply();
   }
@@ -1354,16 +1380,18 @@ class _DetailPageState extends State<DetailPage> {
           // 拍摄信息骨架
           const SkeletonBox(width: 100, height: 20),
           const SizedBox(height: 12),
-          ...List.generate(6, (index) => const Padding(
-            padding: EdgeInsets.symmetric(vertical: 6),
-            child: Row(
-              children: [
-                SkeletonBox(width: 80, height: 16),
-                SizedBox(width: 8),
-                SkeletonBox(width: 120, height: 16),
-              ],
-            ),
-          )),
+          ...List.generate(
+              6,
+              (index) => const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 6),
+                    child: Row(
+                      children: [
+                        SkeletonBox(width: 80, height: 16),
+                        SizedBox(width: 8),
+                        SkeletonBox(width: 120, height: 16),
+                      ],
+                    ),
+                  )),
 
           const SizedBox(height: 16),
           const Divider(),
@@ -1403,28 +1431,18 @@ class _DetailPageState extends State<DetailPage> {
     super.dispose();
   }
 
-  Widget _buildStatItem(IconData icon, String value, String label) {
-    return Column(
-      children: [
-        Icon(icon, color: Colors.grey[600]),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-        Text(
-          label,
-          style: TextStyle(
-            color: Colors.grey[600],
-            fontSize: 12,
-          ),
-        ),
-      ],
-    );
+  // 通知首页更新点赞状态
+  void _notifyHomePageUpdate() {
+    // 通过Navigator传递更新数据给首页
+    Navigator.pop(context, _imageDetails);
   }
+
+  // 重写返回按钮行为，返回更新后的数据
+  void _navigateBack() {
+    Navigator.pop(context, _imageDetails);
+  }
+
+
 
   Widget _buildInfoRow(String label, String value) {
     return Padding(

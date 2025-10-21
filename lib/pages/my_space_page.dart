@@ -12,13 +12,16 @@ import '../widgets/cached_image.dart';
 import '../utils/keyboard_utils.dart';
 
 class MySpacePage extends ConsumerStatefulWidget {
-  const MySpacePage({super.key});
+  final VoidCallback? onRefresh;
+
+  const MySpacePage({super.key, this.onRefresh});
 
   @override
   ConsumerState<MySpacePage> createState() => _MySpacePageState();
 }
 
-class _MySpacePageState extends ConsumerState<MySpacePage> with KeyboardDismissMixin {
+class _MySpacePageState extends ConsumerState<MySpacePage>
+    with KeyboardDismissMixin {
   final ScrollController _scrollController = ScrollController();
   bool _isLoading = false;
   bool _hasMore = true;
@@ -41,13 +44,22 @@ class _MySpacePageState extends ConsumerState<MySpacePage> with KeyboardDismissM
       _loadData();
     });
     _scrollController.addListener(_onScroll);
+    
+    // 如果有刷新回调，调用它
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.onRefresh != null) {
+        widget.onRefresh!();
+      }
+    });
   }
+
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
       _loadMoreImages();
     }
   }
+
   Future<void> _getMySpaceData() async {
     try {
       // 获取用户认证状态
@@ -78,10 +90,15 @@ class _MySpacePageState extends ConsumerState<MySpacePage> with KeyboardDismissM
     }
   }
 
-
-
   Future<void> _loadData() async {
     if (_isLoading) return;
+
+    if (spaceData.id.isEmpty) {
+      setState(() {
+        _images = [];
+      });
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -163,22 +180,21 @@ class _MySpacePageState extends ConsumerState<MySpacePage> with KeyboardDismissM
   Future<void> _deleteImage(String imageId) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('删除图片'),
-            content: const Text('确定要删除这张图片吗？删除后无法恢复。'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('取消'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: TextButton.styleFrom(foregroundColor: Colors.red),
-                child: const Text('删除'),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: const Text('删除图片'),
+        content: const Text('确定要删除这张图片吗？删除后无法恢复。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
           ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
     );
 
     if (confirmed == true) {
@@ -238,8 +254,9 @@ class _MySpacePageState extends ConsumerState<MySpacePage> with KeyboardDismissM
   String _formatFileSize(int bytes) {
     if (bytes < 1024) return '${bytes}B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)}KB';
-    if (bytes < 1024 * 1024 * 1024)
+    if (bytes < 1024 * 1024 * 1024) {
       return '${(bytes / (1024 * 1024)).toStringAsFixed(1)}MB';
+    }
     return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)}GB';
   }
 
@@ -286,32 +303,33 @@ class _MySpacePageState extends ConsumerState<MySpacePage> with KeyboardDismissM
     return buildWithKeyboardDismiss(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios, color: Colors.grey[800]),
-            onPressed: () => Navigator.pop(context),
-          ),
-          title: Text(
-            '我的空间',
-            style: TextStyle(
-              color: Colors.grey[800],
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          actions: [
-            IconButton(
-              icon: Icon(Icons.settings_outlined, color: Colors.grey[700]),
-              onPressed: () {
-
-
-
-                Navigator.pushNamed(context, '/space_settings');
-              },
-            ),
-          ],
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios, color: Colors.grey[800]),
+          onPressed: () => Navigator.pop(context),
         ),
+        title: Text(
+          '我的空间',
+          style: TextStyle(
+            color: Colors.grey[800],
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.settings_outlined, color: Colors.grey[700]),
+            onPressed: () {
+              Navigator.pushNamed(
+                context,
+                '/space_settings',
+                arguments: spaceData,
+              );
+            },
+          ),
+        ],
+      ),
       body: GestureDetector(
         onTap: () {
           if (_showActionOverlay) {
@@ -453,7 +471,6 @@ class _MySpacePageState extends ConsumerState<MySpacePage> with KeyboardDismissM
                             ],
                           ),
                           const SizedBox(height: 8),
-
                           LinearProgressIndicator(
                             value: progress,
                             backgroundColor: Colors.grey[200],
@@ -499,17 +516,19 @@ class _MySpacePageState extends ConsumerState<MySpacePage> with KeyboardDismissM
                     children: [
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () {
-                            // Navigator.pushNamed(context, '/upload');
-
-                            Navigator.push(
+                          onPressed: () async {
+                            final result = await Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder:
-                                    (context) =>
-                                        UploadPage(spaceId: spaceData.id!),
+                                builder: (context) =>
+                                    UploadPage(spaceId: spaceData.id!),
                               ),
                             );
+                            
+                            // 如果上传成功返回，刷新图片列表
+                            if (result == true) {
+                              _loadData();
+                            }
                           },
                           icon: const Icon(Icons.add_photo_alternate_outlined),
                           label: const Text('上传图片'),
@@ -647,11 +666,10 @@ class _MySpacePageState extends ConsumerState<MySpacePage> with KeyboardDismissM
                                               Navigator.push(
                                                 context,
                                                 MaterialPageRoute(
-                                                  builder:
-                                                      (context) =>
-                                                          ImageEditPage(
-                                                            imageData: image,
-                                                          ),
+                                                  builder: (context) =>
+                                                      ImageEditPage(
+                                                    imageData: image,
+                                                  ),
                                                 ),
                                               );
                                             },
@@ -729,7 +747,7 @@ class _MySpacePageState extends ConsumerState<MySpacePage> with KeyboardDismissM
                                     constraints: BoxConstraints(
                                       minHeight:
                                           MediaQuery.of(context).size.height *
-                                          0.2,
+                                              0.2,
                                     ),
                                     child: IntrinsicHeight(
                                       child: Column(
@@ -748,38 +766,33 @@ class _MySpacePageState extends ConsumerState<MySpacePage> with KeyboardDismissM
                                                   icon: Icons.share_outlined,
                                                   label: '分享',
                                                   color: Colors.blue,
-                                                  onTap:
-                                                      () =>
-                                                          _shareImage(image.id),
+                                                  onTap: () =>
+                                                      _shareImage(image.id),
                                                 ),
                                                 _buildCompactActionButton(
                                                   icon: Icons.download_outlined,
                                                   label: '下载',
                                                   color: Colors.green,
-                                                  onTap:
-                                                      () => _downloadImage(
-                                                        image.id,
-                                                      ),
+                                                  onTap: () => _downloadImage(
+                                                    image.id,
+                                                  ),
                                                 ),
                                                 _buildCompactActionButton(
                                                   icon: Icons.delete_outline,
                                                   label: '回收站',
                                                   color: Colors.orange,
-                                                  onTap:
-                                                      () => _moveToTrash(
-                                                        image.id,
-                                                      ),
+                                                  onTap: () => _moveToTrash(
+                                                    image.id,
+                                                  ),
                                                 ),
                                                 _buildCompactActionButton(
-                                                  icon:
-                                                      Icons
-                                                          .delete_forever_outlined,
+                                                  icon: Icons
+                                                      .delete_forever_outlined,
                                                   label: '删除',
                                                   color: Colors.red,
-                                                  onTap:
-                                                      () => _deleteImage(
-                                                        image.id,
-                                                      ),
+                                                  onTap: () => _deleteImage(
+                                                    image.id,
+                                                  ),
                                                 ),
                                               ],
                                             ),
@@ -791,9 +804,9 @@ class _MySpacePageState extends ConsumerState<MySpacePage> with KeyboardDismissM
                                             child: Container(
                                               padding:
                                                   const EdgeInsets.symmetric(
-                                                    horizontal: 16,
-                                                    vertical: 6,
-                                                  ),
+                                                horizontal: 16,
+                                                vertical: 6,
+                                              ),
                                               decoration: BoxDecoration(
                                                 color: Colors.white.withOpacity(
                                                   0.2,
@@ -834,19 +847,18 @@ class _MySpacePageState extends ConsumerState<MySpacePage> with KeyboardDismissM
               SliverToBoxAdapter(
                 child: Container(
                   padding: const EdgeInsets.all(16),
-                  child:
-                      _isLoading
-                          ? const Center(child: CircularProgressIndicator())
-                          : !_hasMore
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : !_hasMore
                           ? Center(
-                            child: Text(
-                              '没有更多图片了',
-                              style: TextStyle(
-                                color: Colors.grey[500],
-                                fontSize: 14,
+                              child: Text(
+                                '没有更多图片了',
+                                style: TextStyle(
+                                  color: Colors.grey[500],
+                                  fontSize: 14,
+                                ),
                               ),
-                            ),
-                          )
+                            )
                           : const SizedBox.shrink(),
                 ),
               ),

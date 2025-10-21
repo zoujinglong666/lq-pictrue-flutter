@@ -335,28 +335,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 },
               ),
             ]),
-            
             const SizedBox(height: 20),
-            
-            // 显示设置
-            _buildSectionTitle('显示设置'),
-            _buildSettingCard([
-              _buildSwitchTile(
-                icon: Icons.dark_mode_outlined,
-                title: '深色模式',
-                subtitle: '使用深色主题界面',
-                value: _darkModeEnabled,
-                onChanged: (value) {
-                  setState(() {
-                    _darkModeEnabled = value;
-                  });
-                  _saveSettings();
-                },
-              ),
-            ]),
-            
-            const SizedBox(height: 20),
-            
             // 存储设置
             _buildSectionTitle('存储设置'),
             _buildSettingCard([
@@ -428,7 +407,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 title: '绑定邮箱',
                 subtitle: '绑定邮箱用于密码找回',
                 onTap: () {
-                  // TODO: 实现绑定邮箱功能
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('绑定邮箱功能开发中')),
                   );

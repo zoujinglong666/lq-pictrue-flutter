@@ -75,7 +75,6 @@ class _UploadPageState extends ConsumerState<UploadPage>
   @override
   void initState() {
     super.initState();
-    _urlController.text = 'https://p3-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/42bf9da418ee47a8af327410f280aa92~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg6L2s6L2s5oqA5pyv5Zui6Zif:q75.awebp?rk3s=f64ab15b&x-expires=1757511371&x-signature=5CzWBhj9jlvAjNB5YuCu7XGRFJg%3D';
     _tabController = TabController(length: 2, vsync: this);
   }
 
@@ -108,9 +107,7 @@ class _UploadPageState extends ConsumerState<UploadPage>
         });
 
         if (images.length > remainingSlots) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('已选择${imagesToAdd.length}张图片，最多只能选择6张')),
-          );
+          MyToast.showError('已选择${imagesToAdd.length}张图片，最多只能选择6张');
         }
       }
     } catch (e) {
@@ -123,9 +120,7 @@ class _UploadPageState extends ConsumerState<UploadPage>
   Future<void> _pickImageFromCamera() async {
     try {
       if (_selectedImages.length >= 6) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('最多只能选择6张图片')));
+        MyToast.showError('最多只能选择6张');
         return;
       }
 
@@ -394,48 +389,65 @@ class _UploadPageState extends ConsumerState<UploadPage>
       });
     }
   }
+// 平滑推进工具（用于压缩、收尾）
+  Future<void> _smoothProgress(String key, double from, double to, int durationMs) async {
+    const step = 16; // 刷新频率约60FPS
+    int times = (durationMs / step).floor();
+    for (int i = 0; i < times; i++) {
+      double t = from + ((to - from) * (i / times));
+      _setProgress(key, t);
+      await Future.delayed(const Duration(milliseconds: step));
+    }
+    _setProgress(key, to);
+  }
 
-  // 文件上传处理
+// 更新UI封装
+  void _setProgress(String key, double progress) {
+    setState(() {
+      _uploadProgress[key] = double.parse(progress.toStringAsFixed(2));
+    });
+  }
+
+// ==================== 智能上传（含抖动进度）====================
   Future<void> _uploadFileImages(String userId) async {
     for (int i = 0; i < _selectedImages.length; i++) {
       final image = _selectedImages[i];
       final imageKey = 'file_$i';
 
-      setState(() {
-        _uploadProgress[imageKey] = 0.0;
-      });
+      // 初始化进度
+      _setProgress(imageKey, 0.0);
 
       try {
-        // 压缩阶段 (0-30%)
-        setState(() {
-          _uploadProgress[imageKey] = 0.1;
-        });
-
         print('开始压缩第${i + 1}张图片...');
+        final startTime = DateTime.now();
         final compressedFile = await _compressImage(File(image.path));
         final finalFile = compressedFile ?? File(image.path);
+        final compressDuration = DateTime.now().difference(startTime).inMilliseconds;
 
-        // 上传准备阶段 (30-50%)
-        setState(() {
-          _uploadProgress[imageKey] = 0.3;
-        });
+        // 压缩阶段: 根据耗时推进 0% → 20%
+        await _smoothProgress(imageKey, 0.0, 0.2, compressDuration ~/ 1.5);
 
-        // 模拟上传进度 (50-90%)
-        for (double progress = 0.5; progress < 0.9; progress += 0.1) {
-          setState(() {
-            _uploadProgress[imageKey] = progress;
-          });
-          await Future.delayed(const Duration(milliseconds: 100));
+        // 准备上传阶段: 稳定推进 20% → 30%
+        await _smoothProgress(imageKey, 0.2, 0.3, 200);
+
+        // ------------------ 模拟上传阶段 30% → ~90%（含抖动） ------------------
+        double fakeUploadProgress = 0.3;
+        while (fakeUploadProgress < 0.9) {
+          fakeUploadProgress += (0.03 + (0.02 * (DateTime.now().millisecond % 3))); // 随机微抖动
+          _setProgress(imageKey, fakeUploadProgress.clamp(0.3, 0.9));
+          await Future.delayed(const Duration(milliseconds: 120));
         }
 
-        // 上传接口
+        // ------------------ 调用上传接口 ------------------
         final result = await PictureApi.uploadPicture(
-          body: {
-            "spaceId": widget.spaceId,
-          },
+          body: {"spaceId": widget.spaceId},
           files: [finalFile],
         );
 
+        // ------------------ 上传完成封装 90% → 100% ------------------
+        await _smoothProgress(imageKey, 0.9, 1.0, 300);
+
+        // ------------------ 图片编辑 ------------------
         if (result.thumbnailUrl?.isNotEmpty ?? false) {
           try {
             final editRes = await PictureApi.editPicture({
@@ -447,27 +459,22 @@ class _UploadPageState extends ConsumerState<UploadPage>
               'id': result.id,
               "tags": [_selectedTag]
             });
-
             print('文件编辑成功: $editRes');
           } catch (e) {
             print('文件编辑错误: $e');
           }
         }
 
-        setState(() {
-          _uploadProgress[imageKey] = 1.0;
-          _uploadedImages.add(result);
-        });
-
+        // 上传成功加入记录
+        _uploadedImages.add(result);
         print('第${i + 1}张图片上传成功');
       } catch (e) {
         print('文件上传错误: $e');
-        setState(() {
-          _uploadProgress[imageKey] = -1.0;
-        });
+        _setProgress(imageKey, -1.0);
       }
     }
   }
+
 
 
   /// 单张 URL 上传
@@ -609,6 +616,12 @@ class _UploadPageState extends ConsumerState<UploadPage>
             _showUploadedImages = false;
             _uploadProgress.clear();
           });
+          
+          // 上传成功后返回true给调用页面
+          // 如果是通过导航跳转过来的（有spaceId参数），返回true表示上传成功
+          if (mounted && widget.spaceId != null) {
+            Navigator.of(context).pop(true);
+          }
         }
       }
     } catch (e) {
@@ -665,6 +678,12 @@ class _UploadPageState extends ConsumerState<UploadPage>
         _showUploadedImages = false;
         _uploadProgress.clear();
       });
+      
+      // 提交成功后返回true给调用页面
+      // 如果是通过导航跳转过来的（有spaceId参数），返回true表示上传成功
+      if (mounted && widget.spaceId != null) {
+        Navigator.of(context).pop(true);
+      }
     } catch (e) {
 
       MyToast.showError("提交失败");
@@ -688,11 +707,22 @@ class _UploadPageState extends ConsumerState<UploadPage>
               child: Row(
                 children: [
 
-                  Text(
-                    widget.spaceId!=null?"个人图库${widget.spaceId }":"上传公共图库",
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                  Flexible(
+                    child: Text(
+                      widget.spaceId!=null?"个人图库${widget.spaceId }":"上传公共图库",
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   const Spacer(),
+                  // 返回按钮
+                  IconButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(false);
+                    },
+                    icon: const Icon(Icons.arrow_back),
+                    tooltip: '返回',
+                  ),
                   if (_hasImages())
                     Row(
                       children: [
@@ -935,7 +965,7 @@ class _UploadPageState extends ConsumerState<UploadPage>
                       children: [
                         // 图片数量提示
                         Padding(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(8),
                           child: Row(
                             children: [
                               Text(
@@ -955,7 +985,7 @@ class _UploadPageState extends ConsumerState<UploadPage>
                                   style: TextButton.styleFrom(
                                     foregroundColor: const Color(0xFF00BCD4),
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
+                                      horizontal: 4,
                                       vertical: 4,
                                     ),
                                   ),
@@ -967,12 +997,12 @@ class _UploadPageState extends ConsumerState<UploadPage>
                         Expanded(
                           child: GridView.builder(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
+                              horizontal: 8,
                               vertical: 8,
                             ),
                             gridDelegate:
                                 const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 3,
+                                  crossAxisCount: 4,
                                   crossAxisSpacing: 8,
                                   mainAxisSpacing: 8,
                                   childAspectRatio: 1.0,
@@ -1301,7 +1331,7 @@ class _UploadPageState extends ConsumerState<UploadPage>
                       child: TextField(
                         controller: _urlController,
                         decoration: InputDecoration(
-                          hintText: 'https://example.com/image.jpg',
+                          hintText: '请输入图片的网络地址',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(color: Colors.grey.shade300),

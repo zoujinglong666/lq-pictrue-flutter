@@ -129,6 +129,9 @@ class PictureItem {
   final DateTime editTime;
   final DateTime updateTime;
   final int isDelete;
+  final int likeCount;
+  final bool hasLiked;
+  final int commentCount;
 
   PictureItem({
     required this.id,
@@ -153,7 +156,25 @@ class PictureItem {
     required this.editTime,
     required this.updateTime,
     required this.isDelete,
+    required this.likeCount,
+    required this.hasLiked,
+    required this.commentCount,
   });
+// 在 PictureItem 类中添加以下静态辅助方法
+  static int? _toInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is double) return value;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
 
   PictureItem copyWith({
     String? id,
@@ -178,6 +199,10 @@ class PictureItem {
     DateTime? editTime,
     DateTime? updateTime,
     int? isDelete,
+    int? likeCount,
+    bool? hasLiked,
+    int? commentCount,
+
   }) =>
       PictureItem(
         id: id ?? this.id,
@@ -202,40 +227,49 @@ class PictureItem {
         editTime: editTime ?? this.editTime,
         updateTime: updateTime ?? this.updateTime,
         isDelete: isDelete ?? this.isDelete,
+        commentCount: commentCount??this.commentCount,
+        hasLiked: hasLiked??this.hasLiked,
+        likeCount: likeCount??this.likeCount,
       );
 
-  factory PictureItem.fromJson(Map<String, dynamic> json) => PictureItem(
-    id: json["id"],
-    url: json["url"],
-    thumbnailUrl: json["thumbnailUrl"],
-    name: json["name"],
-    introduction: json["introduction"],
-    category: json["category"],
-    tags: json["tags"],
-    picSize: json["picSize"],
-    picWidth: json["picWidth"],
-    picHeight: json["picHeight"],
-    picScale: json["picScale"]?.toDouble(),
-    picFormat: json["picFormat"],
-    userId: json["userId"],
-    spaceId: json["spaceId"],
-    reviewStatus: json["reviewStatus"],
-    reviewMessage: json["reviewMessage"],
-    reviewerId: json["reviewerId"]??"",
-    reviewTime: json["reviewTime"] != null
-        ? DateTime.fromMillisecondsSinceEpoch(json["reviewTime"])
-        : DateTime.now(),
-    createTime: json["createTime"] != null
-        ? DateTime.fromMillisecondsSinceEpoch(json["createTime"])
-        : DateTime.now(),
-    editTime: json["editTime"] != null
-        ? DateTime.fromMillisecondsSinceEpoch(json["editTime"])
-        : DateTime.now(),
-    updateTime: json["updateTime"] != null
-        ? DateTime.fromMillisecondsSinceEpoch(json["updateTime"])
-        : DateTime.now(),
-    isDelete: json["isDelete"],
-  );
+factory PictureItem.fromJson(Map<String, dynamic> json) => PictureItem(
+  id: json["id"],
+  url: json["url"],
+  thumbnailUrl: json["thumbnailUrl"],
+  name: json["name"],
+  introduction: json["introduction"],
+  category: json["category"],
+  tags: json["tags"],
+  picSize: json["picSize"],
+  picWidth: _toInt(json["picWidth"]) ?? 0,
+  picHeight: _toInt(json["picHeight"]) ?? 0,
+  picScale: _toDouble(json["picScale"]) ?? 0.0,
+  picFormat: json["picFormat"],
+  userId: json["userId"],
+  spaceId: json["spaceId"],
+  reviewStatus: _toInt(json["reviewStatus"]) ?? 0,
+  reviewMessage: json["reviewMessage"],
+  reviewerId: json["reviewerId"] ?? "",
+  reviewTime: json["reviewTime"] != null
+      ? DateTime.fromMillisecondsSinceEpoch(_toInt(json["reviewTime"]) ?? 0)
+      : DateTime.now(),
+  createTime: json["createTime"] != null
+      ? DateTime.fromMillisecondsSinceEpoch(_toInt(json["createTime"]) ?? 0)
+      : DateTime.now(),
+  editTime: json["editTime"] != null
+      ? DateTime.fromMillisecondsSinceEpoch(_toInt(json["editTime"]) ?? 0)
+      : DateTime.now(),
+  updateTime: json["updateTime"] != null
+      ? DateTime.fromMillisecondsSinceEpoch(_toInt(json["updateTime"]) ?? 0)
+      : DateTime.now(),
+  isDelete: _toInt(json["isDelete"]) ?? 0,
+  likeCount: _toInt(json["likeCount"]) ?? 0,
+  hasLiked: json["hasLiked"] as bool? ?? false,
+  commentCount: _toInt(json["commentCount"]) ?? 0,
+);
+
+
+
 
   Map<String, dynamic> toJson() => {
     "id": id,
@@ -260,6 +294,9 @@ class PictureItem {
     "editTime": editTime.millisecondsSinceEpoch,
     "updateTime": updateTime.millisecondsSinceEpoch,
     "isDelete": isDelete,
+    "likeCount": likeCount,
+    "hasLiked": hasLiked,
+    "commentCount": commentCount,
   };
 }
 class PictureApi {
@@ -290,6 +327,22 @@ class PictureApi {
       data: data,
     );
 
+    return result.toModel((json) => Page.fromJson(json, (item) => PictureItem.fromJson(item)));
+  }
+
+  static Future<Page<PictureVO>> getMyLikes(Map<String, dynamic> data) async {
+    final result = await Http.get<Result>(
+      "/picture/my/likes/v4",
+      query: data,
+    );
+    return result.toModel((json) => Page.fromJson(json, (item) => PictureVO.fromJson(item)));
+  }
+
+  static Future<Page<PictureItem>> getReviewStatusList(Map<String, dynamic> data) async {
+    final result = await Http.post<Result>(
+      "/picture/review/list/page/vo",
+      data: data,
+    );
     return result.toModel((json) => Page.fromJson(json, (item) => PictureItem.fromJson(item)));
   }
 static Future<bool> editPicture(Map<String, dynamic> data) async {
@@ -327,10 +380,6 @@ static Future<bool> editPicture(Map<String, dynamic> data) async {
       return false;
     }
   }
-
-
-
-
 
 
 
@@ -397,9 +446,6 @@ static Future<bool> editPicture(Map<String, dynamic> data) async {
       print('上传API错误: $e');
       rethrow;
     }
-
-
-
   }
 
 

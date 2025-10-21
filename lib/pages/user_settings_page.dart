@@ -49,8 +49,6 @@ class _UserSettingsPageState extends ConsumerState<UserSettingsPage> with Keyboa
 
   try {
     final res = await UserApi.getCurrentUser();
-
-    // 模拟用户数据
     setState(() {
       _userNameController.text = res.userName ?? '';
       _userAccountController.text = res.userAccount ?? '';
@@ -121,6 +119,40 @@ class _UserSettingsPageState extends ConsumerState<UserSettingsPage> with Keyboa
                       setState(() {
                         _selectedImage = File(image.path);
                       });
+                      try {
+                        final avatarUrl = await UserApi.uploadAvatar(
+                          File(image.path),
+                        );
+                        
+                        // 更新本地头像URL
+                        setState(() {
+                          _userAvatar = avatarUrl;
+                        });
+                        
+                        // 更新全局用户状态
+                        final currentUser = ref.read(authProvider).user;
+                        if (currentUser != null) {
+                          final updatedUser = LoginUserVO(
+                            id: currentUser.id,
+                            userName: currentUser.userName,
+                            userAccount: currentUser.userAccount,
+                            userAvatar: avatarUrl,
+                            userProfile: currentUser.userProfile,
+                            userRole: currentUser.userRole,
+                            createTime: currentUser.createTime,
+                            updateTime: currentUser.updateTime,
+                          );
+                          await ref.read(authProvider.notifier).setLoginUser(updatedUser);
+                        }
+                        
+                        if (mounted) {
+                          MyToast.showSuccess('头像上传成功');
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          MyToast.showError('头像上传失败: $e');
+                        }
+                      }
                     }
                   },
                 ),
@@ -139,6 +171,40 @@ class _UserSettingsPageState extends ConsumerState<UserSettingsPage> with Keyboa
                       setState(() {
                         _selectedImage = File(image.path);
                       });
+                      try {
+                        final avatarUrl = await UserApi.uploadAvatar(
+                          File(image.path),
+                        );
+                        
+                        // 更新本地头像URL
+                        setState(() {
+                          _userAvatar = avatarUrl;
+                        });
+                        
+                        // 更新全局用户状态
+                        final currentUser = ref.read(authProvider).user;
+                        if (currentUser != null) {
+                          final updatedUser = LoginUserVO(
+                            id: currentUser.id,
+                            userName: currentUser.userName,
+                            userAccount: currentUser.userAccount,
+                            userAvatar: avatarUrl,
+                            userProfile: currentUser.userProfile,
+                            userRole: currentUser.userRole,
+                            createTime: currentUser.createTime,
+                            updateTime: currentUser.updateTime,
+                          );
+                          await ref.read(authProvider.notifier).setLoginUser(updatedUser);
+                        }
+                        
+                        if (mounted) {
+                          MyToast.showSuccess('头像上传成功');
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          MyToast.showError('头像上传失败: $e');
+                        }
+                      }
                     }
                   },
                 ),

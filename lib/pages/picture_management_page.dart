@@ -19,7 +19,7 @@ class _PictureManagementPageState extends State<PictureManagementPage> with Keyb
   List<PictureItem> _pictures = [];
   List<PictureItem> _filteredPictures = [];
   bool _isLoading = false;
-  
+
   // 分页相关
   int _currentPage = 1;
   int _pageSize = 10;
@@ -42,7 +42,12 @@ class _PictureManagementPageState extends State<PictureManagementPage> with Keyb
   int _toInt(dynamic value) {
     if (value == null) return 0;
     if (value is int) return value;
-    if (value is String) return int.tryParse(value) ?? 0;
+    if (value is String) {
+      if (value.isEmpty) return 0;
+      return int.tryParse(value) ?? 0;
+    }
+    // 处理其他可能的数值类型
+    if (value is num) return value.toInt();
     return 0;
   }
 
@@ -50,18 +55,18 @@ class _PictureManagementPageState extends State<PictureManagementPage> with Keyb
     setState(() {
       _isLoading = true;
     });
-    
+
     try {
       final requestData = {
         'current': page ?? _currentPage,
         'pageSize': _pageSize,
       } as Map<String, dynamic>;
-      
+
       // 添加搜索条件
       if (_searchController.text.isNotEmpty) {
         requestData['searchText'] = _searchController.text;
       }
-      
+
       // 添加状态筛选
       if (_selectedStatus != '全部') {
         int statusValue = 0;
@@ -78,22 +83,24 @@ class _PictureManagementPageState extends State<PictureManagementPage> with Keyb
         }
         requestData['reviewStatus'] = statusValue;
       }
-      
+
       // 添加分类筛选
       if (_selectedCategory != '全部') {
         requestData['category'] = _selectedCategory;
       }
-      
+
       final res = await PictureApi.getAllList(requestData);
-      
+
       setState(() {
         _pageData = res;
         _pictures = res.records;
+
         _filteredPictures = List.from(_pictures);
         _currentPage = _toInt(res.current);
         _totalPages = _toInt(res.pages);
         _totalRecords = _toInt(res.total);
       });
+      print('加载图片数组: $_pictures');
     } catch (e) {
       print('加载图片失败: $e');
       if (mounted) {
@@ -116,7 +123,7 @@ class _PictureManagementPageState extends State<PictureManagementPage> with Keyb
     _currentPage = 1;
     _loadPictures(page: 1);
   }
-  
+
   void _onPageChanged(int page) {
     _loadPictures(page: page);
   }
@@ -134,7 +141,7 @@ class _PictureManagementPageState extends State<PictureManagementPage> with Keyb
 
   void _showRejectDialog(PictureItem picture) {
     final TextEditingController messageController = TextEditingController();
-    
+
     // 预设拒绝原因列表
     final List<String> presetReasons = [
       '图片质量过低，请上传更清晰的图片',
@@ -143,296 +150,296 @@ class _PictureManagementPageState extends State<PictureManagementPage> with Keyb
       '图片侵犯版权或知识产权',
       '图片格式不符合要求'
     ];
-    
+
     showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: DraggableScrollableSheet(
-          initialChildSize: 0.8,
-          minChildSize: 0.5,
-          maxChildSize: 0.95,
-          expand: false,
-          builder: (context, scrollController) => Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: DraggableScrollableSheet(
+            initialChildSize: 0.8,
+            minChildSize: 0.5,
+            maxChildSize: 0.95,
+            expand: false,
+            builder: (context, scrollController) => Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+              ),
+              child: Column(
+                children: [
+                  // 拖拽指示器
+                  Container(
+                    margin: const EdgeInsets.only(top: 8),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      controller: scrollController,
+                      padding: const EdgeInsets.only(
+                        left: 20,
+                        right: 20,
+                        top: 12,
+                        bottom: 20,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // 标题栏
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.red[50],
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  Icons.block,
+                                  color: Colors.red[600],
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              const Expanded(
+                                child: Text(
+                                  '拒绝审核',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: () => Navigator.pop(context),
+                                icon: Icon(Icons.close, color: Colors.grey[600]),
+                                style: IconButton.styleFrom(
+                                  backgroundColor: Colors.grey[100],
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+
+                          // 图片信息
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[50],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey.shade200),
+                            ),
+                            child: Row(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(
+                                    picture.thumbnailUrl ?? picture.url,
+                                    width: 60,
+                                    height: 60,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) => Container(
+                                      width: 60,
+                                      height: 60,
+                                      color: Colors.grey[200],
+                                      child: Icon(Icons.image_not_supported, color: Colors.grey[400]),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        picture.name,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 16,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // 预设拒绝原因
+                          const Text(
+                            '常用拒绝原因',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            height: 36,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: presetReasons.length,
+                              itemBuilder: (context, index) {
+                                return GestureDetector(
+                                  onTap: () {
+                                    messageController.text = presetReasons[index];
+                                  },
+                                  child: Container(
+                                    margin: const EdgeInsets.only(right: 8),
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[100],
+                                      borderRadius: BorderRadius.circular(18),
+                                      border: Border.all(color: Colors.grey.shade300),
+                                    ),
+                                    child: Text(
+                                      presetReasons[index].length > 10
+                                          ? '${presetReasons[index].substring(0, 10)}...'
+                                          : presetReasons[index],
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[800],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // 拒绝原因输入框
+                          const Text(
+                            '拒绝原因',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey.shade300),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.withOpacity(0.1),
+                                  blurRadius: 5,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: TextField(
+                              controller: messageController,
+                              decoration: InputDecoration(
+                                hintText: '请详细说明拒绝的原因...',
+                                hintStyle: TextStyle(color: Colors.grey[400]),
+                                border: InputBorder.none,
+                                contentPadding: const EdgeInsets.all(16),
+                                filled: true,
+                                fillColor: Colors.white,
+                              ),
+                              maxLines: 4,
+                              minLines: 3,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+
+                          // 操作按钮
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    side: BorderSide(color: Colors.grey[300]!),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    '取消',
+                                    style: TextStyle(
+                                      color: Colors.grey[700],
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    if (messageController.text.trim().isEmpty) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Row(
+                                            children: [
+                                              const Icon(Icons.warning_amber_rounded, color: Colors.white),
+                                              const SizedBox(width: 8),
+                                              const Text('请填写拒绝原因'),
+                                            ],
+                                          ),
+                                          backgroundColor: Colors.orange,
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                        ),
+                                      );
+                                      return;
+                                    }
+                                    Navigator.pop(context);
+                                    _reviewPicture(picture, 2, messageController.text.trim());
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red[600],
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    '确认拒绝',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            child: Column(
-              children: [
-                // 拖拽指示器
-                Container(
-                  margin: const EdgeInsets.only(top: 8),
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    controller: scrollController,
-                    padding: const EdgeInsets.only(
-                      left: 20,
-                      right: 20,
-                      top: 12,
-                      bottom: 20,
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                // 标题栏
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.red[50],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.block,
-                        color: Colors.red[600],
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    const Expanded(
-                      child: Text(
-                        '拒绝审核',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: Icon(Icons.close, color: Colors.grey[600]),
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.grey[100],
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                
-                // 图片信息
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  child: Row(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          picture.thumbnailUrl ?? picture.url,
-                          width: 60,
-                          height: 60,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            width: 60,
-                            height: 60,
-                            color: Colors.grey[200],
-                            child: Icon(Icons.image_not_supported, color: Colors.grey[400]),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              picture.name,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-                
-                // 预设拒绝原因
-                const Text(
-                  '常用拒绝原因',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  height: 36,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: presetReasons.length,
-                    itemBuilder: (context, index) {
-                      return GestureDetector(
-                        onTap: () {
-                          messageController.text = presetReasons[index];
-                        },
-                        child: Container(
-                          margin: const EdgeInsets.only(right: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[100],
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(color: Colors.grey.shade300),
-                          ),
-                          child: Text(
-                            presetReasons[index].length > 10 
-                                ? '${presetReasons[index].substring(0, 10)}...' 
-                                : presetReasons[index],
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[800],
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 20),
-                
-                // 拒绝原因输入框
-                const Text(
-                  '拒绝原因',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade300),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
-                        blurRadius: 5,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: TextField(
-                    controller: messageController,
-                    decoration: InputDecoration(
-                      hintText: '请详细说明拒绝的原因...',
-                      hintStyle: TextStyle(color: Colors.grey[400]),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.all(16),
-                      filled: true,
-                      fillColor: Colors.white,
-                    ),
-                    maxLines: 4,
-                    minLines: 3,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                
-                // 操作按钮
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          side: BorderSide(color: Colors.grey[300]!),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Text(
-                          '取消',
-                          style: TextStyle(
-                            color: Colors.grey[700],
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          if (messageController.text.trim().isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Row(
-                                  children: [
-                                    const Icon(Icons.warning_amber_rounded, color: Colors.white),
-                                    const SizedBox(width: 8),
-                                    const Text('请填写拒绝原因'),
-                                  ],
-                                ),
-                                backgroundColor: Colors.orange,
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                            );
-                            return;
-                          }
-                          Navigator.pop(context);
-                          _reviewPicture(picture, 2, messageController.text.trim());
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red[600],
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: const Text(
-                          '确认拒绝',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
           ),
-        ),
-      ),
-    )
+        )
     );
   }
 
@@ -805,12 +812,12 @@ class _PictureManagementPageState extends State<PictureManagementPage> with Keyb
                       prefixIcon: Icon(Icons.search_outlined, color: Colors.grey[600], size: 20),
                       suffixIcon: _searchController.text.isNotEmpty
                           ? IconButton(
-                              onPressed: () {
-                                _searchController.clear();
-                                _filterPictures();
-                              },
-                              icon: Icon(Icons.clear, color: Colors.grey[600], size: 20),
-                            )
+                        onPressed: () {
+                          _searchController.clear();
+                          _filterPictures();
+                        },
+                        icon: Icon(Icons.clear, color: Colors.grey[600], size: 20),
+                      )
                           : null,
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -845,9 +852,9 @@ class _PictureManagementPageState extends State<PictureManagementPage> with Keyb
                             hint: const Text('审核状态'),
                             items: ['全部', '待审核', '已通过', '已拒绝']
                                 .map((status) => DropdownMenuItem(
-                                      value: status,
-                                      child: Text(status),
-                                    ))
+                              value: status,
+                              child: Text(status),
+                            ))
                                 .toList(),
                             onChanged: (value) {
                               setState(() {
@@ -875,9 +882,9 @@ class _PictureManagementPageState extends State<PictureManagementPage> with Keyb
                             hint: const Text('分类'),
                             items: ['全部', '风景', '城市', '人物', '动物', '其他']
                                 .map((category) => DropdownMenuItem(
-                                      value: category,
-                                      child: Text(category),
-                                    ))
+                              value: category,
+                              child: Text(category),
+                            ))
                                 .toList(),
                             onChanged: (value) {
                               setState(() {
@@ -899,292 +906,292 @@ class _PictureManagementPageState extends State<PictureManagementPage> with Keyb
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _filteredPictures.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.image_not_supported_outlined, size: 64, color: Colors.grey[400]),
-                            const SizedBox(height: 16),
-                            Text(
-                              '暂无图片数据',
-                              style: TextStyle(
-                                color: Colors.grey[500],
-                                fontSize: 16,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              '请尝试调整搜索条件',
-                              style: TextStyle(
-                                color: Colors.grey[400],
-                                fontSize: 14,
-                              ),
+                ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.image_not_supported_outlined, size: 64, color: Colors.grey[400]),
+                  const SizedBox(height: 16),
+                  Text(
+                    '暂无图片数据',
+                    style: TextStyle(
+                      color: Colors.grey[500],
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '请尝试调整搜索条件',
+                    style: TextStyle(
+                      color: Colors.grey[400],
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            )
+                : Column(
+              children: [
+                // 分页信息
+                if (_totalRecords > 0)
+                  PaginationInfo(
+                    currentPage: _currentPage,
+                    pageSize: _pageSize,
+                    totalRecords: _totalRecords,
+                    totalPages: _totalPages,
+                  ),
+                // 图片列表
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    itemCount: _filteredPictures.length,
+                    itemBuilder: (context, index) {
+                      final picture = _filteredPictures[index];
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.04),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
                             ),
                           ],
                         ),
-                      )
-                    : Column(
-                        children: [
-                          // 分页信息
-                          if (_totalRecords > 0)
-                            PaginationInfo(
-                              currentPage: _currentPage,
-                              pageSize: _pageSize,
-                              totalRecords: _totalRecords,
-                              totalPages: _totalPages,
-                            ),
-                          // 图片列表
-                          Expanded(
-                            child: ListView.builder(
-                              padding: const EdgeInsets.symmetric(horizontal: 4),
-                              itemCount: _filteredPictures.length,
-                              itemBuilder: (context, index) {
-                                final picture = _filteredPictures[index];
-                                return Container(
-                                  margin: const EdgeInsets.only(bottom: 8),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // 缩略图
+                              GestureDetector(
+                                onTap: () => _showPictureDetail(picture),
+                                child: Container(
+                                  width: 80,
+                                  height: 80,
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.04),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
+                                    borderRadius: BorderRadius.circular(12),
+                                    color: Colors.grey[100],
                                   ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16),
-                                    child: Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Image.network(
+                                      picture.thumbnailUrl ?? picture.url,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) =>
+                                          Icon(Icons.image_not_supported_outlined, color: Colors.grey[400]),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              // 图片信息
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      picture.name,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 16,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Row(
                                       children: [
-                                        // 缩略图
-                                        GestureDetector(
-                                          onTap: () => _showPictureDetail(picture),
-                                          child: Container(
-                                            width: 80,
-                                            height: 80,
-                                            decoration: BoxDecoration(
-                                              borderRadius: BorderRadius.circular(12),
-                                              color: Colors.grey[100],
-                                            ),
-                                            child: ClipRRect(
-                                              borderRadius: BorderRadius.circular(12),
-                                              child: Image.network(
-                                                picture.thumbnailUrl ?? picture.url,
-                                                fit: BoxFit.cover,
-                                                errorBuilder: (context, error, stackTrace) =>
-                                                    Icon(Icons.image_not_supported_outlined, color: Colors.grey[400]),
-                                              ),
+                                        Icon(Icons.person_outline, size: 14, color: Colors.grey[600]),
+                                        const SizedBox(width: 12),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF00BCD4).withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            picture.category ?? '未分类',
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              color: Color(0xFF00BCD4),
+                                              fontWeight: FontWeight.w500,
                                             ),
                                           ),
                                         ),
-                                        const SizedBox(width: 8),
-                                        // 图片信息
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                picture.name,
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.w600,
-                                                  fontSize: 16,
-                                                ),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                              const SizedBox(height: 6),
-                                              Row(
-                                                children: [
-                                                  Icon(Icons.person_outline, size: 14, color: Colors.grey[600]),
-                                                  const SizedBox(width: 12),
-                                                  Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                    decoration: BoxDecoration(
-                                                      color: const Color(0xFF00BCD4).withOpacity(0.1),
-                                                      borderRadius: BorderRadius.circular(8),
-                                                    ),
-                                                    child: Text(
-                                                      picture.category ?? '未分类',
-                                                      style: const TextStyle(
-                                                        fontSize: 11,
-                                                        color: Color(0xFF00BCD4),
-                                                        fontWeight: FontWeight.w500,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                              const SizedBox(height: 6),
-                                              Row(
-                                                children: [
-                                                  Icon(Icons.photo_size_select_actual_outlined, size: 14, color: Colors.grey[600]),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    '${picture.picWidth}×${picture.picHeight}',
-                                                    style: TextStyle(
-                                                      color: Colors.grey[600],
-                                                      fontSize: 12,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 12),
-                                                  Icon(Icons.storage_outlined, size: 14, color: Colors.grey[600]),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    _formatFileSize(int.parse(picture.picSize)),
-                                                    style: TextStyle(
-                                                      color: Colors.grey[600],
-                                                      fontSize: 12,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                              const SizedBox(height: 8),
-                                              Row(
-                                                children: [
-                                                  Container(
-                                                    padding: const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 4,
-                                                    ),
-                                                    decoration: BoxDecoration(
-                                                      color: _getStatusColor(picture.reviewStatus).withOpacity(0.1),
-                                                      borderRadius: BorderRadius.circular(12),
-                                                    ),
-                                                    child: Text(
-                                                      _getStatusText(picture.reviewStatus),
-                                                      style: TextStyle(
-                                                        color: _getStatusColor(picture.reviewStatus),
-                                                        fontSize: 11,
-                                                        fontWeight: FontWeight.w600,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 4),
-                                                  Icon(Icons.access_time, size: 12, color: Colors.grey[500]),
-                                                  const SizedBox(width: 2),
-                                                  Text(
-                                                    _formatDateTime(picture.createTime),
-                                                    style: TextStyle(
-                                                      color: Colors.grey[500],
-                                                      fontSize: 10,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                              if (picture.reviewMessage?.isNotEmpty ?? false) ...[
-                                                const SizedBox(height: 6),
-                                                Container(
-                                                  padding: const EdgeInsets.all(8),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.red[50],
-                                                    borderRadius: BorderRadius.circular(8),
-                                                  ),
-                                                  child: Row(
-                                                    children: [
-                                                      Icon(Icons.info_outline, size: 14, color: Colors.red[600]),
-                                                      const SizedBox(width: 6),
-                                                      Expanded(
-                                                        child: Text(
-                                                          picture.reviewMessage!,
-                                                          style: TextStyle(
-                                                            color: Colors.red[600],
-                                                            fontSize: 12,
-                                                          ),
-                                                          maxLines: 2,
-                                                          overflow: TextOverflow.ellipsis,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ],
-                                            ],
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Row(
+                                      children: [
+                                        Icon(Icons.photo_size_select_actual_outlined, size: 14, color: Colors.grey[600]),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '${picture.picWidth}×${picture.picHeight}',
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                            fontSize: 12,
                                           ),
                                         ),
                                         const SizedBox(width: 12),
-                                        // 操作按钮
-                                        if (picture.reviewStatus == 0) ...[
-                                          Column(
-                                            children: [
-                                              SizedBox(
-                                                width: 48,
-                                                height: 24,
-                                                child: ElevatedButton(
-                                                  onPressed: () => _reviewPicture(picture, 1),
-                                                  style: ElevatedButton.styleFrom(
-                                                    backgroundColor: Colors.green[600],
-                                                    foregroundColor: Colors.white,
-                                                    padding: EdgeInsets.zero,
-                                                    shape: RoundedRectangleBorder(
-                                                      borderRadius: BorderRadius.circular(8),
-                                                    ),
-                                                  ),
-                                                  child: const Text('通过', style: TextStyle(fontSize: 12)),
-                                                ),
-                                              ),
-                                              const SizedBox(height: 6),
-                                              SizedBox(
-                                                width: 48,
-                                                height: 24,
-                                                child: ElevatedButton(
-                                                  onPressed: () => _showRejectDialog(picture),
-                                                  style: ElevatedButton.styleFrom(
-                                                    backgroundColor: Colors.red[600],
-                                                    foregroundColor: Colors.white,
-                                                    padding: EdgeInsets.zero,
-                                                    shape: RoundedRectangleBorder(
-                                                      borderRadius: BorderRadius.circular(8),
-                                                    ),
-                                                  ),
-                                                  child: const Text('拒绝', style: TextStyle(fontSize: 12)),
-                                                ),
-                                              ),
-                                            ],
+                                        Icon(Icons.storage_outlined, size: 14, color: Colors.grey[600]),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          _formatFileSize(int.parse(picture.picSize)),
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                            fontSize: 12,
                                           ),
-                                        ] else ...[
-                                          SizedBox(
-                                            width: 48,
-                                            height: 24,
-                                            child: OutlinedButton(
-                                              onPressed: () => _showPictureDetail(picture),
-                                              style: OutlinedButton.styleFrom(
-                                                padding: EdgeInsets.zero,
-                                                side: BorderSide(color: Colors.grey[300]!),
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius: BorderRadius.circular(8),
-                                                ),
-                                              ),
-                                              child: Text(
-                                                '详情',
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: Colors.grey[700],
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
+                                        ),
                                       ],
                                     ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                          // 分页组件
-                          if (_totalPages > 1)
-                            Container(
-                              margin: const EdgeInsets.all(16),
-                              child: PaginationWidget(
-                                currentPage: _currentPage,
-                                totalPages: _totalPages,
-                                onPageChanged: _onPageChanged,
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: _getStatusColor(picture.reviewStatus).withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Text(
+                                            _getStatusText(picture.reviewStatus),
+                                            style: TextStyle(
+                                              color: _getStatusColor(picture.reviewStatus),
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Icon(Icons.access_time, size: 12, color: Colors.grey[500]),
+                                        const SizedBox(width: 2),
+                                        Text(
+                                          _formatDateTime(picture.createTime),
+                                          style: TextStyle(
+                                            color: Colors.grey[500],
+                                            fontSize: 10,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    if (picture.reviewMessage?.isNotEmpty ?? false) ...[
+                                      const SizedBox(height: 6),
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: Colors.red[50],
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.info_outline, size: 14, color: Colors.red[600]),
+                                            const SizedBox(width: 6),
+                                            Expanded(
+                                              child: Text(
+                                                picture.reviewMessage!,
+                                                style: TextStyle(
+                                                  color: Colors.red[600],
+                                                  fontSize: 12,
+                                                ),
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
                               ),
-                            ),
-                        ],
-                      ),
+                              const SizedBox(width: 12),
+                              // 操作按钮
+                              if (picture.reviewStatus == 0) ...[
+                                Column(
+                                  children: [
+                                    SizedBox(
+                                      width: 48,
+                                      height: 24,
+                                      child: ElevatedButton(
+                                        onPressed: () => _reviewPicture(picture, 1),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.green[600],
+                                          foregroundColor: Colors.white,
+                                          padding: EdgeInsets.zero,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                        ),
+                                        child: const Text('通过', style: TextStyle(fontSize: 12)),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    SizedBox(
+                                      width: 48,
+                                      height: 24,
+                                      child: ElevatedButton(
+                                        onPressed: () => _showRejectDialog(picture),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.red[600],
+                                          foregroundColor: Colors.white,
+                                          padding: EdgeInsets.zero,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                        ),
+                                        child: const Text('拒绝', style: TextStyle(fontSize: 12)),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ] else ...[
+                                SizedBox(
+                                  width: 48,
+                                  height: 24,
+                                  child: OutlinedButton(
+                                    onPressed: () => _showPictureDetail(picture),
+                                    style: OutlinedButton.styleFrom(
+                                      padding: EdgeInsets.zero,
+                                      side: BorderSide(color: Colors.grey[300]!),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      '详情',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[700],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                // 分页组件
+                if (_totalPages > 1)
+                  Container(
+                    margin: const EdgeInsets.all(16),
+                    child: PaginationWidget(
+                      currentPage: _currentPage,
+                      totalPages: _totalPages,
+                      onPageChanged: _onPageChanged,
+                    ),
+                  ),
+              ],
+            ),
           ),
         ],
       ),

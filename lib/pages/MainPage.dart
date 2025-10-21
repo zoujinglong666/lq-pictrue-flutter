@@ -32,28 +32,35 @@ class _MainPageState extends State<MainPage>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final bottomPadding = MediaQuery.of(context).padding.bottom + 64;
+    final keyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
+    final showTab = !keyboardOpen;
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           // 给页面内容预留底部空间
-          Padding(
-            padding: EdgeInsets.only(bottom: bottomPadding),
-            child: IndexedStack(index: selectedIndex, children: pages),
-          ),
+          IndexedStack(index: selectedIndex, children: pages),
 
-          // 底部导航栏加 SafeArea
+          // 底部导航栏：带滑入/滑出与淡入/淡出动画
           Align(
             alignment: Alignment.bottomCenter,
             child: SafeArea(
               top: false,
-              child: _CustomTabBar(
-                tabs: tabs,
-                selectedIndex: selectedIndex,
-                onTap: onTabTapped,
+              child: AnimatedSlide(
+                offset: showTab ? const Offset(0, 0) : const Offset(0, 1),
+                duration: const Duration(milliseconds: 240),
+                curve: Curves.easeOutCubic,
+                child: AnimatedOpacity(
+                  opacity: showTab ? 1 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOut,
+                  child: _CustomTabBar(
+                    tabs: tabs,
+                    selectedIndex: selectedIndex,
+                    onTap: onTabTapped,
+                  ),
+                ),
               ),
             ),
           ),
