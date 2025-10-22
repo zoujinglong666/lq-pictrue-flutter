@@ -453,11 +453,7 @@ class _DetailPageState extends ConsumerState<DetailPage> {
                               _buildInfoRow('图片比例',
                                   _imageDetails.picScale.toStringAsFixed(2)),
                               _buildInfoRow('图片格式', _imageDetails.picFormat),
-
-                              const SizedBox(height: 16),
                               const Divider(),
-                              const SizedBox(height: 16),
-
                               // 评论区
                               Container(
                                 key: _commentsKey,
@@ -772,8 +768,6 @@ class _DetailPageState extends ConsumerState<DetailPage> {
 
   // 分享图片文件功能
   void _shareImageFile() {
-    // 这里应该先下载图片到本地，然后分享文件
-    // 为了简化演示，我们分享图片URL
     Share.share(
       '分享一张精美图片：${_imageDetails.name}\n${_imageDetails.url}',
       subject: _imageDetails.name,
@@ -821,11 +815,9 @@ class _DetailPageState extends ConsumerState<DetailPage> {
             ),
           ],
         ),
-        const SizedBox(height: 16),
-
         if (_commentsLoading)
           Container(
-            padding: const EdgeInsets.all(40),
+            padding: const EdgeInsets.all(16),
             child: Column(
               children: [
                 SizedBox(
@@ -849,7 +841,7 @@ class _DetailPageState extends ConsumerState<DetailPage> {
           )
         else if (_comments.isEmpty)
           Container(
-            padding: const EdgeInsets.all(40),
+            padding: const EdgeInsets.all(16),
             child: Column(
               children: [
                 Icon(

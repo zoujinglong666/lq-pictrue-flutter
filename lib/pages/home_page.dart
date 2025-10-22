@@ -1,23 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:lq_picture/model/picture.dart';
 
 import '../apis/picture_api.dart';
+import '../model/notify.dart';
+import '../services/sse_service.dart';
 import '../widgets/cached_image.dart';
 
-class HomePage extends StatefulWidget {
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends ConsumerState<HomePage> {
   final ScrollController _scrollController = ScrollController();
   int _unreadNotificationCount = 0; // 未读消息数量
   bool _isLoading = false;
   bool _hasMore = true;
   int _currentPage = 1;
+  late SSEService _sseService;
 
 
   List<String> tagList = ["热门", "搞笑", "生活", "高清", "艺术", "校园", "背景", "简历", "创意"];
@@ -25,14 +29,68 @@ class _HomePageState extends State<HomePage> {
   List<PictureVO> _images = [
 
   ];
+
+  /// 设置SSE监听器
+  void _setupSSEListener() {
+    // 后端SSE接口已实现，使用真实连接，传递ref用于检查登录状态
+    _sseService.initialize(ref: ref);
+    _sseService.addUnreadCountListener(_handleUnreadCountChange);
+    _sseService.addNewNotificationListener(_handleNewNotification);
+  }
+
+  /// 处理未读数量变化
+  void _handleUnreadCountChange(int count) {
+    if (mounted) {
+      setState(() {
+        _unreadNotificationCount = count;
+      });
+    }
+  }
+
+  /// 处理新通知到达
+  void _handleNewNotification(NotifyVO notify) {
+    // 可以在这里添加本地通知或弹窗提示
+    print('收到新通知: ${notify.content}');
+    
+    // 如果需要显示弹窗提示
+    _showNotificationDialog(notify);
+  }
+
+  /// 显示通知弹窗（可选功能）
+  void _showNotificationDialog(NotifyVO notify) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('新消息'),
+        content: Text(notify.content),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('知道了'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/notification');
+            },
+            child: const Text('查看'),
+          ),
+        ],
+      ),
+    );
+  }
   @override
   void initState() {
     super.initState();
+    _sseService = SSEService();
+    _setupSSEListener();
     _scrollController.addListener(_onScroll);
     _loadData();
   }
   @override
   void dispose() {
+    _sseService.removeUnreadCountListener(_handleUnreadCountChange);
+    _sseService.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -181,10 +239,8 @@ Future<void> _refreshData() async {
                           icon: Icon(Icons.notifications_none_outlined, color: Colors.grey[700], size: 20),
                           onPressed: () {
                             Navigator.pushNamed(context, '/notification').then((_) {
-                              // 从消息页面返回时，可以更新未读消息数量
-                              setState(() {
-                                _unreadNotificationCount = 0;
-                              });
+                              // 从消息页面返回时，重置未读消息数量
+                              _sseService.resetUnreadCount();
                             });
                           },
                         ),
@@ -222,7 +278,7 @@ Future<void> _refreshData() async {
 
             // 搜索框
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               child: GestureDetector(
                 onTap: () {
                   Navigator.pushNamed(context, '/search');
@@ -252,7 +308,7 @@ Future<void> _refreshData() async {
               ),
             ),
             // _buildDownSimple(context),
-            SizedBox(height: 16),
+            SizedBox(height: 8),
             // 瀑布流内容
             Expanded(
               child: RefreshIndicator(

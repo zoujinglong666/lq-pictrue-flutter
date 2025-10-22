@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-
 import '../apis/notific_api.dart';
 import '../model/notify.dart';
+import '../widgets/skeleton_widgets.dart';
 
 class NotificationPage extends StatefulWidget {
   const NotificationPage({super.key});
@@ -12,26 +12,39 @@ class NotificationPage extends StatefulWidget {
 
 class _NotificationPageState extends State<NotificationPage> {
   late List<NotifyVO> _notifications = [];
+  bool _isLoading = true;
 
   @override
-  void initState()  {
-    // TODO: implement initState
+  void initState() {
     super.initState();
-     _getData();
+    _getData();
   }
 
-  Future<void> _markAsRead(Map<String, dynamic> notification) async {
+  Future<void> _markAsRead(NotifyVO notification) async {
     // TODO: Implement markAsRead
   }
 
   Future<void> _getData() async {
-    final res = await NotifyApi.getList({
-      'page': 1,
-      'pageSize': 10,
-    });
     setState(() {
-      _notifications = res.records ?? [];
+      _isLoading = true;
     });
+    
+    try {
+      final res = await NotifyApi.getList({
+        'page': 1,
+        'pageSize': 10,
+      });
+      setState(() {
+        _notifications = res.records ?? [];
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      // 可以在这里添加错误处理
+      print('获取通知列表失败: $e');
+    }
   }
 
   @override
@@ -61,7 +74,7 @@ class _NotificationPageState extends State<NotificationPage> {
             onPressed: () {
               setState(() {
                 for (var notification in _notifications) {
-                  // notification['isRead'] = true;
+                  notification.readStatus = 1;
                 }
               });
               ScaffoldMessenger.of(context).showSnackBar(
@@ -78,16 +91,18 @@ class _NotificationPageState extends State<NotificationPage> {
           ),
         ],
       ),
-      body: _notifications.isEmpty
-          ? _buildEmptyState()
-          : ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _notifications.length,
-        itemBuilder: (context, index) {
-          final notification = _notifications[index];
-          return _buildNotificationItem(notification);
-        },
-      ),
+      body: _isLoading
+          ? const NotificationListSkeleton(itemCount: 6)
+          : _notifications.isEmpty
+              ? _buildEmptyState()
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _notifications.length,
+                  itemBuilder: (context, index) {
+                    final notification = _notifications[index];
+                    return _buildNotificationItem(notification);
+                  },
+                ),
     );
   }
 
@@ -124,7 +139,7 @@ class _NotificationPageState extends State<NotificationPage> {
   }
 
   Widget _buildNotificationItem(NotifyVO notification) {
-    bool isRead = notification.readStatus==1;
+    bool isRead = notification.readStatus == 1;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -148,12 +163,8 @@ class _NotificationPageState extends State<NotificationPage> {
                 notification.content,
                 style: TextStyle(
                   fontSize: 16,
-                  fontWeight: isRead
-                ? FontWeight.w500
-                    : FontWeight.w600,
-                  color: isRead
-                ? Colors.grey[700]
-                    : Colors.grey[800],
+                  fontWeight: isRead ? FontWeight.w500 : FontWeight.w600,
+                  color: isRead ? Colors.grey[700] : Colors.grey[800],
                 ),
               ),
             ),
@@ -193,27 +204,33 @@ class _NotificationPageState extends State<NotificationPage> {
                 const Spacer(),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(6),
-                  child: Image.network(
-                    notification.pictureUrl ,
-                    width: 40,
-                    height: 40,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(6),
+                  child: notification.pictureUrl != null && notification.pictureUrl!.isNotEmpty
+                      ? Image.network(
+                          notification.pictureUrl!,
+                          width: 40,
+                          height: 40,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[200],
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Icon(Icons.image_not_supported_outlined, color: Colors.grey[400], size: 20),
+                            );
+                          },
+                        )
+                      : Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Icon(Icons.image_outlined, color: Colors.grey[400], size: 20),
                         ),
-                        child: Icon(
-                          Icons.image_not_supported_outlined,
-                          color: Colors.grey[400],
-                          size: 20,
-                        ),
-                      );
-                    },
-                  ),
                 ),
               ],
             ),
@@ -221,7 +238,7 @@ class _NotificationPageState extends State<NotificationPage> {
         ),
         onTap: () {
           setState(() {
-            // notification['isRead'] = true;
+            notification.readStatus = 1;
           });
           // 根据消息类型执行不同的操作
           _handleNotificationTap(notification);
@@ -249,23 +266,15 @@ class _NotificationPageState extends State<NotificationPage> {
     Color iconColor;
 
     switch (type) {
-      case 'comment':
+      case 'COMMENT':
         iconData = Icons.comment_outlined;
         iconColor = Colors.blue[600]!;
         break;
-      case 'like':
+      case 'LIKE':
         iconData = Icons.favorite_outline;
         iconColor = Colors.red[500]!;
         break;
-      case 'audit':
-        iconData = Icons.verified_outlined;
-        iconColor = Colors.green[600]!;
-        break;
-      case 'follow':
-        iconData = Icons.person_add_outlined;
-        iconColor = Colors.purple[600]!;
-        break;
-      case 'system':
+      case 'SYSTEM':
         iconData = Icons.info_outline;
         iconColor = Colors.orange[600]!;
         break;
@@ -294,7 +303,7 @@ class _NotificationPageState extends State<NotificationPage> {
 
     switch (type) {
       case 'COMMENT':
-      // 跳转到图片详情页
+        // 跳转到图片详情页
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('跳转到图片详情页')),
         );
@@ -304,14 +313,8 @@ class _NotificationPageState extends State<NotificationPage> {
           const SnackBar(content: Text('跳转到图片详情页')),
         );
         break;
-      case 'follow':
-      // 跳转到用户资料页
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('跳转到用户资料页')),
-        );
-        break;
-      case 'system':
-      // 系统消息，可能不需要跳转
+      case 'SYSTEM':
+        // 系统消息，可能不需要跳转
         break;
     }
   }

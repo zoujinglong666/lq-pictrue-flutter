@@ -63,3 +63,69 @@ class CommentSkeleton extends StatelessWidget {
     );
   }
 }
+
+// 通知骨架屏
+class NotificationSkeleton extends StatelessWidget {
+  const NotificationSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        leading: const SkeletonBox(width: 40, height: 40, isCircle: true),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SkeletonBox(width: 120, height: 16),
+            const SizedBox(height: 8),
+            const SkeletonBox(width: double.infinity, height: 14),
+            const SizedBox(height: 4),
+            const SkeletonBox(width: 200, height: 14),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const SkeletonBox(width: 80, height: 12),
+                const Spacer(),
+                const SkeletonBox(width: 40, height: 40),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// 通知列表骨架屏
+class NotificationListSkeleton extends StatelessWidget {
+  final int itemCount;
+
+  const NotificationListSkeleton({
+    super.key,
+    this.itemCount = 5,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: itemCount,
+      itemBuilder: (context, index) {
+        return const NotificationSkeleton();
+      },
+    );
+  }
+}

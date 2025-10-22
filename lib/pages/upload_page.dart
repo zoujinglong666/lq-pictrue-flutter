@@ -706,23 +706,24 @@ class _UploadPageState extends ConsumerState<UploadPage>
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-
+                  // 返回按钮 - 仅当有 spaceId 时显示
+                  if (widget.spaceId != null && widget.spaceId!.isNotEmpty)
+                    IconButton(
+                      onPressed: () {
+                        Navigator.of(context).pop(false);
+                      },
+                      icon: const Icon(Icons.arrow_back),
+                      tooltip: '返回',
+                    ),
                   Flexible(
                     child: Text(
-                      widget.spaceId!=null?"个人图库${widget.spaceId }":"上传公共图库",
+                      widget.spaceId != null ? "个人图库${widget.spaceId}" : "上传公共图库",
                       style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   const Spacer(),
-                  // 返回按钮
-                  IconButton(
-                    onPressed: () {
-                      Navigator.of(context).pop(false);
-                    },
-                    icon: const Icon(Icons.arrow_back),
-                    tooltip: '返回',
-                  ),
+
                   if (_hasImages())
                     Row(
                       children: [

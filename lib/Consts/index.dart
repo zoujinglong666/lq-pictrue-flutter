@@ -11,6 +11,7 @@ final class Consts {
   /// About network request
   static const request = (
   baseUrl: "http://10.9.17.161:8123/api",
+  sseBaseUrl: "http://10.9.17.161:8123/api/notify/subscribe",
   port:8123 ,
   socketUrl: "http://10.9.17.161:8123",
   minWaitingTime: Duration(milliseconds: 500),
