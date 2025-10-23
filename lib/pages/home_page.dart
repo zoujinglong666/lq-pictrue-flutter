@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:lq_picture/apis/notific_api.dart';
 import 'package:lq_picture/model/picture.dart';
 
 import '../apis/picture_api.dart';
 import '../model/notify.dart';
 import '../services/sse_service.dart';
 import '../widgets/cached_image.dart';
+import '../providers/unread_provider.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -23,12 +26,9 @@ class _HomePageState extends ConsumerState<HomePage> {
   int _currentPage = 1;
   late SSEService _sseService;
 
-
   List<String> tagList = ["热门", "搞笑", "生活", "高清", "艺术", "校园", "背景", "简历", "创意"];
   List<String> categoryList = ["模板", "电商", "表情包", "素材", "海报"];
-  List<PictureVO> _images = [
-
-  ];
+  List<PictureVO> _images = [];
 
   /// 设置SSE监听器
   void _setupSSEListener() {
@@ -38,20 +38,22 @@ class _HomePageState extends ConsumerState<HomePage> {
     _sseService.addNewNotificationListener(_handleNewNotification);
   }
 
-  /// 处理未读数量变化
+  /// 处理未读数量变化（同步到全局 Provider）
   void _handleUnreadCountChange(int count) {
-    if (mounted) {
-      setState(() {
-        _unreadNotificationCount = count;
-      });
-    }
+    // if (mounted) {
+    //   setState(() {
+    //     _unreadNotificationCount = count;
+    //   });
+    //   // 同步到 Riverpod Provider，供全局使用（底部消息图标角标等）
+    //   ref.read(unreadCountProvider.notifier).state = count;
+    // }
   }
 
   /// 处理新通知到达
   void _handleNewNotification(NotifyVO notify) {
     // 可以在这里添加本地通知或弹窗提示
     print('收到新通知: ${notify.content}');
-    
+    _loadCountUnread();
     // 如果需要显示弹窗提示
     // _showNotificationDialog(notify);
   }
@@ -86,7 +88,9 @@ class _HomePageState extends ConsumerState<HomePage> {
     _setupSSEListener();
     _scrollController.addListener(_onScroll);
     _loadData();
+    _loadCountUnread();
   }
+
   @override
   void dispose() {
     _sseService.removeUnreadCountListener(_handleUnreadCountChange);
@@ -98,7 +102,8 @@ class _HomePageState extends ConsumerState<HomePage> {
   // 更新列表中的图片数据
   void _updatePictureInList(PictureVO updatedPicture) {
     setState(() {
-      final index = _images.indexWhere((picture) => picture.id == updatedPicture.id);
+      final index =
+          _images.indexWhere((picture) => picture.id == updatedPicture.id);
       if (index != -1) {
         _images[index] = updatedPicture;
       }
@@ -106,104 +111,112 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= 
+    if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
       _loadMoreImages();
     }
   }
 
-Future<void> _loadData() async {
-  if (_isLoading) return;
-
-  setState(() {
-    _isLoading = true;
-  });
-
-  try {
-    final res = await PictureApi.getList({
-      "current": 1,
-      "pageSize": 10,
-      "sortField": 'createTime',
-      "sortOrder": 'descend',
-    });
+  Future<void> _loadData() async {
+    if (_isLoading) return;
 
     setState(() {
-      _images = res.records ?? [];
-      _isLoading = false;
-      _currentPage = 2; // 下一页为2
-      _hasMore = (res.records.length ?? 0) >= 10; // 如果返回数据少于请求数量，说明没有更多了
+      _isLoading = true;
     });
-  } catch (e) {
-    setState(() {
-      _isLoading = false;
-    });
+
+    try {
+      final res = await PictureApi.getList({
+        "current": 1,
+        "pageSize": 10,
+        "sortField": 'createTime',
+        "sortOrder": 'descend',
+      });
+
+      setState(() {
+        _images = res.records ?? [];
+        _isLoading = false;
+        _currentPage = 2; // 下一页为2
+        _hasMore = (res.records.length ?? 0) >= 10; // 如果返回数据少于请求数量，说明没有更多了
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
-}
 
-Future<void> _loadMoreImages() async {
-  if (_isLoading || !_hasMore) return;
-
-  setState(() {
-    _isLoading = true;
-  });
-
-  try {
-    final res = await PictureApi.getList({
-      "current": _currentPage,
-      "pageSize": 10,
-      "sortField": 'createTime',
-      "sortOrder": 'descend',
-    });
-
-    setState(() {
-      if (res.records != null) {
-        _images.addAll(res.records!);
-        _currentPage++;
-        // 如果返回数据少于请求数量，说明没有更多了
-        _hasMore = res.records!.length >= 10;
-      } else {
-        _hasMore = false;
-      }
-      _isLoading = false;
-    });
-  } catch (e) {
-    setState(() {
-      _isLoading = false;
-    });
+  Future<void> _loadCountUnread() async {
+    try {
+      final res = await NotifyApi.countUnread();
+      setState(() {
+        _unreadNotificationCount = int.parse(res as String);
+      });
+      ref.read(unreadCountProvider.notifier).state = _unreadNotificationCount;
+    } catch (e) {}
   }
-}
+
+  Future<void> _loadMoreImages() async {
+    if (_isLoading || !_hasMore) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final res = await PictureApi.getList({
+        "current": _currentPage,
+        "pageSize": 10,
+        "sortField": 'createTime',
+        "sortOrder": 'descend',
+      });
+
+      setState(() {
+        if (res.records != null) {
+          _images.addAll(res.records!);
+          _currentPage++;
+          // 如果返回数据少于请求数量，说明没有更多了
+          _hasMore = res.records!.length >= 10;
+        } else {
+          _hasMore = false;
+        }
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
 // 添加一个新的方法用于下拉刷新
-Future<void> _refreshData() async {
-  if (_isLoading) return;
-  setState(() {
-    _isLoading = true;
-    _hasMore = true;
-    _currentPage = 1;
-  });
-
-  try {
-    final res = await PictureApi.getList({
-      "current": 1,
-      "pageSize": 10,
-      "sortField": 'createTime',
-      "sortOrder": 'descend',
-    });
-
+  Future<void> _refreshData() async {
+    if (_isLoading) return;
     setState(() {
-      _images = res.records ?? [];
-      _isLoading = false;
-      _currentPage = 2; // 下一页为2
-      _hasMore = (res.records.length ?? 0) >= 10;
+      _isLoading = true;
+      _hasMore = true;
+      _currentPage = 1;
     });
-  } catch (e) {
-    setState(() {
-      _isLoading = false;
-    });
+    try {
+      await _loadCountUnread();
+      final res = await PictureApi.getList({
+        "current": 1,
+        "pageSize": 10,
+        "sortField": 'createTime',
+        "sortOrder": 'descend',
+      });
+
+      setState(() {
+        _images = res.records ?? [];
+        _isLoading = false;
+        _currentPage = 2; // 下一页为2
+        _hasMore = (res.records.length ?? 0) >= 10;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
-}
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -236,7 +249,8 @@ Future<void> _refreshData() async {
                           border: Border.all(color: Colors.grey.shade300),
                         ),
                         child: IconButton(
-                          icon: Icon(Icons.notifications_none_outlined, color: Colors.grey[700], size: 20),
+                          icon: Icon(Icons.notifications_none_outlined,
+                              color: Colors.grey[700], size: 20),
                           onPressed: () {
                             Navigator.pushNamed(context, '/notification');
                           },
@@ -257,7 +271,9 @@ Future<void> _refreshData() async {
                               minHeight: 16,
                             ),
                             child: Text(
-                              _unreadNotificationCount > 99 ? '99+' : _unreadNotificationCount.toString(),
+                              _unreadNotificationCount > 99
+                                  ? '99+'
+                                  : _unreadNotificationCount.toString(),
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 10,
@@ -290,7 +306,8 @@ Future<void> _refreshData() async {
                   child: Row(
                     children: [
                       const SizedBox(width: 16),
-                      Icon(Icons.search_outlined, color: Colors.grey[600], size: 20),
+                      Icon(Icons.search_outlined,
+                          color: Colors.grey[600], size: 20),
                       const SizedBox(width: 8),
                       Text(
                         '搜索图片...',
@@ -325,11 +342,13 @@ Future<void> _refreshData() async {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.image_outlined, size: 80, color: Colors.grey[300]),
+                            Icon(Icons.image_outlined,
+                                size: 80, color: Colors.grey[300]),
                             const SizedBox(height: 12),
                             Text(
                               '暂无图片',
-                              style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                              style: TextStyle(
+                                  color: Colors.grey[600], fontSize: 16),
                             ),
                             const SizedBox(height: 8),
                             TextButton.icon(
@@ -360,7 +379,8 @@ Future<void> _refreshData() async {
                                 arguments: image,
                               ).then((updatedPicture) {
                                 // 如果详情页返回了更新后的图片数据，更新列表中的对应图片
-                                if (updatedPicture != null && updatedPicture is PictureVO) {
+                                if (updatedPicture != null &&
+                                    updatedPicture is PictureVO) {
                                   _updatePictureInList(updatedPicture);
                                 }
                               });
@@ -383,20 +403,23 @@ Future<void> _refreshData() async {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     AspectRatio(
-                                      aspectRatio: image.picWidth/image.picHeight,
+                                      aspectRatio:
+                                          image.picWidth / image.picHeight,
                                       child: Container(
                                         decoration: BoxDecoration(
                                           color: Colors.grey[100],
                                         ),
-                                        child:  CachedImage(
-                                        fit: BoxFit.cover, imageUrl: image.thumbnailUrl,
-                                      ),
+                                        child: CachedImage(
+                                          fit: BoxFit.cover,
+                                          imageUrl: image.thumbnailUrl,
+                                        ),
                                       ),
                                     ),
                                     Padding(
                                       padding: const EdgeInsets.all(12),
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             image.name,
@@ -412,9 +435,14 @@ Future<void> _refreshData() async {
                                           Row(
                                             children: [
                                               Icon(
-                                                image.hasLiked ? Icons.favorite : Icons.favorite_border_outlined,
+                                                image.hasLiked
+                                                    ? Icons.favorite
+                                                    : Icons
+                                                        .favorite_border_outlined,
                                                 size: 14,
-                                                color: image.hasLiked ? Colors.red[400] : Colors.grey[600],
+                                                color: image.hasLiked
+                                                    ? Colors.red[400]
+                                                    : Colors.grey[600],
                                               ),
                                               const SizedBox(width: 4),
                                               Text(
@@ -426,13 +454,16 @@ Future<void> _refreshData() async {
                                               ),
                                               const Spacer(),
                                               Container(
-                                                padding: const EdgeInsets.symmetric(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
                                                   horizontal: 8,
                                                   vertical: 2,
                                                 ),
                                                 decoration: BoxDecoration(
-                                                  color: const Color(0xFF00BCD4).withOpacity(0.1),
-                                                  borderRadius: BorderRadius.circular(10),
+                                                  color: const Color(0xFF00BCD4)
+                                                      .withOpacity(0.1),
+                                                  borderRadius:
+                                                      BorderRadius.circular(10),
                                                 ),
                                                 child: Text(
                                                   image.category,
@@ -462,7 +493,7 @@ Future<void> _refreshData() async {
                         padding: const EdgeInsets.all(16),
                         child: _isLoading
                             ? const Center(
-                          child: CircularProgressIndicator(),
+                                child: CircularProgressIndicator(),
                               )
                             : !_hasMore
                                 ? Center(
@@ -487,4 +518,3 @@ Future<void> _refreshData() async {
     );
   }
 }
-

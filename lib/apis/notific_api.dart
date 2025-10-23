@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import '../model/notify.dart';
 import '../model/page.dart';
 import '../model/result.dart';
@@ -11,7 +13,8 @@ class NotifyApi {
       data: data,
     );
 
-    return result.toModel((json) => Page.fromJson(json, (item) => NotifyVO.fromJson(item)));
+    return result.toModel(
+        (json) => Page.fromJson(json, (item) => NotifyVO.fromJson(item)));
   }
 
   /// 标记单个通知为已读
@@ -31,6 +34,7 @@ class NotifyApi {
 
     return result.data == true;
   }
+
   static Future<bool> deleteNotify(Map<String, dynamic> data) async {
     final result = await Http.post<Result>(
       "/notify/delete",
@@ -38,13 +42,13 @@ class NotifyApi {
     );
     return result.data == true;
   }
+
   /// 获取未读消息数量
-  static Future<int> countUnread() async {
+  static Future<String> countUnread() async {
     final result = await Http.get<Result>(
       "/notify/count/unread",
     );
-
-    return result.data ?? 0;
+    return result.data;
   }
 
   /// 获取未读消息数量
@@ -54,5 +58,4 @@ class NotifyApi {
     );
     return result.data == true;
   }
-
 }

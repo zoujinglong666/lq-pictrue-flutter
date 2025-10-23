@@ -3,6 +3,8 @@ import 'package:lq_picture/apis/picture_api.dart';
 import '../apis/notific_api.dart';
 import '../model/notify.dart';
 import '../widgets/skeleton_widgets.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/unread_provider.dart';
 
 class NotificationPage extends StatefulWidget {
   const NotificationPage({super.key});
@@ -30,6 +32,7 @@ class _NotificationPageState extends State<NotificationPage> {
       setState(() {
         notification.readStatus = 1;
       });
+      _syncUnreadBadge();
     } catch (e) {
       print('标记已读失败: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -46,6 +49,7 @@ class _NotificationPageState extends State<NotificationPage> {
           notification.readStatus = 1;
         }
       });
+      _syncUnreadBadge();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('已标记所有消息为已读')),
       );
@@ -65,6 +69,7 @@ class _NotificationPageState extends State<NotificationPage> {
       setState(() {
         _notifications.remove(notification);
       });
+      _syncUnreadBadge();
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -75,6 +80,7 @@ class _NotificationPageState extends State<NotificationPage> {
               setState(() {
                 _notifications.insert(0, notification);
               });
+              _syncUnreadBadge();
             },
           ),
         ),
@@ -101,6 +107,8 @@ class _NotificationPageState extends State<NotificationPage> {
         _notifications = res.records ?? [];
         _isLoading = false;
       });
+      // 如果分页对象不包含未读总数字段，直接根据返回的列表本地计算并同步角标
+      _syncUnreadBadge();
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -108,6 +116,17 @@ class _NotificationPageState extends State<NotificationPage> {
       // 可以在这里添加错误处理
       print('获取通知列表失败: $e');
     }
+  }
+
+  // 计算未读并同步到全局 Provider
+  void _syncUnreadBadge() {
+    final int unread = _notifications.where((n) => (n.readStatus ?? 0) == 0).length;
+    _setUnreadBadge(unread);
+  }
+  void _setUnreadBadge(int count) {
+    // 在非 ConsumerWidget 中使用 Riverpod
+    final container = ProviderScope.containerOf(context, listen: false);
+    container.read(unreadCountProvider.notifier).state = count;
   }
 
   @override
