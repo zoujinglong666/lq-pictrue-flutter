@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lq_picture/apis/picture_api.dart';
 import '../apis/notific_api.dart';
 import '../model/notify.dart';
 import '../widgets/skeleton_widgets.dart';
@@ -21,14 +22,76 @@ class _NotificationPageState extends State<NotificationPage> {
   }
 
   Future<void> _markAsRead(NotifyVO notification) async {
-    // TODO: Implement markAsRead
+    if (notification.readStatus == 1) {
+      return;
+    }
+    try {
+      await NotifyApi.markRead(notification.id);
+      setState(() {
+        notification.readStatus = 1;
+      });
+    } catch (e) {
+      print('标记已读失败: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('标记已读失败，请重试')),
+      );
+    }
+  }
+
+  Future<void> _markAllRead() async {
+    try {
+      await NotifyApi.markAllRead();
+      setState(() {
+        for (var notification in _notifications) {
+          notification.readStatus = 1;
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('已标记所有消息为已读')),
+      );
+    } catch (e) {
+      print('标记全部已读失败: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('标记全部已读失败，请重试')),
+      );
+    }
+  }
+
+  Future<void> _deleteNotification(NotifyVO notification) async {
+    try {
+      await NotifyApi.deleteNotify({
+        'id': notification.id,
+      });
+      setState(() {
+        _notifications.remove(notification);
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('消息已删除'),
+          action: SnackBarAction(
+            label: '撤销',
+            onPressed: () {
+              setState(() {
+                _notifications.insert(0, notification);
+              });
+            },
+          ),
+        ),
+      );
+    } catch (e) {
+      print('删除消息失败: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('删除失败，请重试')),
+      );
+    }
   }
 
   Future<void> _getData() async {
     setState(() {
       _isLoading = true;
     });
-    
+
     try {
       final res = await NotifyApi.getList({
         'page': 1,
@@ -71,16 +134,7 @@ class _NotificationPageState extends State<NotificationPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              setState(() {
-                for (var notification in _notifications) {
-                  notification.readStatus = 1;
-                }
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('已标记所有消息为已读')),
-              );
-            },
+            onPressed: _markAllRead,
             child: Text(
               '全部已读',
               style: TextStyle(
@@ -96,11 +150,16 @@ class _NotificationPageState extends State<NotificationPage> {
           : _notifications.isEmpty
               ? _buildEmptyState()
               : ListView.builder(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(8),
                   itemCount: _notifications.length,
                   itemBuilder: (context, index) {
                     final notification = _notifications[index];
-                    return _buildNotificationItem(notification);
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 4, vertical: 4),
+                      child: _buildDismissibleNotificationItem(
+                          notification, index),
+                    );
                   },
                 ),
     );
@@ -138,98 +197,144 @@ class _NotificationPageState extends State<NotificationPage> {
     );
   }
 
+  Widget _buildDismissibleNotificationItem(NotifyVO notification, int index) {
+    return Dismissible(
+      key: Key('notification_${notification.id}_$index'),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        decoration: BoxDecoration(
+          color: Colors.red,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Align(
+          alignment: Alignment.centerRight,
+          child: Padding(
+            padding: EdgeInsets.only(right: 20),
+            child: Icon(
+              Icons.delete_outline,
+              color: Colors.white,
+              size: 24,
+            ),
+          ),
+        ),
+      ),
+      confirmDismiss: (direction) async {
+        return await showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('确认删除'),
+              content: const Text('确定要删除这条消息吗？'),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('取消'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text('删除'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+      onDismissed: (direction) {
+        _deleteNotification(notification);
+      },
+      child: _buildNotificationItem(notification),
+    );
+  }
+
   Widget _buildNotificationItem(NotifyVO notification) {
     bool isRead = notification.readStatus == 1;
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.grey.withOpacity(0.08),
+            blurRadius: 6,
+            offset: const Offset(0, 1),
           ),
         ],
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         leading: _buildNotificationIcon(notification),
-        title: Row(
-          children: [
-            Expanded(
-              child: Text(
-                notification.content,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: isRead ? FontWeight.w500 : FontWeight.w600,
-                  color: isRead ? Colors.grey[700] : Colors.grey[800],
-                ),
-              ),
-            ),
-            if (!isRead)
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: Colors.red[500],
-                  shape: BoxShape.circle,
-                ),
-              ),
-          ],
-        ),
-        subtitle: Column(
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 4),
-            Text(
-              notification.content,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-                height: 1.3,
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    notification.content,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: isRead ? FontWeight.w500 : FontWeight.w600,
+                      color: isRead ? Colors.grey[700] : Colors.grey[800],
+                      height: 1.4,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (!isRead)
+                  Container(
+                    width: 6,
+                    height: 6,
+                    margin: const EdgeInsets.only(left: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.red[500],
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+              ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             Row(
               children: [
                 Text(
-                  notification.createTime.toString(),
+                  _formatTime(notification.createTime),
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 11,
                     color: Colors.grey[500],
                   ),
                 ),
                 const Spacer(),
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: notification.pictureUrl != null && notification.pictureUrl!.isNotEmpty
+                  borderRadius: BorderRadius.circular(4),
+                  child: notification.pictureUrl != null &&
+                          notification.pictureUrl!.isNotEmpty
                       ? Image.network(
                           notification.pictureUrl!,
-                          width: 40,
-                          height: 40,
+                          width: 32,
+                          height: 32,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
                             return Container(
-                              width: 40,
-                              height: 40,
+                              width: 32,
+                              height: 32,
                               decoration: BoxDecoration(
                                 color: Colors.grey[200],
-                                borderRadius: BorderRadius.circular(6),
+                                borderRadius: BorderRadius.circular(4),
                               ),
-                              child: Icon(Icons.image_not_supported_outlined, color: Colors.grey[400], size: 20),
+                              child: Icon(Icons.image_not_supported_outlined,
+                                  color: Colors.grey[400], size: 16),
                             );
                           },
                         )
                       : Container(
-                          width: 40,
-                          height: 40,
+                          width: 32,
+                          height: 32,
                           decoration: BoxDecoration(
                             color: Colors.grey[200],
-                            borderRadius: BorderRadius.circular(6),
+                            borderRadius: BorderRadius.circular(4),
                           ),
-                          child: Icon(Icons.image_outlined, color: Colors.grey[400], size: 20),
+                          child: Icon(Icons.image_outlined,
+                              color: Colors.grey[400], size: 16),
                         ),
                 ),
               ],
@@ -237,10 +342,7 @@ class _NotificationPageState extends State<NotificationPage> {
           ],
         ),
         onTap: () {
-          setState(() {
-            notification.readStatus = 1;
-          });
-          // 根据消息类型执行不同的操作
+          _markAsRead(notification);
           _handleNotificationTap(notification);
         },
       ),
@@ -298,20 +400,48 @@ class _NotificationPageState extends State<NotificationPage> {
     );
   }
 
-  void _handleNotificationTap(NotifyVO notification) {
-    String type = notification.type;
+  String _formatTime(int timestamp) {
+    if (timestamp == 0) return '';
+    try {
+      final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
+      final now = DateTime.now();
+      final difference = now.difference(date);
 
+      if (difference.inDays > 0) {
+        return '${difference.inDays}天前';
+      } else if (difference.inHours > 0) {
+        return '${difference.inHours}小时前';
+      } else if (difference.inMinutes > 0) {
+        return '${difference.inMinutes}分钟前';
+      } else {
+        return '刚刚';
+      }
+    } catch (e) {
+      return '';
+    }
+  }
+
+  Future<void> _handleNotificationTap(NotifyVO notification) async {
+    String type = notification.type;
     switch (type) {
       case 'COMMENT':
-        // 跳转到图片详情页
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('跳转到图片详情页')),
-        );
-        break;
       case 'LIKE':
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('跳转到图片详情页')),
-        );
+      case 'PICTURE_REVIEW':
+        // 跳转到图片详情页
+        final pic = await PictureApi.getPictureDetail({
+          'id': notification.pictureId,
+        });
+        if (notification.pictureId > 0) {
+          Navigator.pushNamed(
+            context,
+            '/detail',
+            arguments: pic,
+          ).then((updatedPicture) {});
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('无法跳转，图片ID无效')),
+          );
+        }
         break;
       case 'SYSTEM':
         // 系统消息，可能不需要跳转

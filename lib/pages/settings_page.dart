@@ -5,7 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 
+import '../apis/notific_api.dart';
 import '../providers/auth_provider.dart';
+import '../services/sse_service.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -52,19 +54,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       // 获取应用缓存目录
       final tempDir = await getTemporaryDirectory();
       final cacheDir = await getApplicationCacheDirectory();
-      
+
       int totalSize = 0;
-      
+
       // 计算临时目录大小
       if (await tempDir.exists()) {
         totalSize += await _calculateDirectorySize(tempDir);
       }
-      
+
       // 计算缓存目录大小
       if (await cacheDir.exists()) {
         totalSize += await _calculateDirectorySize(cacheDir);
       }
-      
+
       // 计算网络图片缓存大小（Flutter的默认缓存位置）
       final appDir = await getApplicationSupportDirectory();
       final flutterCacheDir = Directory('${appDir.path}/flutter_cache');
@@ -86,7 +88,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     int size = 0;
     try {
       if (await directory.exists()) {
-        await for (final entity in directory.list(recursive: true, followLinks: false)) {
+        await for (final entity
+            in directory.list(recursive: true, followLinks: false)) {
           if (entity is File) {
             try {
               size += await entity.length();
@@ -268,8 +271,17 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Future<void> _logout() async {
-    // 清除用户数据
+    try {
+      // 关闭SSE连接
+      await NotifyApi.unsubscribe();
+      final sseService = SSEService();
+      await sseService.disconnect();
+      print('SSE连接已关闭');
+    } catch (e) {
+      print('关闭SSE连接时出错: $e');
+    }
 
+    // 清除用户数据
     // 执行登出操作
     final authNotifier = ref.read(authProvider.notifier);
     authNotifier.logout();
@@ -281,7 +293,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           backgroundColor: Colors.green,
         ),
       );
-      
       // 跳转到登录页面并清除所有路由栈
       Navigator.pushNamedAndRemoveUntil(
         context,
@@ -318,7 +329,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         child: Column(
           children: [
             const SizedBox(height: 16),
-            
+
             // 通知设置
             _buildSectionTitle('通知设置'),
             _buildSettingCard([
@@ -360,9 +371,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 trailing: Icon(Icons.chevron_right, color: Colors.grey[400]),
               ),
             ]),
-            
+
             const SizedBox(height: 20),
-            
+
             // 账号安全
             _buildSectionTitle('账号安全'),
             _buildSettingCard([
@@ -414,9 +425,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 trailing: Icon(Icons.chevron_right, color: Colors.grey[400]),
               ),
             ]),
-            
+
             const SizedBox(height: 20),
-            
+
             // 关于应用
             _buildSectionTitle('关于应用'),
             _buildSettingCard([
@@ -465,9 +476,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 trailing: Icon(Icons.chevron_right, color: Colors.grey[400]),
               ),
             ]),
-            
+
             const SizedBox(height: 20),
-            
+
             // 账户操作
             _buildSectionTitle('账户操作'),
             _buildSettingCard([
@@ -480,7 +491,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 titleColor: Colors.red[600],
               ),
             ]),
-            
+
             const SizedBox(height: 40),
           ],
         ),
@@ -579,8 +590,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(
-          icon, 
-          color: titleColor ?? Colors.grey[600], 
+          icon,
+          color: titleColor ?? Colors.grey[600],
           size: 20,
         ),
       ),

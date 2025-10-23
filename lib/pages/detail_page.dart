@@ -20,7 +20,24 @@ class DetailPage extends ConsumerStatefulWidget {
   @override
   ConsumerState<DetailPage> createState() => _DetailPageState();
 }
+class _FlatComment {
+  final CommentVO? comment;
+  final int level;
+  final bool isControl;
+  final String? parentId;
+  final bool? expanded;
+  final int? remainingCount;
 
+  _FlatComment(this.comment, this.level)
+      : isControl = false,
+        parentId = null,
+        expanded = null,
+        remainingCount = null;
+
+  _FlatComment.control(this.parentId, this.expanded, this.remainingCount, this.level)
+      : isControl = true,
+        comment = null;
+}
 class _DetailPageState extends ConsumerState<DetailPage> {
   bool _isFavorite = false;
   bool _isImageLoaded = false; // 图片加载状态
@@ -33,6 +50,16 @@ class _DetailPageState extends ConsumerState<DetailPage> {
   String? _parentId;
   String? _highlightedCommentId; // 高亮的评论ID
   String? _highlightedReplyId; // 高亮的回复ID
+  // 展开/折叠状态：key 为评论ID，值为是否展开其子回复
+  final Map<String, bool> _expanded = {};
+  // 用于滚动定位与高亮定位的 Item Keys
+  final Map<String, GlobalKey> _itemKeys = {};
+  GlobalKey _getItemKey(String id) => _itemKeys.putIfAbsent(id, () => GlobalKey());
+  
+  // 默认每层先展示的子回复数量（未展开状态）
+  final int _initialChildren = 3;
+  // 最大默认展开层级（超过则默认折叠，需要手动展开）
+  final int _maxDefaultDepth = 2;
 
   // 模拟图片详情数据
   late PictureVO _imageDetails;
@@ -125,6 +152,7 @@ class _DetailPageState extends ConsumerState<DetailPage> {
           _commentsLoading = false;
         });
       }
+      print(res.records.toString());
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -457,7 +485,7 @@ class _DetailPageState extends ConsumerState<DetailPage> {
                               // 评论区
                               Container(
                                 key: _commentsKey,
-                                child: _buildCommentsSection(),
+                                child: _buildCommentsSection1(),
                               ),
                               const SizedBox(height: 20),
                               // 减少底部空间
@@ -861,13 +889,31 @@ class _DetailPageState extends ConsumerState<DetailPage> {
             ),
           )
         else
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _comments.length,
-            itemBuilder: (context, index) {
-              return _buildCommentItem(_comments[index]);
-            },
+          Column(
+            children: [
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _comments.length,
+                itemBuilder: (context, index) {
+                  return _buildCommentItem(_comments[index]);
+                },
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  const Expanded(child: Divider(thickness: 1, color: Color(0xFFEFEFEF))),
+                  const SizedBox(width: 8),
+                  Text(
+                    '已显示全部评论',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  ),
+                  const SizedBox(width: 8),
+                  const Expanded(child: Divider(thickness: 1, color: Color(0xFFEFEFEF))),
+                ],
+              ),
+              const SizedBox(height: 8),
+            ],
           ),
       ],
     );
@@ -878,6 +924,7 @@ class _DetailPageState extends ConsumerState<DetailPage> {
     final isHighlighted = _highlightedCommentId?.toString() == comment.id;
 
     return Container(
+      key: _getItemKey(comment.id),
       margin: const EdgeInsets.only(bottom: 16),
       padding: isHighlighted ? const EdgeInsets.all(12) : EdgeInsets.zero,
       decoration: isHighlighted
@@ -930,7 +977,7 @@ class _DetailPageState extends ConsumerState<DetailPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 用户名和时间
+                    // 用户名、时间与回复数气泡
                     Row(
                       children: [
                         Text(
@@ -948,6 +995,30 @@ class _DetailPageState extends ConsumerState<DetailPage> {
                             fontSize: 12,
                           ),
                         ),
+                        const Spacer(),
+                        if (comment.replies.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF5F7FA),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: const Color(0xFFE5EAF1)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.chat_bubble_outline, size: 12, color: Color(0xFF4FC3F7)),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${comment.replies.length}',
+                                  style: const TextStyle(
+                                    color: Color(0xFF4FC3F7),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                       ],
                     ),
                     const SizedBox(height: 6),
@@ -1011,12 +1082,72 @@ class _DetailPageState extends ConsumerState<DetailPage> {
 
           // 回复列表
           if (comment.replies.isNotEmpty)
-            Container(
-              margin: const EdgeInsets.only(left: 44, top: 12),
-              child: Column(
-                children: comment.replies.map<Widget>((reply) {
-                  return _buildReplyItem(reply);
-                }).toList(),
+            _buildRepliesTree(comment.replies, 1, parentId: comment.id),
+        ],
+      ),
+    );
+  }
+
+  // 构建回复树（支持多级 + 可折叠 + 限制初始数量）
+  Widget _buildRepliesTree(List<CommentVO> replies, int level, {String? parentId}) {
+    if (replies.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final double indent = 44 + (level - 1) * 24;
+    final String keyId = parentId ?? 'root-$level';
+    final bool expanded = _expanded[keyId] ?? (level <= _maxDefaultDepth);
+
+    // 计算需要显示的条数（未展开时仅显示前 _initialChildren 条）
+    final int visibleCount = expanded ? replies.length : replies.length.clamp(0, _initialChildren);
+    final List<CommentVO> visibleReplies = replies.take(visibleCount).toList();
+
+    return Container(
+      margin: EdgeInsets.only(left: indent, top: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 可见的子回复列表
+          ...visibleReplies.map((reply) => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildReplyItem(reply, level),
+                  if (reply.replies.isNotEmpty)
+                    _buildRepliesTree(reply.replies, level + 1, parentId: reply.id),
+                ],
+              )),
+
+          // 展开/收起按钮（当有更多未显示项时）
+          if (replies.length > visibleCount)
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _expanded[keyId] = true;
+                });
+              },
+              child: Padding(
+                padding: const EdgeInsets.only(left: 0, top: 8, bottom: 4),
+                child: Text(
+                  '展开剩余${replies.length - visibleCount}条回复',
+                  style: const TextStyle(color: Color(0xFF4FC3F7), fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+
+          // 已展开时提供“收起”入口（避免列表过长）
+          if (expanded && replies.length > _initialChildren)
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _expanded[keyId] = false;
+                });
+              },
+              child: Padding(
+                padding: const EdgeInsets.only(left: 0, top: 4),
+                child: Text(
+                  '收起回复',
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                ),
               ),
             ),
         ],
@@ -1024,11 +1155,12 @@ class _DetailPageState extends ConsumerState<DetailPage> {
     );
   }
 
-  // 构建回复项
-  Widget _buildReplyItem(CommentVO reply) {
+  // 构建回复项（带层级）
+  Widget _buildReplyItem(CommentVO reply, int level) {
     final isHighlighted = _highlightedReplyId?.toString() == reply.id;
 
     return Container(
+      key: _getItemKey(reply.id),
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -1079,14 +1211,49 @@ class _DetailPageState extends ConsumerState<DetailPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 用户名和时间
+                // 用户名与层级指示线
                 Row(
                   children: [
-                    Text(
-                      reply.user.userName,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            reply.user.userName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
+                          ),
+                          if (level > 1)
+                            Row(
+                              children: [
+                                Container(
+                                  width: 12,
+                                  height: 1,
+                                  margin: const EdgeInsets.only(right: 6, top: 6),
+                                  color: Colors.grey[300],
+                                ),
+                                Text(
+                                  '回复',
+                                  style: TextStyle(
+                                    color: Colors.grey[500],
+                                    fontSize: 11,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  reply.replies.isNotEmpty
+                                      ? '${reply.replies.length}条回复'
+                                      : '展开',
+                                  style: TextStyle(
+                                    color: Colors.grey[500],
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                        ],
                       ),
                     ),
                     const SizedBox(width: 6),
@@ -1175,17 +1342,27 @@ class _DetailPageState extends ConsumerState<DetailPage> {
     MyToast.showInfo('点赞功能暂未实现');
   }
 
-  // 回复评论
+  // 回复评论（同时设置评论与回复高亮，并滚动定位到目标项）
   void _replyToComment(CommentVO comment) {
     setState(() {
       _replyToUser = comment.user.userName ?? '无名';
       _parentId = comment.id;
-      _highlightedCommentId = comment.id; // 高亮当前评论
-      _highlightedReplyId = null; // 清除回复高亮
+      _highlightedCommentId = comment.id;
+      _highlightedReplyId = comment.id;
     });
-    // 延迟一帧后请求焦点，确保UI更新完成
+    // 延迟一帧后：请求焦点 + 滚动到高亮项，确保用户可见
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _commentFocusNode.requestFocus();
+      final key = _getItemKey(comment.id);
+      final ctx = key.currentContext;
+      if (ctx != null) {
+        Scrollable.ensureVisible(
+          ctx,
+          duration: const Duration(milliseconds: 200),
+          alignment: 0.1,
+          curve: Curves.easeOut,
+        );
+      }
     });
   }
 
@@ -1414,7 +1591,33 @@ class _DetailPageState extends ConsumerState<DetailPage> {
       });
     }
   }
+  // 将评论树扁平化
+  List<_FlatComment> _flattenComments(CommentVO root, [int level = 0]) {
+    final List<_FlatComment> result = [];
+    result.add(_FlatComment(root, level));
 
+    final bool expanded = _expanded[root.id] ?? false;
+    final replies = root.replies;
+
+    // 默认只展示前 2 条回复
+    final visibleReplies = expanded ? replies : replies.take(2).toList();
+
+    for (final reply in visibleReplies) {
+      result.addAll(_flattenComments(reply, level + 1));
+    }
+
+    // 追加“展开更多”或“收起”按钮占位
+    if (replies.length > 2) {
+      result.add(_FlatComment.control(
+        root.id,
+        expanded,
+        replies.length - visibleReplies.length,
+        level + 1,
+      ));
+    }
+
+    return result;
+  }
   @override
   void dispose() {
     _commentController.dispose();
@@ -1456,6 +1659,168 @@ class _DetailPageState extends ConsumerState<DetailPage> {
           ),
         ],
       ),
+    );
+  }
+
+
+
+  // 单条评论渲染
+  Widget _buildFlatCommentItem(CommentVO comment, int level) {
+    final double indent = level == 0 ? 0 : (level == 1 ? 40 : 56);
+    final replyName = comment.user.userName;
+
+    return Container(
+      margin: EdgeInsets.only(left: indent, bottom: 12),
+      padding: const EdgeInsets.only(left: 8, right: 8, top: 4, bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 头像
+          CircleAvatar(
+            radius: 16,
+            backgroundColor: Colors.grey[300],
+            backgroundImage: comment.user.userAvatar != null
+                ? NetworkImage(comment.user.userAvatar!)
+                : null,
+            child: comment.user.userAvatar == null
+                ? Icon(Icons.person, color: Colors.grey[600], size: 16)
+                : null,
+          ),
+          const SizedBox(width: 10),
+
+          // 内容区
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 用户名 + 时间
+                Row(
+                  children: [
+                    Text(
+                      comment.user.userName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _formatTime(comment.createTime),
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+
+                // 评论文本（含“回复 xxx”高亮）
+                RichText(
+                  text: TextSpan(
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.black87,
+                      height: 1.3,
+                    ),
+                    children: [
+                      TextSpan(
+                        // text: '回复 $replyName：',
+                        style: const TextStyle(
+                          color: Color(0xFF4FC3F7),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      TextSpan(text: comment.content),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 6),
+
+                // 操作行
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () {},
+                      child: Row(
+                        children: [
+                          Icon(Icons.favorite_border,
+                              size: 14, color: Colors.grey[600]),
+                          const SizedBox(width: 3),
+                          Text('0',
+                              style: TextStyle(
+                                  color: Colors.grey[600], fontSize: 11)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    GestureDetector(
+                      onTap: () {
+                        _replyToComment(comment);
+                      },
+                      child: Text(
+                        '回复',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExpandControl(_FlatComment item) {
+    final double indent = item.level == 0 ? 0 : (item.level == 1 ? 40 : 56);
+    final bool expanded = item.expanded ?? false;
+    final String parentId = item.parentId!;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _expanded[parentId] = !expanded;
+        });
+      },
+      child: Container(
+        margin: EdgeInsets.only(left: indent, bottom: 8),
+        child: Text(
+          expanded
+              ? '收起回复'
+              : '展开剩余${item.remainingCount}条回复',
+          style: TextStyle(
+            color: expanded ? Colors.grey[600] : const Color(0xFF4FC3F7),
+            fontSize: 12,
+            fontWeight:
+            expanded ? FontWeight.normal : FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+
+
+  Widget _buildCommentsSection1() {
+    final flatList = _comments
+        .expand((c) => _flattenComments(c))
+        .toList(growable: false);
+
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: flatList.length,
+      itemBuilder: (context, index) {
+        final item = flatList[index];
+        if (item.isControl) return _buildExpandControl(item);
+        return _buildFlatCommentItem(item.comment!, item.level);
+      },
     );
   }
 }

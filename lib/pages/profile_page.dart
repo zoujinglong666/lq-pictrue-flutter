@@ -153,10 +153,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     Expanded(
                       child: _buildStatCard('收藏', '45', Icons.favorite),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildStatCard('浏览', '1.2k', Icons.visibility),
-                    ),
                   ],
                 ),
               ),

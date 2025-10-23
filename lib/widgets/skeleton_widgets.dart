@@ -71,35 +71,35 @@ class NotificationSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.grey.withOpacity(0.08),
+            blurRadius: 6,
+            offset: const Offset(0, 1),
           ),
         ],
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
-        leading: const SkeletonBox(width: 40, height: 40, isCircle: true),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        leading: const SkeletonBox(width: 32, height: 32, isCircle: true),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SkeletonBox(width: 120, height: 16),
-            const SizedBox(height: 8),
-            const SkeletonBox(width: double.infinity, height: 14),
+            const SkeletonBox(width: 100, height: 14),
             const SizedBox(height: 4),
-            const SkeletonBox(width: 200, height: 14),
-            const SizedBox(height: 8),
+            const SkeletonBox(width: double.infinity, height: 12),
+            const SizedBox(height: 2),
+            const SkeletonBox(width: 150, height: 12),
+            const SizedBox(height: 4),
             Row(
               children: [
-                const SkeletonBox(width: 80, height: 12),
+                const SkeletonBox(width: 60, height: 10),
                 const Spacer(),
-                const SkeletonBox(width: 40, height: 40),
+                const SkeletonBox(width: 32, height: 32),
               ],
             ),
           ],
@@ -121,7 +121,7 @@ class NotificationListSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: itemCount,
       itemBuilder: (context, index) {
         return const NotificationSkeleton();

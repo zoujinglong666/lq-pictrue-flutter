@@ -60,6 +60,8 @@ class _PictureManagementPageState extends State<PictureManagementPage> with Keyb
       final requestData = {
         'current': page ?? _currentPage,
         'pageSize': _pageSize,
+        "sortField": 'createTime',
+        "sortOrder": 'descend',
       } as Map<String, dynamic>;
 
       // 添加搜索条件

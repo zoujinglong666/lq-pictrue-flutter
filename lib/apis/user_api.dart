@@ -32,27 +32,26 @@ class UserDto {
     this.editTime,
   });
 
- factory UserDto.fromJson(Map<String, dynamic> json) {
-  return UserDto(
-    id: json['id'] as String?,
-    userName: json['userName'] as String?,
-    userAccount: json['userAccount'] as String?,
-    userAvatar: json['userAvatar'] as String?,
-    userProfile: json['userProfile'] as String?,
-    userRole: json['userRole'] as String?,
-    token: json['token'] as String?,
-    createTime: json['createTime'] == null
-        ? null
-        : DateTime.fromMillisecondsSinceEpoch(json['createTime'] as int),
-    updateTime: json['updateTime'] == null
-        ? null
-        : DateTime.fromMillisecondsSinceEpoch(json['updateTime'] as int),
-    editTime: json['editTime'] == null
-        ? null
-        : DateTime.fromMillisecondsSinceEpoch(json['editTime'] as int),
-  );
-}
-
+  factory UserDto.fromJson(Map<String, dynamic> json) {
+    return UserDto(
+      id: json['id'] as String?,
+      userName: json['userName'] as String?,
+      userAccount: json['userAccount'] as String?,
+      userAvatar: json['userAvatar'] as String?,
+      userProfile: json['userProfile'] as String?,
+      userRole: json['userRole'] as String?,
+      token: json['token'] as String?,
+      createTime: json['createTime'] == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(json['createTime'] as int),
+      updateTime: json['updateTime'] == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(json['updateTime'] as int),
+      editTime: json['editTime'] == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(json['editTime'] as int),
+    );
+  }
 
   Map<String, dynamic> toJson() {
     return {
@@ -68,13 +67,9 @@ class UserDto {
       'editTime': editTime?.millisecondsSinceEpoch,
     };
   }
-
 }
 
-
 class UserApi {
-
-
   /// 用户登录
   static Future<LoginUserVO> userLogin(Map<String, dynamic> data) async {
     final result = await Http.post<Result>(
@@ -94,13 +89,20 @@ class UserApi {
     return result.modelToString();
   }
 
-
-
   static Future<bool> userLogout() async {
     final result = await Http.post<Result>(
       "/user/logout",
     );
-    return result.toBoolean() ;
+    // 后端返回的是int类型（1表示成功），需要特殊处理
+    if (result.success) {
+      // 检查data是否为1（成功）
+      if (result.data == 1) {
+        return true;
+      }
+      // 如果data不是1，但success为true，也认为是成功
+      return true;
+    }
+    return false;
   }
 
   /// 获取当前用户信息
@@ -110,12 +112,13 @@ class UserApi {
   }
 
   /// 获取用户列表
-  static Future<List<UserDto>> getUserList({int page = 1, int perPage = 10}) async {
+  static Future<List<UserDto>> getUserList(
+      {int current = 1, int pageSize = 10}) async {
     final result = await Http.get<Result>(
       "/users",
       query: {
-        'page': page,
-        'per_page': perPage,
+        'current': current,
+        'pageSize': pageSize,
       },
     );
     return result.toArray((json) => UserDto.fromJson(json));
@@ -171,5 +174,4 @@ class UserApi {
       rethrow;
     }
   }
-
 }

@@ -309,6 +309,16 @@ class PictureApi {
 
     return result.toModel((json) => Page.fromJson(json, (item) => PictureVO.fromJson(item)));
   }
+  static Future<PictureVO> getPictureDetail(Map<String, dynamic> data) async {
+    final result = await Http.get<Result>(
+      "/picture/get/vo",
+      query: data,
+    );
+    return  result.toModel((json) => PictureVO.fromJson(json));
+  }
+
+
+
 
   /// 获取图片列表
   static Future<PictureUploadVO> uploadPictureByUrl(Map<String, dynamic> data) async {

@@ -53,32 +53,32 @@ class _HomePageState extends ConsumerState<HomePage> {
     print('收到新通知: ${notify.content}');
     
     // 如果需要显示弹窗提示
-    _showNotificationDialog(notify);
+    // _showNotificationDialog(notify);
   }
 
   /// 显示通知弹窗（可选功能）
-  void _showNotificationDialog(NotifyVO notify) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('新消息'),
-        content: Text(notify.content),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('知道了'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pushNamed(context, '/notification');
-            },
-            child: const Text('查看'),
-          ),
-        ],
-      ),
-    );
-  }
+  // void _showNotificationDialog(NotifyVO notify) {
+  //   showDialog(
+  //     context: context,
+  //     builder: (context) => AlertDialog(
+  //       title: const Text('新消息'),
+  //       content: Text(notify.content),
+  //       actions: [
+  //         TextButton(
+  //           onPressed: () => Navigator.pop(context),
+  //           child: const Text('知道了'),
+  //         ),
+  //         TextButton(
+  //           onPressed: () {
+  //             Navigator.pop(context);
+  //             Navigator.pushNamed(context, '/notification');
+  //           },
+  //           child: const Text('查看'),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
   @override
   void initState() {
     super.initState();
@@ -194,7 +194,7 @@ Future<void> _refreshData() async {
       _images = res.records ?? [];
       _isLoading = false;
       _currentPage = 2; // 下一页为2
-      _hasMore = (res.records?.length ?? 0) >= 10;
+      _hasMore = (res.records.length ?? 0) >= 10;
     });
   } catch (e) {
     setState(() {
@@ -238,10 +238,7 @@ Future<void> _refreshData() async {
                         child: IconButton(
                           icon: Icon(Icons.notifications_none_outlined, color: Colors.grey[700], size: 20),
                           onPressed: () {
-                            Navigator.pushNamed(context, '/notification').then((_) {
-                              // 从消息页面返回时，重置未读消息数量
-                              _sseService.resetUnreadCount();
-                            });
+                            Navigator.pushNamed(context, '/notification');
                           },
                         ),
                       ),

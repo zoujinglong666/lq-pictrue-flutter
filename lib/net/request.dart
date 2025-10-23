@@ -30,11 +30,11 @@ final class Http {
     // Log printer
     _dio.interceptors.add(PrettyDioLogger(
       enabled: true, // 启用
-      request: false, // 不打印请求信息
-      requestHeader: false, // 不打印请求头
-      requestBody: false, // 不打印请求体
-      responseHeader: false, // 不打印响应头
-      responseBody: false, // 不打印响应体
+      request: true, // 不打印请求信息
+      requestHeader: true, // 不打印请求头
+      requestBody: true, // 不打印请求体
+      responseHeader: true, // 不打印响应头
+      responseBody: true, // 不打印响应体
     ));
 
     // Interceptor
