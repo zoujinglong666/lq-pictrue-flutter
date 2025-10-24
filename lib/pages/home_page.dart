@@ -32,6 +32,8 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
   // 动画控制器
   late AnimationController _filterAnimationController;
   late Animation<double> _filterAnimation;
+  late Animation<double> _filterScaleAnimation;
+  late Animation<Offset> _filterSlideAnimation;
 
   // 搜索和筛选相关
   String _searchKeyword = '';
@@ -106,13 +108,33 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
     
     // 初始化动画控制器
     _filterAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 350),
       vsync: this,
     );
+    
+    // 透明度动画
     _filterAnimation = CurvedAnimation(
       parent: _filterAnimationController,
-      curve: Curves.easeInOut,
+      curve: Curves.easeOutCubic,
     );
+    
+    // 缩放动画 - 从小到大弹出
+    _filterScaleAnimation = Tween<double>(
+      begin: 0.85,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _filterAnimationController,
+      curve: Curves.easeOutBack, // 回弹效果
+    ));
+    
+    // 滑动动画 - 从筛选按钮位置向下滑出
+    _filterSlideAnimation = Tween<Offset>(
+      begin: const Offset(0.3, -0.3), // 从右上方滑入
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _filterAnimationController,
+      curve: Curves.easeOutCubic,
+    ));
     
     _loadData();
     _loadCountUnread();
@@ -310,9 +332,21 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
+      resizeToAvoidBottomInset: true, // 自动调整避免键盘遮挡
+      body: GestureDetector(
+        onTap: () {
+          // 点击空白区域收起键盘并关闭筛选面板
+          FocusScope.of(context).unfocus();
+          if (_showFilters) {
+            setState(() {
+              _showFilters = false;
+              _filterAnimationController.reverse();
+            });
+          }
+        },
+        child: SafeArea(
+          child: Column(
+            children: [
             // 标题和搜索框
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -434,30 +468,43 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
               ),
             ),
             
-            // 筛选器(带动画)
-            SizeTransition(
-              sizeFactor: _filterAnimation,
-              axisAlignment: -1.0,
-              child: FadeTransition(
-                opacity: _filterAnimation,
-                child: Container(
-                  margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade200),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+            // 筛选器(带灵动弹出动画)
+            if (_showFilters)
+              GestureDetector(
+                onTap: () {
+                  // 阻止点击事件冒泡,点击筛选面板内部不关闭
+                },
+                child: SlideTransition(
+                  position: _filterSlideAnimation,
+                  child: ScaleTransition(
+                    scale: _filterScaleAnimation,
+                    alignment: Alignment.topRight, // 从右上角缩放
+                    child: FadeTransition(
+                      opacity: _filterAnimation,
+                      child: Container(
+                        margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                        constraints: BoxConstraints(
+                          maxHeight: MediaQuery.of(context).size.height * 0.4, // 最大高度为屏幕一半
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey.shade200),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.08),
+                              blurRadius: 16,
+                              offset: const Offset(0, 4),
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
                     // 分类筛选
                     const Text(
                       '分类',
@@ -663,11 +710,14 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                         ),
                       ],
                     ),
-                    ],
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
+          ),
             
             const SizedBox(height: 8),
             // 瀑布流内容
@@ -862,6 +912,7 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
           ],
         ),
       ),
+      )
     );
   }
 }

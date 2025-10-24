@@ -135,13 +135,20 @@ Page<PictureVO> {
 
 ### 筛选面板:
 - 可折叠设计,节省空间
-- **动画效果**: SizeTransition(高度) + FadeTransition(透明度)
-- **动画时长**: 300ms, easeInOut 曲线
+- **灵动弹出动画**: 
+  - SlideTransition: 从筛选按钮(右上角)向下滑入
+  - ScaleTransition: 从 0.85 缩放到 1.0, 带回弹效果
+  - FadeTransition: 透明度渐变
+- **动画时长**: 350ms
+- **缓动曲线**: 
+  - easeOutBack(回弹) - 缩放动画
+  - easeOutCubic(平滑) - 滑动和淡入
 - 芯片式选择器,交互友好
 - 选中状态有明显视觉反馈
 - 标签支持多选,小尺寸圆角芯片样式
 - 左侧"重置"按钮,右侧"应用筛选"按钮
 - 重置按钮带刷新图标,更直观
+- 增强阴影效果,更有层次感
 
 ### 搜索结果:
 - 与首页列表样式一致
@@ -211,7 +218,14 @@ PictureApi.getList({
 
 ## 📋 更新日志
 
-### v1.2 (最新)
+### v1.3 (最新)
+- ✅ 筛选面板灵动弹出动画
+- ✅ 从筛选按钮位置向下滑出
+- ✅ 组合 SlideTransition + ScaleTransition + FadeTransition
+- ✅ 回弹缩放效果(Curves.easeOutBack)
+- ✅ 增强阴影效果,提升层次感
+
+### v1.2
 - ✅ 添加标签(tags)筛选功能
 - ✅ 支持多标签同时选择
 - ✅ 筛选面板展开/收起动画
@@ -244,23 +258,59 @@ PictureApi.getList({
 
 ### 动画效果详情:
 ```dart
-// 动画控制器初始化
+// 动画控制器初始化 (350ms)
 _filterAnimationController = AnimationController(
-  duration: const Duration(milliseconds: 300),
+  duration: const Duration(milliseconds: 350),
   vsync: this,
 );
+
+// 1. 透明度动画 - 平滑淡入
 _filterAnimation = CurvedAnimation(
   parent: _filterAnimationController,
-  curve: Curves.easeInOut,
+  curve: Curves.easeOutCubic,
 );
 
-// 筛选面板带动画
-SizeTransition(
-  sizeFactor: _filterAnimation,
-  axisAlignment: -1.0,
-  child: FadeTransition(
-    opacity: _filterAnimation,
-    child: Container(...),
+// 2. 缩放动画 - 回弹效果 (0.85 → 1.0)
+_filterScaleAnimation = Tween<double>(
+  begin: 0.85,
+  end: 1.0,
+).animate(CurvedAnimation(
+  parent: _filterAnimationController,
+  curve: Curves.easeOutBack, // 回弹曲线
+));
+
+// 3. 滑动动画 - 从右上角滑入
+_filterSlideAnimation = Tween<Offset>(
+  begin: const Offset(0.3, -0.3), // 起始位置(右上方)
+  end: Offset.zero,                // 结束位置(正常)
+).animate(CurvedAnimation(
+  parent: _filterAnimationController,
+  curve: Curves.easeOutCubic,
+));
+
+// 组合动画 - 灵动弹出
+SlideTransition(
+  position: _filterSlideAnimation,
+  child: ScaleTransition(
+    scale: _filterScaleAnimation,
+    alignment: Alignment.topRight, // 从右上角缩放
+    child: FadeTransition(
+      opacity: _filterAnimation,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: // 筛选器内容...
+      ),
+    ),
   ),
 )
 ```
