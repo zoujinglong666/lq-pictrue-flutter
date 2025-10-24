@@ -223,9 +223,12 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
   Future<void> _loadCountUnread() async {
     try {
       final res = await NotifyApi.countUnread();
-      setState(() {
-        _unreadNotificationCount = int.parse(res as String);
-      });
+      if(mounted){
+        setState(() {
+          _unreadNotificationCount = int.parse(res);
+        });
+      }
+
       ref.read(unreadCountProvider.notifier).state = _unreadNotificationCount;
     } catch (e) {}
   }
@@ -242,14 +245,10 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
       final res = await PictureApi.getList(requestData);
 
       setState(() {
-        if (res.records != null) {
-          _images.addAll(res.records!);
-          _currentPage++;
-          _hasMore = res.records!.length >= 10;
-        } else {
-          _hasMore = false;
-        }
-        _isLoading = false;
+        _images.addAll(res.records!);
+        _currentPage++;
+        _hasMore = res.records!.length >= 10;
+              _isLoading = false;
       });
     } catch (e) {
       setState(() {
@@ -331,8 +330,8 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      resizeToAvoidBottomInset: true, // 自动调整避免键盘遮挡
+      backgroundColor: const Color(0xFFF5F5F5),
+      resizeToAvoidBottomInset: true,
       body: GestureDetector(
         onTap: () {
           // 点击空白区域收起键盘并关闭筛选面板
@@ -347,117 +346,304 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
         child: SafeArea(
           child: Column(
             children: [
-            // 标题和搜索框
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: Row(
+            // AppBar - 莫兰迪极简风格
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Stack(
                 children: [
-                  const Text(
-                    '龙琪图库',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const Spacer(),
-                  Stack(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[100],
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.grey.shade300),
-                        ),
-                        child: IconButton(
-                          icon: Icon(Icons.notifications_none_outlined,
-                              color: Colors.grey[700], size: 20),
-                          onPressed: () {
-                            Navigator.pushNamed(context, '/notification');
-                          },
+                  // 抽象几何装饰 - 右侧小圆
+                  Positioned(
+                    right: -20,
+                    top: -10,
+                    child: Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            const Color(0xFFB8C5D6).withOpacity(0.08),
+                            Colors.transparent,
+                          ],
                         ),
                       ),
-                      if (_unreadNotificationCount > 0)
-                        Positioned(
-                          right: 0,
-                          top: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(2),
+                    ),
+                  ),
+                  // 主内容
+                  Row(
+                    children: [
+                      // Logo图标 - 极简设计
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Colors.white.withOpacity(0.95),
+                              const Color(0xFFFAFAFA).withOpacity(0.9),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF8A9BAE).withOpacity(0.12),
+                              offset: const Offset(0, 4),
+                              blurRadius: 12,
+                              spreadRadius: -3,
+                            ),
+                            BoxShadow(
+                              color: Colors.white.withOpacity(0.8),
+                              offset: const Offset(0, -1),
+                              blurRadius: 4,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.photo_library_rounded,
+                          color: Color(0xFF8A9BAE),
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      // 标题文字 - 优雅排版
+                      const Text(
+                        '龙琪图库',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w300,
+                          color: Color(0xFF4A5568),
+                          letterSpacing: 4,
+                          height: 1.2,
+                        ),
+                      ),
+                      const Spacer(),
+                      // 通知按钮 - 莫兰迪风格
+                      Stack(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
                             decoration: BoxDecoration(
-                              color: Colors.red[500],
-                              shape: BoxShape.circle,
-                            ),
-                            constraints: const BoxConstraints(
-                              minWidth: 16,
-                              minHeight: 16,
-                            ),
-                            child: Text(
-                              _unreadNotificationCount > 99
-                                  ? '99+'
-                                  : _unreadNotificationCount.toString(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Colors.white.withOpacity(0.9),
+                                  const Color(0xFFFAFAFA).withOpacity(0.85),
+                                ],
                               ),
-                              textAlign: TextAlign.center,
+                              borderRadius: BorderRadius.circular(14),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF8A9BAE).withOpacity(0.12),
+                                  offset: const Offset(0, 4),
+                                  blurRadius: 12,
+                                  spreadRadius: -3,
+                                ),
+                                BoxShadow(
+                                  color: Colors.white.withOpacity(0.8),
+                                  offset: const Offset(0, -1),
+                                  blurRadius: 4,
+                                ),
+                              ],
+                            ),
+                            child: IconButton(
+                              icon: const Icon(
+                                Icons.notifications_none_rounded,
+                                color: Color(0xFF8A9BAE),
+                                size: 22,
+                              ),
+                              onPressed: () {
+                                Navigator.pushNamed(context, '/notification');
+                              },
                             ),
                           ),
-                        ),
+                          if (_unreadNotificationCount > 0)
+                            Positioned(
+                              right: 2,
+                              top: 2,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      const Color(0xFFD4B5C0).withOpacity(0.95),
+                                      const Color(0xFFC4A5B0).withOpacity(0.9),
+                                    ],
+                                  ),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 2,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFFD4B5C0).withOpacity(0.3),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                constraints: const BoxConstraints(
+                                  minWidth: 18,
+                                  minHeight: 18,
+                                ),
+                                child: Text(
+                                  _unreadNotificationCount > 99
+                                      ? '99+'
+                                      : _unreadNotificationCount.toString(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                     ],
                   ),
                 ],
               ),
             ),
 
-            // 搜索框
+            // 搜索框 - 极简柔和
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               child: Container(
-                height: 44,
+                height: 52,
                 decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: Colors.grey.shade300),
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.white.withOpacity(0.95),
+                      const Color(0xFFFAFAFA).withOpacity(0.9),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(26),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF9CA8B5).withOpacity(0.08),
+                      offset: const Offset(0, 6),
+                      blurRadius: 20,
+                      spreadRadius: -2,
+                    ),
+                    BoxShadow(
+                      color: Colors.white.withOpacity(0.8),
+                      offset: const Offset(0, -1),
+                      blurRadius: 4,
+                    ),
+                  ],
                 ),
                 child: TextField(
                   controller: _searchController,
                   focusNode: _searchFocusNode,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF4A5568),
+                    letterSpacing: 0.5,
+                  ),
                   decoration: InputDecoration(
-                    hintText: '搜索图片...',
-                    hintStyle: TextStyle(color: Colors.grey[600]),
-                    prefixIcon: Icon(Icons.search_outlined,
-                        color: Colors.grey[600], size: 20),
+                    hintText: '探索精彩图片',
+                    hintStyle: const TextStyle(
+                      color: Color(0xFF9CA8B5),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w300,
+                      letterSpacing: 1,
+                    ),
+                    prefixIcon: Container(
+                      padding: const EdgeInsets.all(12),
+                      child: const Icon(
+                        Icons.search_rounded,
+                        color: Color(0xFF8A9BAE),
+                        size: 22,
+                      ),
+                    ),
                     suffixIcon: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (_searchController.text.isNotEmpty)
-                          IconButton(
-                            icon: Icon(Icons.clear, size: 18, color: Colors.grey[600]),
-                            onPressed: _clearSearch,
+                          Container(
+                            margin: const EdgeInsets.only(right: 6),
+                            child: IconButton(
+                              icon: Container(
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF9CA8B5).withOpacity(0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.close_rounded,
+                                  size: 14,
+                                  color: Color(0xFF9CA8B5),
+                                ),
+                              ),
+                              onPressed: _clearSearch,
+                            ),
                           ),
-                        IconButton(
-                          icon: Icon(
-                            _showFilters ? Icons.filter_list : Icons.filter_list_outlined,
-                            color: _showFilters ? const Color(0xFF00BCD4) : Colors.grey[600],
-                            size: 20,
+                        Container(
+                          margin: const EdgeInsets.only(right: 10),
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            gradient: _showFilters
+                                ? LinearGradient(
+                                    colors: [
+                                      const Color(0xFFB8C5D6).withOpacity(0.95),
+                                      const Color(0xFFA8B5C6).withOpacity(0.9),
+                                    ],
+                                  )
+                                : LinearGradient(
+                                    colors: [
+                                      const Color(0xFF9CA8B5).withOpacity(0.08),
+                                      const Color(0xFF9CA8B5).withOpacity(0.06),
+                                    ],
+                                  ),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: _showFilters
+                                ? [
+                                    BoxShadow(
+                                      color: const Color(0xFFB8C5D6).withOpacity(0.2),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ]
+                                : null,
                           ),
-                          onPressed: () {
-                            setState(() {
-                              _showFilters = !_showFilters;
-                              if (_showFilters) {
-                                _filterAnimationController.forward();
-                              } else {
-                                _filterAnimationController.reverse();
-                              }
-                            });
-                          },
+                          child: IconButton(
+                            padding: EdgeInsets.zero,
+                            icon: Icon(
+                              _showFilters ? Icons.tune_rounded : Icons.tune_outlined,
+                              color: _showFilters
+                                  ? Colors.white
+                                  : const Color(0xFF9CA8B5),
+                              size: 20,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _showFilters = !_showFilters;
+                                if (_showFilters) {
+                                  _filterAnimationController.forward();
+                                } else {
+                                  _filterAnimationController.reverse();
+                                }
+                              });
+                            },
+                          ),
                         ),
                       ],
                     ),
                     border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 16,
+                      horizontal: 4,
+                    ),
                   ),
                   textInputAction: TextInputAction.search,
                   onSubmitted: _performSearch,
