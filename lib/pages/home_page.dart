@@ -785,35 +785,148 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                             child: Container(
                               decoration: BoxDecoration(
                                 color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
+                                borderRadius: BorderRadius.circular(20),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.04),
+                                    color: Colors.black.withOpacity(0.06),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
+                                    spreadRadius: 1,
+                                  ),
+                                  BoxShadow(
+                                    color: const Color(0xFF00BCD4).withOpacity(0.03),
                                     blurRadius: 8,
                                     offset: const Offset(0, 2),
                                   ),
                                 ],
                               ),
                               child: ClipRRect(
-                                borderRadius: BorderRadius.circular(16),
+                                borderRadius: BorderRadius.circular(20),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    // 图片容器
                                     AspectRatio(
                                       aspectRatio:
                                           image.picWidth / image.picHeight,
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey[100],
-                                        ),
-                                        child: CachedImage(
-                                          fit: BoxFit.cover,
-                                          imageUrl: image.thumbnailUrl,
-                                        ),
+                                      child: Stack(
+                                        children: [
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                begin: Alignment.topLeft,
+                                                end: Alignment.bottomRight,
+                                                colors: [
+                                                  Colors.grey[100]!,
+                                                  Colors.grey[50]!,
+                                                ],
+                                              ),
+                                            ),
+                                            child: CachedImage(
+                                              fit: BoxFit.cover,
+                                              imageUrl: image.thumbnailUrl,
+                                            ),
+                                          ),
+                                          // 顶部渐变遮罩
+                                          Positioned(
+                                            top: 0,
+                                            left: 0,
+                                            right: 0,
+                                            child: Container(
+                                              height: 60,
+                                              decoration: BoxDecoration(
+                                                gradient: LinearGradient(
+                                                  begin: Alignment.topCenter,
+                                                  end: Alignment.bottomCenter,
+                                                  colors: [
+                                                    Colors.black.withOpacity(0.3),
+                                                    Colors.transparent,
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          // 分类标签
+                                          Positioned(
+                                            top: 8,
+                                            right: 8,
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 10,
+                                                vertical: 4,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                gradient: LinearGradient(
+                                                  colors: [
+                                                    Colors.white.withOpacity(0.95),
+                                                    Colors.white.withOpacity(0.85),
+                                                  ],
+                                                ),
+                                                borderRadius: BorderRadius.circular(12),
+                                                border: Border.all(
+                                                  color: const Color(0xFF00BCD4).withOpacity(0.3),
+                                                  width: 1,
+                                                ),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.black.withOpacity(0.1),
+                                                    blurRadius: 8,
+                                                    offset: const Offset(0, 2),
+                                                  ),
+                                                ],
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Container(
+                                                    width: 4,
+                                                    height: 4,
+                                                    decoration: const BoxDecoration(
+                                                      gradient: LinearGradient(
+                                                        colors: [
+                                                          Color(0xFF00BCD4),
+                                                          Color(0xFF00ACC1),
+                                                        ],
+                                                      ),
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    image.category,
+                                                    style: const TextStyle(
+                                                      fontSize: 10,
+                                                      color: Color(0xFF00BCD4),
+                                                      fontWeight: FontWeight.w600,
+                                                      letterSpacing: 0.3,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                    Padding(
+                                    // 信息栏
+                                    Container(
                                       padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                          colors: [
+                                            Colors.white,
+                                            Colors.grey[50]!,
+                                          ],
+                                        ),
+                                        border: Border(
+                                          top: BorderSide(
+                                            color: Colors.grey.shade100,
+                                            width: 1,
+                                          ),
+                                        ),
+                                      ),
                                       child: Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
@@ -822,53 +935,93 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                                             image.name,
                                             style: const TextStyle(
                                               fontSize: 14,
-                                              fontWeight: FontWeight.w500,
+                                              fontWeight: FontWeight.w600,
                                               height: 1.3,
+                                              letterSpacing: 0.2,
                                             ),
                                             maxLines: 2,
                                             overflow: TextOverflow.ellipsis,
                                           ),
-                                          const SizedBox(height: 6),
+                                          const SizedBox(height: 8),
                                           Row(
                                             children: [
-                                              Icon(
-                                                image.hasLiked
-                                                    ? Icons.favorite
-                                                    : Icons
-                                                        .favorite_border_outlined,
-                                                size: 14,
-                                                color: image.hasLiked
-                                                    ? Colors.red[400]
-                                                    : Colors.grey[600],
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                image.likeCount,
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: Colors.grey[600],
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(
+                                                  horizontal: 8,
+                                                  vertical: 4,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: image.hasLiked
+                                                    ? Colors.red.withOpacity(0.1)
+                                                    : Colors.grey[100],
+                                                  borderRadius: BorderRadius.circular(12),
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Icon(
+                                                      image.hasLiked
+                                                          ? Icons.favorite
+                                                          : Icons.favorite_border,
+                                                      size: 14,
+                                                      color: image.hasLiked
+                                                          ? Colors.red[400]
+                                                          : Colors.grey[600],
+                                                    ),
+                                                    const SizedBox(width: 4),
+                                                    Text(
+                                                      image.likeCount,
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                        color: image.hasLiked
+                                                            ? Colors.red[400]
+                                                            : Colors.grey[700],
+                                                        fontWeight: FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                               ),
                                               const Spacer(),
                                               Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                  horizontal: 8,
-                                                  vertical: 2,
+                                                padding: const EdgeInsets.symmetric(
+                                                  horizontal: 10,
+                                                  vertical: 4,
                                                 ),
                                                 decoration: BoxDecoration(
-                                                  color: const Color(0xFF00BCD4)
-                                                      .withOpacity(0.1),
-                                                  borderRadius:
-                                                      BorderRadius.circular(10),
-                                                ),
-                                                child: Text(
-                                                  image.category,
-                                                  style: const TextStyle(
-                                                    fontSize: 10,
-                                                    color: Color(0xFF00BCD4),
-                                                    fontWeight: FontWeight.w500,
+                                                  gradient: const LinearGradient(
+                                                    colors: [
+                                                      Color(0xFF00BCD4),
+                                                      Color(0xFF00ACC1),
+                                                    ],
                                                   ),
+                                                  borderRadius: BorderRadius.circular(12),
+                                                  boxShadow: [
+                                                    BoxShadow(
+                                                      color: const Color(0xFF00BCD4).withOpacity(0.3),
+                                                      blurRadius: 4,
+                                                      offset: const Offset(0, 2),
+                                                    ),
+                                                  ],
+                                                ),
+                                                child: const Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.remove_red_eye_outlined,
+                                                      size: 12,
+                                                      color: Colors.white,
+                                                    ),
+                                                    SizedBox(width: 4),
+                                                    Text(
+                                                      '查看',
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        color: Colors.white,
+                                                        fontWeight: FontWeight.w600,
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                               ),
                                             ],

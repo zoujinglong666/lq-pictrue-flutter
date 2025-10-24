@@ -80,22 +80,161 @@ Future<void> _checkAuthStatus() async {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFFF5F5F5), // 奶白
+              Color(0xFFE8EDF2), // 浅蓝灰
+              Color(0xFFF0E6E8), // 淡粉白
+            ],
+            stops: [0.0, 0.5, 1.0],
+          ),
+        ),
+        child: Stack(
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text(
-              '龙琪图库',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
+            // 抽象几何背景装饰 - 左上角圆角矩形
+            Positioned(
+              top: -80,
+              left: -60,
+              child: Container(
+                width: 200,
+                height: 200,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(60),
+                  gradient: RadialGradient(
+                    colors: [
+                      Color(0xFFB8C5D6).withOpacity(0.15), // 莫兰迪蓝
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
               ),
             ),
-            SizedBox(height: 8),
-            Text('正在加载...', style: TextStyle(color: Colors.grey)),
+            // 右下角柔和圆形
+            Positioned(
+              bottom: -100,
+              right: -80,
+              child: Container(
+                width: 280,
+                height: 280,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      Color(0xFFD4B5C0).withOpacity(0.12), // 莫兰迪粉
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // 中央小圆形装饰
+            Positioned(
+              top: MediaQuery.of(context).size.height * 0.25,
+              right: 40,
+              child: Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      Color(0xFFA8B8C8).withOpacity(0.1), // 莫兰迪灰蓝
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // 主内容区
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // 悬浮图标容器 - 轻盈感设计
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(28),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.white.withOpacity(0.95),
+                          Color(0xFFFAFAFA).withOpacity(0.9),
+                        ],
+                      ),
+                      boxShadow: [
+                        // 主阴影 - 柔和深度
+                        BoxShadow(
+                          color: Color(0xFF9CA8B5).withOpacity(0.15),
+                          offset: Offset(0, 12),
+                          blurRadius: 30,
+                          spreadRadius: -5,
+                        ),
+                        // 光晕效果
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.8),
+                          offset: Offset(0, -2),
+                          blurRadius: 8,
+                          spreadRadius: 0,
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.photo_library_rounded,
+                      size: 50,
+                      color: Color(0xFF8A9BAE), // 莫兰迪蓝灰
+                    ),
+                  ),
+                  const SizedBox(height: 50),
+                  // 标题 - 极简优雅
+                  Text(
+                    '龙琪图库',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w300,
+                      color: Color(0xFF4A5568), // 深灰
+                      letterSpacing: 6,
+                      height: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // 副标题 - 意境表达
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 40),
+                    child: Text(
+                      '照片 · 回忆 · 美好',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w300,
+                        color: Color(0xFF9CA8B5), // 莫兰迪灰
+                        letterSpacing: 3,
+                        height: 1.6,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 80),
+                  // 加载指示器 - 极简设计
+                  SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Color(0xFFB8C5D6), // 莫兰迪蓝
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
