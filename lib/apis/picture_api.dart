@@ -320,7 +320,6 @@ class PictureApi {
 
 
 
-  /// 获取图片列表
   static Future<PictureUploadVO> uploadPictureByUrl(Map<String, dynamic> data) async {
     final result = await Http.post<Result>(
       "/picture/upload/url",

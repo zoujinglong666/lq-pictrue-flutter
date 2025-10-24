@@ -197,8 +197,106 @@ class User {
   };
 }
 
+// To parse this JSON data, do
+//
+//     final spaceItem = spaceItemFromJson(jsonString);
+
+
+SpaceItem spaceItemFromJson(String str) => SpaceItem.fromJson(json.decode(str));
+
+String spaceItemToJson(SpaceItem data) => json.encode(data.toJson());
+
+class SpaceItem {
+  final String id;
+  final String spaceName;
+  final int spaceLevel;
+  final String maxSize;
+  final String maxCount;
+  final String totalSize;
+  final String totalCount;
+  final String userId;
+  final int createTime;
+  final int editTime;
+  final int updateTime;
+  final int isDelete;
+
+  SpaceItem({
+    required this.id,
+    required this.spaceName,
+    required this.spaceLevel,
+    required this.maxSize,
+    required this.maxCount,
+    required this.totalSize,
+    required this.totalCount,
+    required this.userId,
+    required this.createTime,
+    required this.editTime,
+    required this.updateTime,
+    required this.isDelete,
+  });
+
+  SpaceItem copyWith({
+    String? id,
+    String? spaceName,
+    int? spaceLevel,
+    String? maxSize,
+    String? maxCount,
+    String? totalSize,
+    String? totalCount,
+    String? userId,
+    int? createTime,
+    int? editTime,
+    int? updateTime,
+    int? isDelete,
+  }) =>
+      SpaceItem(
+        id: id ?? this.id,
+        spaceName: spaceName ?? this.spaceName,
+        spaceLevel: spaceLevel ?? this.spaceLevel,
+        maxSize: maxSize ?? this.maxSize,
+        maxCount: maxCount ?? this.maxCount,
+        totalSize: totalSize ?? this.totalSize,
+        totalCount: totalCount ?? this.totalCount,
+        userId: userId ?? this.userId,
+        createTime: createTime ?? this.createTime,
+        editTime: editTime ?? this.editTime,
+        updateTime: updateTime ?? this.updateTime,
+        isDelete: isDelete ?? this.isDelete,
+      );
+
+  factory SpaceItem.fromJson(Map<String, dynamic> json) => SpaceItem(
+    id: json["id"],
+    spaceName: json["spaceName"],
+    spaceLevel: json["spaceLevel"],
+    maxSize: json["maxSize"],
+    maxCount: json["maxCount"],
+    totalSize: json["totalSize"],
+    totalCount: json["totalCount"],
+    userId: json["userId"],
+    createTime: json["createTime"],
+    editTime: json["editTime"],
+    updateTime: json["updateTime"],
+    isDelete: json["isDelete"],
+  );
+
+  Map<String, dynamic> toJson() => {
+    "id": id,
+    "spaceName": spaceName,
+    "spaceLevel": spaceLevel,
+    "maxSize": maxSize,
+    "maxCount": maxCount,
+    "totalSize": totalSize,
+    "totalCount": totalCount,
+    "userId": userId,
+    "createTime": createTime,
+    "editTime": editTime,
+    "updateTime": updateTime,
+    "isDelete": isDelete,
+  };
+}
+
+
 class SpaceApi {
-  /// 获取图片列表
   static Future<Page<SpaceVO>> getList(Map<String, dynamic> data) async {
     final result = await Http.post<Result>(
       "/space/list/page/vo",
@@ -215,6 +313,16 @@ class SpaceApi {
 
     return result;
   }
+
+  static Future<Page<SpaceItem>> getSpaceListPage(Map<String, dynamic> data) async {
+    final result = await Http.post<Result>(
+      "/space/list/page",
+      data: data,
+    );
+
+    return result.toModel((json) => Page.fromJson(json, (item) => SpaceItem.fromJson(item)));
+  }
+
 
 
 
