@@ -12,7 +12,7 @@ class SearchPage extends StatefulWidget {
   State<SearchPage> createState() => _SearchPageState();
 }
 
-class _SearchPageState extends State<SearchPage> with KeyboardDismissMixin {
+class _SearchPageState extends State<SearchPage> with KeyboardDismissMixin, SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _searchFocusNode = FocusNode();
@@ -23,21 +23,38 @@ class _SearchPageState extends State<SearchPage> with KeyboardDismissMixin {
   bool _hasMore = true;
   int _currentPage = 1;
   
+  // 动画控制器
+  late AnimationController _filterAnimationController;
+  late Animation<double> _filterAnimation;
+  
   // 过滤选项
   bool _showFilters = false;
   String _selectedCategory = '全部';
   String _selectedSort = '最新';
+  List<String> _selectedTags = []; // 选中的标签
   
   final List<String> _categories = ['全部', '模板', '电商', '表情包', '素材', '海报'];
   final List<String> _sortOptions = ['最新', '热门'];
+  final List<String> _tagList = ["热门", "搞笑", "生活", "高清", "艺术", "校园", "背景", "简历", "创意"];
   
-  // 热门标签示例
+  // 热门标签示例(用于未搜索时显示)
   final List<String> _popularTags = ['风景', '人像', '城市', '自然', '黑白', '街拍', '建筑', '美食', '旅行', '动物'];
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    
+    // 初始化动画控制器
+    _filterAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _filterAnimation = CurvedAnimation(
+      parent: _filterAnimationController,
+      curve: Curves.easeInOut,
+    );
+    
     // 自动聚焦搜索框
     Future.delayed(const Duration(milliseconds: 300), () {
       if (mounted) {
@@ -51,6 +68,7 @@ class _SearchPageState extends State<SearchPage> with KeyboardDismissMixin {
     _searchController.dispose();
     _searchFocusNode.dispose();
     _scrollController.dispose();
+    _filterAnimationController.dispose();
     super.dispose();
   }
   
@@ -93,6 +111,11 @@ class _SearchPageState extends State<SearchPage> with KeyboardDismissMixin {
         params['category'] = _selectedCategory;
       }
       
+      // 添加标签筛选
+      if (_selectedTags.isNotEmpty) {
+        params['tags'] = _selectedTags;
+      }
+      
       final res = await PictureApi.getList(params);
       
       setState(() {
@@ -121,6 +144,15 @@ class _SearchPageState extends State<SearchPage> with KeyboardDismissMixin {
   
   Future<void> _loadMoreResults() async {
     await _performSearch(loadMore: true);
+  }
+  
+  // 重置筛选条件
+  void _resetFilters() {
+    setState(() {
+      _selectedCategory = '全部';
+      _selectedSort = '最新';
+      _selectedTags = [];
+    });
   }
 
   @override
@@ -167,6 +199,11 @@ class _SearchPageState extends State<SearchPage> with KeyboardDismissMixin {
                         onPressed: () {
                           setState(() {
                             _showFilters = !_showFilters;
+                            if (_showFilters) {
+                              _filterAnimationController.forward();
+                            } else {
+                              _filterAnimationController.reverse();
+                            }
                           });
                         },
                       ),
@@ -183,19 +220,23 @@ class _SearchPageState extends State<SearchPage> with KeyboardDismissMixin {
         ),
         body: Column(
           children: [
-            // 过滤器部分
-            if (_showFilters)
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border(
-                    bottom: BorderSide(color: Colors.grey.shade200),
+            // 过滤器部分(带动画)
+            SizeTransition(
+              sizeFactor: _filterAnimation,
+              axisAlignment: -1.0,
+              child: FadeTransition(
+                opacity: _filterAnimation,
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border(
+                      bottom: BorderSide(color: Colors.grey.shade200),
+                    ),
                   ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                     // 分类选择
                     _buildFilterSection('分类', _categories, _selectedCategory, (value) {
                       setState(() {
@@ -214,31 +255,69 @@ class _SearchPageState extends State<SearchPage> with KeyboardDismissMixin {
                     
                     const SizedBox(height: 16),
                     
-                    // 应用按钮
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          setState(() {
-                            _showFilters = false;
-                          });
-                          _performSearch();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF00BCD4),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                    // 标签筛选
+                    _buildFilterSection('标签', _tagList, '', (value) {
+                      // 标签是多选,特殊处理
+                    }, isMultiSelect: true),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // 按钮组
+                    Row(
+                      children: [
+                        // 重置按钮
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _resetFilters,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.grey[700],
+                              side: BorderSide(color: Colors.grey.shade300),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.refresh, size: 18, color: Colors.grey[700]),
+                                const SizedBox(width: 4),
+                                const Text('重置'),
+                              ],
+                            ),
                           ),
                         ),
-                        child: const Text('应用筛选'),
-                      ),
+                        const SizedBox(width: 12),
+                        // 应用按钮
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              setState(() {
+                                _showFilters = false;
+                                _filterAnimationController.reverse();
+                              });
+                              _performSearch();
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF00BCD4),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text('应用筛选'),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
+            ),
             
             // 主内容区域
             Expanded(
@@ -497,7 +576,13 @@ class _SearchPageState extends State<SearchPage> with KeyboardDismissMixin {
     );
   }
   
-  Widget _buildFilterSection(String title, List<String> options, String selectedValue, Function(String) onChanged) {
+  Widget _buildFilterSection(
+    String title, 
+    List<String> options, 
+    String selectedValue, 
+    Function(String) onChanged,
+    {bool isMultiSelect = false}
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -512,28 +597,70 @@ class _SearchPageState extends State<SearchPage> with KeyboardDismissMixin {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: options.map((option) {
-            final isSelected = option == selectedValue;
-            return ChoiceChip(
-              label: Text(
-                option,
-                style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.black87,
-                ),
-              ),
-              selected: isSelected,
-              selectedColor: const Color(0xFF4FC3F7),
-              backgroundColor: Colors.white,
-              side: BorderSide(
-                color: isSelected ? Colors.transparent : Colors.grey.shade300,
-              ),
-              onSelected: (selected) {
-                if (selected) {
-                  onChanged(option);
-                }
-              },
-            );
-          }).toList(),
+          children: isMultiSelect
+              ? options.map((option) {
+                  final isSelected = _selectedTags.contains(option);
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        if (isSelected) {
+                          _selectedTags.remove(option);
+                        } else {
+                          _selectedTags.add(option);
+                        }
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? const Color(0xFF00BCD4)
+                            : Colors.grey[100],
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isSelected
+                              ? const Color(0xFF00BCD4)
+                              : Colors.grey.shade300,
+                        ),
+                      ),
+                      child: Text(
+                        option,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isSelected ? Colors.white : Colors.black87,
+                          fontWeight: isSelected
+                              ? FontWeight.w500
+                              : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList()
+              : options.map((option) {
+                  final isSelected = option == selectedValue;
+                  return ChoiceChip(
+                    label: Text(
+                      option,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                    selected: isSelected,
+                    selectedColor: const Color(0xFF00BCD4),
+                    backgroundColor: Colors.grey[100],
+                    side: BorderSide(
+                      color: isSelected ? Colors.transparent : Colors.grey.shade300,
+                    ),
+                    onSelected: (selected) {
+                      if (selected) {
+                        onChanged(option);
+                      }
+                    },
+                  );
+                }).toList(),
         ),
       ],
     );
