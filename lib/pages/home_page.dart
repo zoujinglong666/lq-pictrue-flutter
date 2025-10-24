@@ -20,14 +20,24 @@ class HomePage extends ConsumerStatefulWidget {
 
 class _HomePageState extends ConsumerState<HomePage> {
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  
   int _unreadNotificationCount = 0; // 未读消息数量
   bool _isLoading = false;
   bool _hasMore = true;
   int _currentPage = 1;
   late SSEService _sseService;
 
-  List<String> tagList = ["热门", "搞笑", "生活", "高清", "艺术", "校园", "背景", "简历", "创意"];
-  List<String> categoryList = ["模板", "电商", "表情包", "素材", "海报"];
+  // 搜索和筛选相关
+  String _searchKeyword = '';
+  String _selectedCategory = '全部';
+  String _selectedSort = '最新';
+  bool _showFilters = false;
+  
+  final List<String> _categories = ['全部', '模板', '电商', '表情包', '素材', '海报'];
+  final List<String> _sortOptions = ['最新', '热门'];
+  
   List<PictureVO> _images = [];
 
   /// 设置SSE监听器
@@ -93,6 +103,8 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   @override
   void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
     _sseService.removeUnreadCountListener(_handleUnreadCountChange);
     _sseService.dispose();
     _scrollController.dispose();
@@ -125,24 +137,42 @@ class _HomePageState extends ConsumerState<HomePage> {
     });
 
     try {
-      final res = await PictureApi.getList({
-        "current": 1,
-        "pageSize": 10,
-        "sortField": 'createTime',
-        "sortOrder": 'descend',
-      });
+      final requestData = _buildRequestParams(1);
+      final res = await PictureApi.getList(requestData);
 
       setState(() {
         _images = res.records ?? [];
         _isLoading = false;
         _currentPage = 2; // 下一页为2
-        _hasMore = (res.records.length ?? 0) >= 10; // 如果返回数据少于请求数量，说明没有更多了
+        _hasMore = (res.records?.length ?? 0) >= 10;
       });
     } catch (e) {
       setState(() {
         _isLoading = false;
       });
     }
+  }
+  
+  // 构建请求参数
+  Map<String, dynamic> _buildRequestParams(int page) {
+    final params = <String, dynamic>{
+      "current": page,
+      "pageSize": 10,
+      "sortField": _selectedSort == '热门' ? 'likeCount' : 'createTime',
+      "sortOrder": 'descend',
+    };
+    
+    // 添加搜索关键词
+    if (_searchKeyword.isNotEmpty) {
+      params['searchText'] = _searchKeyword;
+    }
+    
+    // 添加分类筛选
+    if (_selectedCategory != '全部') {
+      params['category'] = _selectedCategory;
+    }
+    
+    return params;
   }
 
   Future<void> _loadCountUnread() async {
@@ -163,18 +193,13 @@ class _HomePageState extends ConsumerState<HomePage> {
     });
 
     try {
-      final res = await PictureApi.getList({
-        "current": _currentPage,
-        "pageSize": 10,
-        "sortField": 'createTime',
-        "sortOrder": 'descend',
-      });
+      final requestData = _buildRequestParams(_currentPage);
+      final res = await PictureApi.getList(requestData);
 
       setState(() {
         if (res.records != null) {
           _images.addAll(res.records!);
           _currentPage++;
-          // 如果返回数据少于请求数量，说明没有更多了
           _hasMore = res.records!.length >= 10;
         } else {
           _hasMore = false;
@@ -188,7 +213,41 @@ class _HomePageState extends ConsumerState<HomePage> {
     }
   }
 
-// 添加一个新的方法用于下拉刷新
+  // 执行搜索
+  void _performSearch(String keyword) {
+    setState(() {
+      _searchKeyword = keyword.trim();
+      _currentPage = 1;
+      _hasMore = true;
+    });
+    _searchFocusNode.unfocus(); // 收起键盘
+    _loadData();
+  }
+  
+  // 应用筛选
+  void _applyFilters() {
+    setState(() {
+      _currentPage = 1;
+      _hasMore = true;
+      _showFilters = false;
+    });
+    _loadData();
+  }
+  
+  // 清空搜索
+  void _clearSearch() {
+    setState(() {
+      _searchKeyword = '';
+      _searchController.clear();
+      _selectedCategory = '全部';
+      _selectedSort = '最新';
+      _currentPage = 1;
+      _hasMore = true;
+    });
+    _loadData();
+  }
+
+  // 下拉刷新
   Future<void> _refreshData() async {
     if (_isLoading) return;
     setState(() {
@@ -198,18 +257,14 @@ class _HomePageState extends ConsumerState<HomePage> {
     });
     try {
       await _loadCountUnread();
-      final res = await PictureApi.getList({
-        "current": 1,
-        "pageSize": 10,
-        "sortField": 'createTime',
-        "sortOrder": 'descend',
-      });
+      final requestData = _buildRequestParams(1);
+      final res = await PictureApi.getList(requestData);
 
       setState(() {
         _images = res.records ?? [];
         _isLoading = false;
-        _currentPage = 2; // 下一页为2
-        _hasMore = (res.records.length ?? 0) >= 10;
+        _currentPage = 2;
+        _hasMore = (res.records?.length ?? 0) >= 10;
       });
     } catch (e) {
       setState(() {
@@ -292,37 +347,201 @@ class _HomePageState extends ConsumerState<HomePage> {
             // 搜索框
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: GestureDetector(
-                onTap: () {
-                  Navigator.pushNamed(context, '/search');
-                },
-                child: Container(
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(22),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: Row(
-                    children: [
-                      const SizedBox(width: 16),
-                      Icon(Icons.search_outlined,
-                          color: Colors.grey[600], size: 20),
-                      const SizedBox(width: 8),
-                      Text(
-                        '搜索图片...',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 16,
+              child: Container(
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  focusNode: _searchFocusNode,
+                  decoration: InputDecoration(
+                    hintText: '搜索图片...',
+                    hintStyle: TextStyle(color: Colors.grey[600]),
+                    prefixIcon: Icon(Icons.search_outlined,
+                        color: Colors.grey[600], size: 20),
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_searchController.text.isNotEmpty)
+                          IconButton(
+                            icon: Icon(Icons.clear, size: 18, color: Colors.grey[600]),
+                            onPressed: _clearSearch,
+                          ),
+                        IconButton(
+                          icon: Icon(
+                            _showFilters ? Icons.filter_list : Icons.filter_list_outlined,
+                            color: _showFilters ? const Color(0xFF00BCD4) : Colors.grey[600],
+                            size: 20,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _showFilters = !_showFilters;
+                            });
+                          },
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
                   ),
+                  textInputAction: TextInputAction.search,
+                  onSubmitted: _performSearch,
+                  onChanged: (value) {
+                    setState(() {}); // 更新清除按钮显示状态
+                  },
                 ),
               ),
             ),
-            // _buildDownSimple(context),
-            SizedBox(height: 8),
+            
+            // 筛选器
+            if (_showFilters)
+              Container(
+                margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 分类筛选
+                    const Text(
+                      '分类',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _categories.map((category) {
+                        final isSelected = category == _selectedCategory;
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _selectedCategory = category;
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? const Color(0xFF00BCD4)
+                                  : Colors.grey[100],
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isSelected
+                                    ? const Color(0xFF00BCD4)
+                                    : Colors.grey.shade300,
+                              ),
+                            ),
+                            child: Text(
+                              category,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: isSelected ? Colors.white : Colors.black87,
+                                fontWeight: isSelected
+                                    ? FontWeight.w500
+                                    : FontWeight.normal,
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // 排序选择
+                    const Text(
+                      '排序',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _sortOptions.map((sort) {
+                        final isSelected = sort == _selectedSort;
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _selectedSort = sort;
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? const Color(0xFF00BCD4)
+                                  : Colors.grey[100],
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isSelected
+                                    ? const Color(0xFF00BCD4)
+                                    : Colors.grey.shade300,
+                              ),
+                            ),
+                            child: Text(
+                              sort,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: isSelected ? Colors.white : Colors.black87,
+                                fontWeight: isSelected
+                                    ? FontWeight.w500
+                                    : FontWeight.normal,
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // 应用按钮
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _applyFilters,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF00BCD4),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const Text('应用筛选'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            
+            const SizedBox(height: 8),
             // 瀑布流内容
             Expanded(
               child: RefreshIndicator(

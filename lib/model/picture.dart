@@ -220,3 +220,65 @@ class User {
     "createTime": createTime,
   };
 }
+
+class PictureStatsData {
+  final String uploadCount;          // 原来是 int
+  final String likeReceivedCount;
+  final String myLikedCount;
+  final String myCommentCount;
+  final List<String> days;
+  final List<String> dailyUpload;       // 每个元素也改成 String
+  final List<String> dailyLikeReceived;
+  final List<String> dailyCommentMade;
+
+  PictureStatsData({
+    required this.uploadCount,
+    required this.likeReceivedCount,
+    required this.myLikedCount,
+    required this.myCommentCount,
+    required this.days,
+    required this.dailyUpload,
+    required this.dailyLikeReceived,
+    required this.dailyCommentMade,
+  });
+
+  factory PictureStatsData.fromJson(Map<String, dynamic> json) {
+    return PictureStatsData(
+      uploadCount: json['uploadCount'].toString(),
+      likeReceivedCount: json['likeReceivedCount'].toString(),
+      myLikedCount: json['myLikedCount'].toString(),
+      myCommentCount: json['myCommentCount'].toString(),
+      days: List<String>.from(json['days']),
+      dailyUpload: (json['dailyUpload'] as List).map((e) => e.toString()).toList(),
+      dailyLikeReceived: (json['dailyLikeReceived'] as List).map((e) => e.toString()).toList(),
+      dailyCommentMade: (json['dailyCommentMade'] as List).map((e) => e.toString()).toList(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'uploadCount': uploadCount,
+      'likeReceivedCount': likeReceivedCount,
+      'myLikedCount': myLikedCount,
+      'myCommentCount': myCommentCount,
+      'days': days,
+      'dailyUpload': dailyUpload,
+      'dailyLikeReceived': dailyLikeReceived,
+      'dailyCommentMade': dailyCommentMade,
+    };
+  }
+
+  /// 空数据占位
+  static PictureStatsData empty() {
+    return PictureStatsData(
+      uploadCount: '0',
+      likeReceivedCount: '0',
+      myLikedCount: '0',
+      myCommentCount: '0',
+      days: [],
+      dailyUpload: [],
+      dailyLikeReceived: [],
+      dailyCommentMade: [],
+    );
+  }
+}

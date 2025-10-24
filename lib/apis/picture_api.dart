@@ -329,7 +329,12 @@ class PictureApi {
     return  result.toModel((json) => PictureUploadVO.fromJson(json));
   }
 
-
+  static Future<PictureStatsData> myStats() async {
+    final result = await Http.get<Result>(
+      "/picture/stats/my",
+    );
+    return  result.toModel((json) => PictureStatsData.fromJson(json));
+  }
 
   static Future<Page<PictureItem>> getAllList(Map<String, dynamic> data) async {
     final result = await Http.post<Result>(

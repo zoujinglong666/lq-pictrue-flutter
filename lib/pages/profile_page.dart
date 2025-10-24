@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lq_picture/apis/picture_api.dart';
 import 'package:lq_picture/apis/space_api.dart';
+import 'package:lq_picture/model/picture.dart';
 import 'package:lq_picture/providers/auth_provider.dart';
 
 import 'my_space_page.dart';
@@ -11,6 +13,7 @@ class ProfilePage extends ConsumerStatefulWidget {
   @override
   ConsumerState<ProfilePage> createState() => _ProfilePageState();
 }
+
 class _GridActionItem extends StatefulWidget {
   final IconData icon;
   final String title;
@@ -18,12 +21,12 @@ class _GridActionItem extends StatefulWidget {
   final Color color;
 
   const _GridActionItem({
-    Key? key,
+    super.key,
     required this.icon,
     required this.title,
     this.onTap,
     required this.color,
-  }) : super(key: key);
+  });
 
   @override
   State<_GridActionItem> createState() => _GridActionItemState();
@@ -39,7 +42,7 @@ class _GridActionItemState extends State<_GridActionItem>
       onTapDown: (_) => setState(() => _isPressed = true),
       onTapUp: (_) {
         Future.delayed(const Duration(milliseconds: 100),
-                () => setState(() => _isPressed = false));
+            () => setState(() => _isPressed = false));
         widget.onTap?.call();
       },
       onTapCancel: () => setState(() => _isPressed = false),
@@ -83,14 +86,17 @@ class _GridActionItemState extends State<_GridActionItem>
     );
   }
 }
+
 class _ProfilePageState extends ConsumerState<ProfilePage> {
   SpaceVO spaceData = SpaceVO.empty();
+  PictureStatsData statsData = PictureStatsData.empty();
 
   @override
   void initState() {
     super.initState();
     // 首次加载数据
     _loadData();
+    _loadMyStatsData();
   }
 
   Future<void> _loadData() async {
@@ -105,17 +111,27 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         "spaceType": 0,
         "userId": user!.id,
       });
-      print(res);
-
       if (res.records.isNotEmpty) {
         setState(() {
-          // 刷新数据
           spaceData = res.records[0];
           print('空间数据加载成功: ${spaceData.spaceName}, ID: ${spaceData.id}');
         });
       } else {
         print('没有找到空间数据');
       }
+    } catch (e) {
+      if (mounted) {
+        print('加载数据失败: $e');
+      }
+    } finally {}
+  }
+
+  Future<void> _loadMyStatsData() async {
+    try {
+      final res = await PictureApi.myStats();
+      setState(() {
+        statsData = res;
+      });
     } catch (e) {
       if (mounted) {
         print('加载数据失败: $e');
@@ -147,11 +163,20 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 child: Row(
                   children: [
                     Expanded(
-                      child: _buildStatCard('上传图片', '128', Icons.upload),
+                      child: _buildStatCard('上传图片',
+                          statsData.uploadCount.toString(), Icons.upload),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: _buildStatCard('收藏', '45', Icons.favorite),
+                      child: _buildStatCard('收藏',
+                          statsData.myLikedCount.toString(), Icons.favorite),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildStatCard(
+                          '获得点赞数',
+                          statsData.likeReceivedCount.toString(),
+                          Icons.favorite),
                     ),
                   ],
                 ),
@@ -362,7 +387,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
-
   Widget _buildSectionTitle(String title) {
     return Container(
       width: double.infinity,
@@ -379,9 +403,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   }
 
   Widget _buildActionGrid(
-      BuildContext context,
-      List<Map<String, dynamic>> actions,
-      ) {
+    BuildContext context,
+    List<Map<String, dynamic>> actions,
+  ) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 

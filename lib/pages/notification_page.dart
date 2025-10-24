@@ -86,7 +86,6 @@ class _NotificationPageState extends State<NotificationPage> {
         ),
       );
     } catch (e) {
-      print('删除消息失败: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('删除失败，请重试')),
       );
@@ -117,11 +116,12 @@ class _NotificationPageState extends State<NotificationPage> {
       print('获取通知列表失败: $e');
     }
   }
-
   // 计算未读并同步到全局 Provider
-  void _syncUnreadBadge() {
-    final int unread = _notifications.where((n) => (n.readStatus ?? 0) == 0).length;
-    _setUnreadBadge(unread);
+  Future<void> _syncUnreadBadge() async {
+    try {
+      final res = await NotifyApi.countUnread();
+      _setUnreadBadge(int.parse(res));
+    } catch (e) {}
   }
   void _setUnreadBadge(int count) {
     // 在非 ConsumerWidget 中使用 Riverpod

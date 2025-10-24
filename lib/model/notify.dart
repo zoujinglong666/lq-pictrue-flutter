@@ -57,3 +57,4 @@ class NotifyVO {
     "actorAvatar": actorAvatar,
   };
 }
+
