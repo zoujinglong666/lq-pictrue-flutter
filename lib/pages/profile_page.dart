@@ -240,6 +240,21 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               ),
 
               const SizedBox(height: 28),
+              // AI 智能工具
+              _buildSectionTitle('AI 智能工具'),
+              const SizedBox(height: 12),
+              _buildActionGrid(
+                context,
+                [
+                  {
+                    'icon': Icons.auto_awesome,
+                    'title': 'AI搜图',
+                    'onTap': () => Navigator.pushNamed(context, '/ai_search'),
+                  },
+                ],
+              ),
+
+              const SizedBox(height: 28),
               // 我的功能区域
               _buildSectionTitle('我的图库'),
               const SizedBox(height: 12),

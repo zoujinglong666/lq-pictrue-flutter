@@ -102,6 +102,16 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
     _setupSSEListener();
     _scrollController.addListener(_onScroll);
     
+    // 监听键盘弹起,自动关闭筛选面板
+    _searchFocusNode.addListener(() {
+      if (_searchFocusNode.hasFocus && _showFilters) {
+        setState(() {
+          _showFilters = false;
+          _filterAnimationController.reverse();
+        });
+      }
+    });
+    
     // 初始化动画控制器
     _filterAnimationController = AnimationController(
       duration: const Duration(milliseconds: 350),
@@ -658,238 +668,271 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                     alignment: Alignment.topRight, // 从右上角缩放
                     child: FadeTransition(
                       opacity: _filterAnimation,
-                      child: Container(
-                        margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                        constraints: BoxConstraints(
-                          maxHeight: MediaQuery.of(context).size.height * 0.4, // 最大高度为屏幕一半
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.grey.shade200),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.08),
-                              blurRadius: 16,
-                              offset: const Offset(0, 4),
-                              spreadRadius: 2,
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          // 动态计算可用高度,考虑键盘占用空间
+                          final screenHeight = MediaQuery.of(context).size.height;
+                          final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+                          final availableHeight = screenHeight - keyboardHeight - 250; // 减去顶部元素高度
+                          final maxPanelHeight = (availableHeight * 0.6).clamp(200.0, 500.0); // 限制范围
+                          
+                          return Container(
+                            margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                            constraints: BoxConstraints(
+                              maxHeight: maxPanelHeight,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.grey.shade200),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.08),
+                                  blurRadius: 16,
+                                  offset: const Offset(0, 4),
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                            // 可滚动内容区域
+                            Flexible(
+                              child: SingleChildScrollView(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    // 分类筛选
+                                    const Text(
+                                      '分类',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      children: _categories.map((category) {
+                                        final isSelected = category == _selectedCategory;
+                                        return GestureDetector(
+                                          onTap: () {
+                                            setState(() {
+                                              _selectedCategory = category;
+                                            });
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                              vertical: 8,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: isSelected
+                                                  ? const Color(0xFF00BCD4)
+                                                  : Colors.grey[100],
+                                              borderRadius: BorderRadius.circular(20),
+                                              border: Border.all(
+                                                color: isSelected
+                                                    ? const Color(0xFF00BCD4)
+                                                    : Colors.grey.shade300,
+                                              ),
+                                            ),
+                                            child: Text(
+                                              category,
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: isSelected ? Colors.white : Colors.black87,
+                                                fontWeight: isSelected
+                                                    ? FontWeight.w500
+                                                    : FontWeight.normal,
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    
+                                    // 排序选择
+                                    const Text(
+                                      '排序',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      children: _sortOptions.map((sort) {
+                                        final isSelected = sort == _selectedSort;
+                                        return GestureDetector(
+                                          onTap: () {
+                                            setState(() {
+                                              _selectedSort = sort;
+                                            });
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                              vertical: 8,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: isSelected
+                                                  ? const Color(0xFF00BCD4)
+                                                  : Colors.grey[100],
+                                              borderRadius: BorderRadius.circular(20),
+                                              border: Border.all(
+                                                color: isSelected
+                                                    ? const Color(0xFF00BCD4)
+                                                    : Colors.grey.shade300,
+                                              ),
+                                            ),
+                                            child: Text(
+                                              sort,
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: isSelected ? Colors.white : Colors.black87,
+                                                fontWeight: isSelected
+                                                    ? FontWeight.w500
+                                                    : FontWeight.normal,
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    
+                                    // 标签筛选
+                                    const Text(
+                                      '标签',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      children: _tagList.map((tag) {
+                                        final isSelected = _selectedTags.contains(tag);
+                                        return GestureDetector(
+                                          onTap: () {
+                                            setState(() {
+                                              if (isSelected) {
+                                                _selectedTags.remove(tag);
+                                              } else {
+                                                _selectedTags.add(tag);
+                                              }
+                                            });
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 6,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: isSelected
+                                                  ? const Color(0xFF00BCD4)
+                                                  : Colors.grey[100],
+                                              borderRadius: BorderRadius.circular(16),
+                                              border: Border.all(
+                                                color: isSelected
+                                                    ? const Color(0xFF00BCD4)
+                                                    : Colors.grey.shade300,
+                                              ),
+                                            ),
+                                            child: Text(
+                                              tag,
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: isSelected ? Colors.white : Colors.black87,
+                                                fontWeight: isSelected
+                                                    ? FontWeight.w500
+                                                    : FontWeight.normal,
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            
+                            // 固定在底部的按钮组
+                            Container(
+                              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: Border(
+                                  top: BorderSide(
+                                    color: Colors.grey.shade200,
+                                    width: 1,
+                                  ),
+                                ),
+                                borderRadius: const BorderRadius.only(
+                                  bottomLeft: Radius.circular(16),
+                                  bottomRight: Radius.circular(16),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  // 重置按钮
+                                  Expanded(
+                                    child: OutlinedButton(
+                                      onPressed: _resetFilters,
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: Colors.grey[700],
+                                        side: BorderSide(color: Colors.grey.shade300),
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.refresh, size: 18, color: Colors.grey[700]),
+                                          const SizedBox(width: 4),
+                                          const Text('重置'),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  // 应用按钮
+                                  Expanded(
+                                    flex: 2,
+                                    child: ElevatedButton(
+                                      onPressed: _applyFilters,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF00BCD4),
+                                        foregroundColor: Colors.white,
+                                        elevation: 0,
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      child: const Text('应用筛选'),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                    // 分类筛选
-                    const Text(
-                      '分类',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: _categories.map((category) {
-                        final isSelected = category == _selectedCategory;
-                        return GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _selectedCategory = category;
-                            });
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? const Color(0xFF00BCD4)
-                                  : Colors.grey[100],
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: isSelected
-                                    ? const Color(0xFF00BCD4)
-                                    : Colors.grey.shade300,
-                              ),
-                            ),
-                            child: Text(
-                              category,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: isSelected ? Colors.white : Colors.black87,
-                                fontWeight: isSelected
-                                    ? FontWeight.w500
-                                    : FontWeight.normal,
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    // 排序选择
-                    const Text(
-                      '排序',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: _sortOptions.map((sort) {
-                        final isSelected = sort == _selectedSort;
-                        return GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _selectedSort = sort;
-                            });
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? const Color(0xFF00BCD4)
-                                  : Colors.grey[100],
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: isSelected
-                                    ? const Color(0xFF00BCD4)
-                                    : Colors.grey.shade300,
-                              ),
-                            ),
-                            child: Text(
-                              sort,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: isSelected ? Colors.white : Colors.black87,
-                                fontWeight: isSelected
-                                    ? FontWeight.w500
-                                    : FontWeight.normal,
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    // 标签筛选
-                    const Text(
-                      '标签',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: _tagList.map((tag) {
-                        final isSelected = _selectedTags.contains(tag);
-                        return GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              if (isSelected) {
-                                _selectedTags.remove(tag);
-                              } else {
-                                _selectedTags.add(tag);
-                              }
-                            });
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? const Color(0xFF00BCD4)
-                                  : Colors.grey[100],
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: isSelected
-                                    ? const Color(0xFF00BCD4)
-                                    : Colors.grey.shade300,
-                              ),
-                            ),
-                            child: Text(
-                              tag,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: isSelected ? Colors.white : Colors.black87,
-                                fontWeight: isSelected
-                                    ? FontWeight.w500
-                                    : FontWeight.normal,
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    // 按钮组
-                    Row(
-                      children: [
-                        // 重置按钮
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: _resetFilters,
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.grey[700],
-                              side: BorderSide(color: Colors.grey.shade300),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.refresh, size: 18, color: Colors.grey[700]),
-                                const SizedBox(width: 4),
-                                const Text('重置'),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        // 应用按钮
-                        Expanded(
-                          flex: 2,
-                          child: ElevatedButton(
-                            onPressed: _applyFilters,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF00BCD4),
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: const Text('应用筛选'),
-                          ),
-                        ),
-                      ],
-                    ),
-                        ],
-                      ),
-                    ),
+                      );
+                    },
                   ),
                 ),
               ),
@@ -1217,7 +1260,7 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                     // 加载更多指示器
                     SliverToBoxAdapter(
                       child: Container(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                         child: _isLoading
                             ? const Center(
                                 child: CircularProgressIndicator(),

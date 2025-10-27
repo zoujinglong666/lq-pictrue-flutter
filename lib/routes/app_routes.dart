@@ -24,6 +24,7 @@ import 'package:lq_picture/pages/forbidden_page.dart';
 import 'package:lq_picture/pages/image_edit_page.dart';
 import 'package:lq_picture/pages/image_review_status_page.dart';
 import 'package:lq_picture/pages/favorites_page.dart';
+import 'package:lq_picture/pages/ai_search_page.dart';
 
 // 动画类型枚举
 enum AnimationType {
@@ -57,6 +58,7 @@ class AppRoutes {
   static const String imageEdit = '/image_edit';
   static const String imageReviewStatus = '/image_review_status';
   static const String favorites = '/favorites';
+  static const String aiSearch = '/ai_search';
 
   // 创建iOS风格的页面路由
   static PageRouteBuilder _createIOSRoute({
@@ -199,6 +201,7 @@ class AppRoutes {
     imageEdit: (context) => const ImageEditPage(),
     imageReviewStatus: (context) => const ImageReviewStatusPage(),
     favorites: (context) => const FavoritesPage(),
+    aiSearch: (context) => const AiSearchPage(),
   };
 
   // 获取路由映射表
