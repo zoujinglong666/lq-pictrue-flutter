@@ -73,32 +73,32 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
     print('收到新通知: ${notify.content}');
     _loadCountUnread();
     // 如果需要显示弹窗提示
-    // _showNotificationDialog(notify);
+    _showNotificationDialog(notify);
   }
 
   /// 显示通知弹窗（可选功能）
-  // void _showNotificationDialog(NotifyVO notify) {
-  //   showDialog(
-  //     context: context,
-  //     builder: (context) => AlertDialog(
-  //       title: const Text('新消息'),
-  //       content: Text(notify.content),
-  //       actions: [
-  //         TextButton(
-  //           onPressed: () => Navigator.pop(context),
-  //           child: const Text('知道了'),
-  //         ),
-  //         TextButton(
-  //           onPressed: () {
-  //             Navigator.pop(context);
-  //             Navigator.pushNamed(context, '/notification');
-  //           },
-  //           child: const Text('查看'),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
+  void _showNotificationDialog(NotifyVO notify) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('新消息'),
+        content: Text(notify.content),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('知道了'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/notification');
+            },
+            child: const Text('查看'),
+          ),
+        ],
+      ),
+    );
+  }
   @override
   void initState() {
     super.initState();
@@ -184,7 +184,7 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
         _images = res.records ?? [];
         _isLoading = false;
         _currentPage = 2; // 下一页为2
-        _hasMore = (res.records?.length ?? 0) >= 10;
+        _hasMore = (res.records.length ?? 0) >= 10;
       });
     } catch (e) {
       setState(() {
@@ -469,8 +469,8 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     colors: [
-                                      const Color(0xFFD4B5C0).withOpacity(0.95),
-                                      const Color(0xFFC4A5B0).withOpacity(0.9),
+                                      const Color(0xFFFA0303).withOpacity(0.95),
+                                      const Color(0xFFFD0000).withOpacity(0.9),
                                     ],
                                   ),
                                   shape: BoxShape.circle,

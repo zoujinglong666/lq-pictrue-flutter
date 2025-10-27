@@ -305,75 +305,82 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
-      body: CustomScrollView(
-        slivers: [
-          // 渐变AppBar
-          SliverAppBar(
-            expandedHeight: 120,
-            floating: false,
-            pinned: true,
-            elevation: 0,
-            backgroundColor: Colors.transparent,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
-              onPressed: () => Navigator.pop(context),
+      backgroundColor: const Color(0xFFF5F5F5),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(56),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color(0xFFF5F5F5), // 奶白
+                Color(0xFFEEF2F6), // 淡蓝白
+              ],
             ),
-            flexibleSpace: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFF6DD5ED),
-                    Color(0xFF2193B0),
-                  ],
-                ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF9CA8B5).withOpacity(0.08),
+                offset: const Offset(0, 2),
+                blurRadius: 12,
               ),
-              child: FlexibleSpaceBar(
-                centerTitle: false,
-                titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
-                title: const Text(
-                  '设置',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
+            ],
+          ),
+          child: Stack(
+            children: [
+              // 抽象几何装饰 - 右侧光晕
+              Positioned(
+                top: -40,
+                right: -40,
+                child: Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        const Color(0xFFB8C5D6).withOpacity(0.12),
+                        Colors.transparent,
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
+              // AppBar内容
+              AppBar(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                leading: IconButton(
+                  icon: const Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    color: Color(0xFF8A9BAE),
+                    size: 20,
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                ),
+                title: const Text(
+                  '设置',
+                  style: TextStyle(
+                    color: Color(0xFF8A9BAE),
+                    fontSize: 20,
+                    fontWeight: FontWeight.w300,
+                    letterSpacing: 4,
+                  ),
+                ),
+                centerTitle: false,
+                titleSpacing: 4, // 标题与返回按钮的间距
+              ),
+            ],
           ),
-
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+        child: Column(
+          children: [
                 // 通知与存储
                 _buildModernCard(
                   children: [
-                    _buildModernSwitchTile(
-                      icon: Icons.notifications_none_rounded,
-                      iconColor: const Color(0xFF6DD5ED),
-                      title: '推送通知',
-                      value: _notificationsEnabled,
-                      onChanged: (value) {
-                        setState(() => _notificationsEnabled = value);
-                        _saveSettings();
-                      },
-                    ),
-                    _buildDivider(),
-                    _buildModernSwitchTile(
-                      icon: Icons.cloud_download_outlined,
-                      iconColor: const Color(0xFF2193B0),
-                      title: '自动保存',
-                      value: _autoSaveEnabled,
-                      onChanged: (value) {
-                        setState(() => _autoSaveEnabled = value);
-                        _saveSettings();
-                      },
-                    ),
                     _buildDivider(),
                     _buildModernTile(
                       icon: Icons.storage_rounded,
@@ -384,9 +391,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 16),
-
                 // 账号安全
                 _buildModernCard(
                   children: [
@@ -407,33 +412,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         );
                       },
                     ),
-                    _buildDivider(),
-                    _buildModernTile(
-                      icon: Icons.phone_iphone_rounded,
-                      iconColor: const Color(0xFF96E6A1),
-                      title: '绑定手机',
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('绑定手机功能开发中')),
-                        );
-                      },
-                    ),
-                    _buildDivider(),
-                    _buildModernTile(
-                      icon: Icons.email_outlined,
-                      iconColor: const Color(0xFFB4A7D6),
-                      title: '绑定邮箱',
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('绑定邮箱功能开发中')),
-                        );
-                      },
-                    ),
                   ],
                 ),
-
                 const SizedBox(height: 16),
-
                 // 关于
                 _buildModernCard(
                   children: [
@@ -500,25 +481,36 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     ),
                   ],
                 ),
-              ]),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  // 极简卡片容器
+  // 莫兰迪卡片容器
   Widget _buildModernCard({required List<Widget> children}) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withOpacity(0.95),
+            const Color(0xFFFAFAFA).withOpacity(0.9),
+          ],
+        ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2193B0).withOpacity(0.08),
-            blurRadius: 20,
+            color: const Color(0xFF9CA8B5).withOpacity(0.12),
             offset: const Offset(0, 8),
+            blurRadius: 24,
+            spreadRadius: -4,
+          ),
+          BoxShadow(
+            color: Colors.white.withOpacity(0.6),
+            offset: const Offset(0, -2),
+            blurRadius: 8,
           ),
         ],
       ),
