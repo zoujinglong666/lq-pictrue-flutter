@@ -305,313 +305,354 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios,
-            color: Colors.grey[800],
+      backgroundColor: const Color(0xFFF5F7FA),
+      body: CustomScrollView(
+        slivers: [
+          // 渐变AppBar
+          SliverAppBar(
+            expandedHeight: 120,
+            floating: false,
+            pinned: true,
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+              onPressed: () => Navigator.pop(context),
+            ),
+            flexibleSpace: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF6DD5ED),
+                    Color(0xFF2193B0),
+                  ],
+                ),
+              ),
+              child: FlexibleSpaceBar(
+                centerTitle: false,
+                titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+                title: const Text(
+                  '设置',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ),
           ),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          '设置',
-          style: TextStyle(
-            color: Colors.grey[800],
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
+
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                // 通知与存储
+                _buildModernCard(
+                  children: [
+                    _buildModernSwitchTile(
+                      icon: Icons.notifications_none_rounded,
+                      iconColor: const Color(0xFF6DD5ED),
+                      title: '推送通知',
+                      value: _notificationsEnabled,
+                      onChanged: (value) {
+                        setState(() => _notificationsEnabled = value);
+                        _saveSettings();
+                      },
+                    ),
+                    _buildDivider(),
+                    _buildModernSwitchTile(
+                      icon: Icons.cloud_download_outlined,
+                      iconColor: const Color(0xFF2193B0),
+                      title: '自动保存',
+                      value: _autoSaveEnabled,
+                      onChanged: (value) {
+                        setState(() => _autoSaveEnabled = value);
+                        _saveSettings();
+                      },
+                    ),
+                    _buildDivider(),
+                    _buildModernTile(
+                      icon: Icons.storage_rounded,
+                      iconColor: const Color(0xFF4FACFE),
+                      title: '缓存管理',
+                      subtitle: _cacheSize,
+                      onTap: _clearCache,
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // 账号安全
+                _buildModernCard(
+                  children: [
+                    _buildModernTile(
+                      icon: Icons.lock_outline_rounded,
+                      iconColor: const Color(0xFFFF6B9D),
+                      title: '忘记密码',
+                      onTap: () => Navigator.pushNamed(context, '/forgot_password'),
+                    ),
+                    _buildDivider(),
+                    _buildModernTile(
+                      icon: Icons.vpn_key_outlined,
+                      iconColor: const Color(0xFFFFA07A),
+                      title: '修改密码',
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('修改密码功能开发中')),
+                        );
+                      },
+                    ),
+                    _buildDivider(),
+                    _buildModernTile(
+                      icon: Icons.phone_iphone_rounded,
+                      iconColor: const Color(0xFF96E6A1),
+                      title: '绑定手机',
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('绑定手机功能开发中')),
+                        );
+                      },
+                    ),
+                    _buildDivider(),
+                    _buildModernTile(
+                      icon: Icons.email_outlined,
+                      iconColor: const Color(0xFFB4A7D6),
+                      title: '绑定邮箱',
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('绑定邮箱功能开发中')),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // 关于
+                _buildModernCard(
+                  children: [
+                    _buildModernTile(
+                      icon: Icons.info_outline_rounded,
+                      iconColor: const Color(0xFF9795B5),
+                      title: '应用版本',
+                      trailing: const Text(
+                        'v1.0.0',
+                        style: TextStyle(
+                          color: Color(0xFF9795B5),
+                          fontSize: 14,
+                        ),
+                      ),
+                      onTap: () {},
+                    ),
+                    _buildDivider(),
+                    _buildModernTile(
+                      icon: Icons.description_outlined,
+                      iconColor: const Color(0xFF8E94A9),
+                      title: '用户协议',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SimpleWebView(
+                              url: 'https://baidu.com/',
+                              title: '用户协议',
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildDivider(),
+                    _buildModernTile(
+                      icon: Icons.privacy_tip_outlined,
+                      iconColor: const Color(0xFFA8B5C7),
+                      title: '隐私政策',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SimpleWebView(
+                              url: 'https://jd.com/',
+                              title: '隐私政策',
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // 退出登录
+                _buildModernCard(
+                  children: [
+                    _buildModernTile(
+                      icon: Icons.logout_rounded,
+                      iconColor: const Color(0xFFE17055),
+                      title: '退出登录',
+                      onTap: _showLogoutDialog,
+                    ),
+                  ],
+                ),
+              ]),
+            ),
           ),
-        ),
+        ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
+    );
+  }
+
+  // 极简卡片容器
+  Widget _buildModernCard({required List<Widget> children}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF2193B0).withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Column(children: children),
+      ),
+    );
+  }
+
+  // 极简开关项
+  Widget _buildModernSwitchTile({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  iconColor.withOpacity(0.15),
+                  iconColor.withOpacity(0.05),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: iconColor, size: 22),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF2D3436),
+                letterSpacing: 0.2,
+              ),
+            ),
+          ),
+          Transform.scale(
+            scale: 0.85,
+            child: Switch(
+              value: value,
+              onChanged: onChanged,
+              activeColor: iconColor,
+              activeTrackColor: iconColor.withOpacity(0.3),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 极简点击项
+  Widget _buildModernTile({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    String? subtitle,
+    Widget? trailing,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        child: Row(
           children: [
-            const SizedBox(height: 16),
-
-            // 通知设置
-            _buildSectionTitle('通知设置'),
-            _buildSettingCard([
-              _buildSwitchTile(
-                icon: Icons.notifications_outlined,
-                title: '推送通知',
-                subtitle: '接收新消息和系统通知',
-                value: _notificationsEnabled,
-                onChanged: (value) {
-                  setState(() {
-                    _notificationsEnabled = value;
-                  });
-                  _saveSettings();
-                },
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    iconColor.withOpacity(0.15),
+                    iconColor.withOpacity(0.05),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(14),
               ),
-            ]),
-            const SizedBox(height: 20),
-            // 存储设置
-            _buildSectionTitle('存储设置'),
-            _buildSettingCard([
-              _buildSwitchTile(
-                icon: Icons.save_outlined,
-                title: '自动保存',
-                subtitle: '自动保存浏览过的图片',
-                value: _autoSaveEnabled,
-                onChanged: (value) {
-                  setState(() {
-                    _autoSaveEnabled = value;
-                  });
-                  _saveSettings();
-                },
+              child: Icon(icon, color: iconColor, size: 22),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF2D3436),
+                  letterSpacing: 0.2,
+                ),
               ),
-              const Divider(height: 1),
-              _buildActionTile(
-                icon: Icons.storage_outlined,
-                title: '缓存管理',
-                subtitle: '当前缓存大小：$_cacheSize',
-                onTap: _clearCache,
-                trailing: Icon(Icons.chevron_right, color: Colors.grey[400]),
+            ),
+            if (subtitle != null)
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF95A5A6),
+                ),
               ),
-            ]),
-
-            const SizedBox(height: 20),
-
-            // 账号安全
-            _buildSectionTitle('账号安全'),
-            _buildSettingCard([
-              _buildActionTile(
-                icon: Icons.lock_reset_outlined,
-                title: '忘记密码',
-                subtitle: '通过邮箱或手机号重置密码',
-                onTap: () {
-                  Navigator.pushNamed(context, '/forgot_password');
-                },
-                trailing: Icon(Icons.chevron_right, color: Colors.grey[400]),
+            if (trailing != null) trailing,
+            if (subtitle == null && trailing == null)
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: Color(0xFFBDC3C7),
+                size: 20,
               ),
-              const Divider(height: 1),
-              _buildActionTile(
-                icon: Icons.security_outlined,
-                title: '修改密码',
-                subtitle: '更改当前账户密码',
-                onTap: () {
-                  // TODO: 实现修改密码功能
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('修改密码功能开发中')),
-                  );
-                },
-                trailing: Icon(Icons.chevron_right, color: Colors.grey[400]),
-              ),
-              const Divider(height: 1),
-              _buildActionTile(
-                icon: Icons.phone_android_outlined,
-                title: '绑定手机',
-                subtitle: '绑定手机号用于安全验证',
-                onTap: () {
-                  // TODO: 实现绑定手机功能
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('绑定手机功能开发中')),
-                  );
-                },
-                trailing: Icon(Icons.chevron_right, color: Colors.grey[400]),
-              ),
-              const Divider(height: 1),
-              _buildActionTile(
-                icon: Icons.email_outlined,
-                title: '绑定邮箱',
-                subtitle: '绑定邮箱用于密码找回',
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('绑定邮箱功能开发中')),
-                  );
-                },
-                trailing: Icon(Icons.chevron_right, color: Colors.grey[400]),
-              ),
-            ]),
-
-            const SizedBox(height: 20),
-
-            // 关于应用
-            _buildSectionTitle('关于应用'),
-            _buildSettingCard([
-              _buildActionTile(
-                icon: Icons.info_outline,
-                title: '应用版本',
-                subtitle: 'v1.0.0',
-                onTap: () {},
-                trailing: Icon(Icons.chevron_right, color: Colors.grey[400]),
-              ),
-              const Divider(height: 1),
-              _buildActionTile(
-                icon: Icons.description_outlined,
-                title: '用户协议',
-                subtitle: '查看用户服务协议',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const SimpleWebView(
-                        url: 'https://baidu.com/',
-                        title: '用户协议',
-                      ),
-                    ),
-                  );
-                },
-                trailing: Icon(Icons.chevron_right, color: Colors.grey[400]),
-              ),
-              const Divider(height: 1),
-              _buildActionTile(
-                icon: Icons.privacy_tip_outlined,
-                title: '隐私政策',
-                subtitle: '查看隐私保护政策',
-                onTap: () {
-                  // 1. 简单用法
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const SimpleWebView(
-                        url: 'https://jd.com/',
-                        title: '隐私政策',
-                      ),
-                    ),
-                  );
-                },
-                trailing: Icon(Icons.chevron_right, color: Colors.grey[400]),
-              ),
-            ]),
-
-            const SizedBox(height: 20),
-
-            // 账户操作
-            _buildSectionTitle('账户操作'),
-            _buildSettingCard([
-              _buildActionTile(
-                icon: Icons.logout,
-                title: '退出登录',
-                subtitle: '退出当前账户',
-                onTap: _showLogoutDialog,
-                trailing: Icon(Icons.chevron_right, color: Colors.red[400]),
-                titleColor: Colors.red[600],
-              ),
-            ]),
-
-            const SizedBox(height: 40),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  // 分割线
+  Widget _buildDivider() {
     return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: Colors.grey[700],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSettingCard(List<Widget> children) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(children: children),
-    );
-  }
-
-  Widget _buildSwitchTile({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-  }) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: Colors.blue[50],
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(icon, color: Colors.blue[600], size: 20),
-      ),
-      title: Text(
-        title,
-        style: const TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: 16,
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: TextStyle(
-          color: Colors.grey[600],
-          fontSize: 14,
-        ),
-      ),
-      trailing: Switch(
-        value: value,
-        onChanged: onChanged,
-        activeColor: Colors.blue[600],
-      ),
-    );
-  }
-
-  Widget _buildActionTile({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-    Widget? trailing,
-    Color? titleColor,
-  }) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: titleColor?.withOpacity(0.1) ?? Colors.grey[50],
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(
-          icon,
-          color: titleColor ?? Colors.grey[600],
-          size: 20,
-        ),
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: 16,
-          color: titleColor,
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: TextStyle(
-          color: Colors.grey[600],
-          fontSize: 14,
-        ),
-      ),
-      trailing: trailing,
-      onTap: onTap,
+      margin: const EdgeInsets.only(left: 80),
+      height: 0.5,
+      color: const Color(0xFFF0F3F6),
     );
   }
 }
