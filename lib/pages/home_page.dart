@@ -23,7 +23,6 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   
-  int _unreadNotificationCount = 0; // 未读消息数量
   bool _isLoading = false;
   bool _hasMore = true;
   int _currentPage = 1;
@@ -58,21 +57,18 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
 
   /// 处理未读数量变化（同步到全局 Provider）
   void _handleUnreadCountChange(int count) {
-    // if (mounted) {
-    //   setState(() {
-    //     _unreadNotificationCount = count;
-    //   });
-    //   // 同步到 Riverpod Provider，供全局使用（底部消息图标角标等）
-    //   ref.read(unreadCountProvider.notifier).state = count;
-    // }
+    // SSE推送的未读数同步到Riverpod
+    if (mounted) {
+      ref.read(unreadCountProvider.notifier).state = count;
+    }
   }
 
   /// 处理新通知到达
   void _handleNewNotification(NotifyVO notify) {
-    // 可以在这里添加本地通知或弹窗提示
     print('收到新通知: ${notify.content}');
-    _loadCountUnread();
-    // 如果需要显示弹窗提示
+    // 使用RefreshNotifier主动刷新未读数
+    ref.read(unreadRefreshNotifierProvider.notifier).refresh();
+    // 显示通知弹窗
     _showNotificationDialog(notify);
   }
 
@@ -137,7 +133,8 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
     ));
     
     _loadData();
-    _loadCountUnread();
+    // 首次加载时刷新未读数
+    ref.read(unreadRefreshNotifierProvider.notifier).refresh();
   }
 
   @override
@@ -220,18 +217,7 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
     return params;
   }
 
-  Future<void> _loadCountUnread() async {
-    try {
-      final res = await NotifyApi.countUnread();
-      if(mounted){
-        setState(() {
-          _unreadNotificationCount = int.parse(res);
-        });
-      }
-
-      ref.read(unreadCountProvider.notifier).state = _unreadNotificationCount;
-    } catch (e) {}
-  }
+  // 删除_loadCountUnread方法，已由RefreshNotifier替代
 
   Future<void> _loadMoreImages() async {
     if (_isLoading || !_hasMore) return;
@@ -310,7 +296,9 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
       _currentPage = 1;
     });
     try {
-      await _loadCountUnread();
+      // 刷新未读数
+      ref.read(unreadRefreshNotifierProvider.notifier).refresh();
+      
       final requestData = _buildRequestParams(1);
       final res = await PictureApi.getList(requestData);
 
@@ -329,6 +317,9 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
+    // 监听未读数变化
+    final unreadCount = ref.watch(unreadCountProvider);
+    
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       resizeToAvoidBottomInset: true,
@@ -460,7 +451,7 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                               },
                             ),
                           ),
-                          if (_unreadNotificationCount > 0)
+                          if (unreadCount > 0)
                             Positioned(
                               right: 2,
                               top: 2,
@@ -491,9 +482,9 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                                   minHeight: 18,
                                 ),
                                 child: Text(
-                                  _unreadNotificationCount > 99
+                                  unreadCount > 99
                                       ? '99+'
-                                      : _unreadNotificationCount.toString(),
+                                      : unreadCount.toString(),
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 9,

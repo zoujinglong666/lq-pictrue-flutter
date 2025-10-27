@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lq_picture/apis/picture_api.dart';
@@ -38,6 +40,8 @@ class _GridActionItemState extends State<_GridActionItem>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
       onTapUp: (_) {
@@ -46,39 +50,73 @@ class _GridActionItemState extends State<_GridActionItem>
         widget.onTap?.call();
       },
       onTapCancel: () => setState(() => _isPressed = false),
-      child: AnimatedScale(
-        duration: const Duration(milliseconds: 120),
-        scale: _isPressed ? 0.92 : 1.0,
+      child: TweenAnimationBuilder<double>(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutBack,
+        tween: Tween(begin: 0, end: 1),
+        builder: (context, value, child) {
+          return Transform.scale(
+            scale: _isPressed ? 0.88 : (0.9 + value * 0.1),
+            child: child,
+          );
+        },
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 48,
-              height: 48,
+              width: 50,
+              height: 50,
               decoration: BoxDecoration(
-                color: widget.color.withOpacity(0.08),
+                gradient: LinearGradient(
+                  colors: [
+                    widget.color.withOpacity(0.15),
+                    widget.color.withOpacity(0.08),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
                 shape: BoxShape.circle,
+                border: Border.all(
+                  color: widget.color.withOpacity(0.25),
+                  width: 1.5,
+                ),
                 boxShadow: [
                   BoxShadow(
-                    color: widget.color.withOpacity(0.15),
-                    blurRadius: 6,
-                    offset: const Offset(0, 3),
+                    color: widget.color.withOpacity(_isPressed ? 0.25 : 0.15),
+                    blurRadius: _isPressed ? 10 : 12,
+                    offset: Offset(0, _isPressed ? 2 : 4),
+                  ),
+                  BoxShadow(
+                    color: Colors.white.withOpacity(isDark ? 0.05 : 0.3),
+                    blurRadius: 2,
+                    offset: const Offset(0, -1),
                   ),
                 ],
               ),
-              child: Icon(widget.icon, color: widget.color, size: 24),
+              child: Icon(
+                widget.icon,
+                color: widget.color,
+                size: 24,
+              ),
             ),
             const SizedBox(height: 6),
-            Text(
-              widget.title,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[800],
-                fontWeight: FontWeight.w500,
+            Flexible(
+              child: Text(
+                widget.title,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: isDark 
+                      ? Colors.white.withOpacity(0.75)
+                      : Colors.grey[700],
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.1,
+                  height: 1.1,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -149,43 +187,62 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final user = authState.user;
     final isAdmin = ref
         .watch(authProvider.select((value) => value.user?.userRole == 'admin'));
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
+      backgroundColor: isDark 
+          ? const Color(0xFF0A0E21) 
+          : const Color(0xFFF8F9FA),
       body: SafeArea(
         child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
           child: Column(
             children: [
+              const SizedBox(height: 8),
               // 新的用户信息头部
               _buildUserProfileHeader(context, user),
 
-              // 统计信息
+              const SizedBox(height: 20),
+
+              // 统计信息 - 优化美感
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: [
                     Expanded(
-                      child: _buildStatCard('上传图片',
-                          statsData.uploadCount.toString(), Icons.upload),
+                      child: _buildStatCard(
+                        '上传',
+                        statsData.uploadCount.toString(),
+                        Icons.cloud_upload_outlined,
+                        const Color(0xFF6FBADB),
+                      ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildStatCard('收藏',
-                          statsData.myLikedCount.toString(), Icons.favorite),
-                    ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: _buildStatCard(
-                          '获得点赞数',
-                          statsData.likeReceivedCount.toString(),
-                          Icons.favorite),
+                        '收藏',
+                        statsData.myLikedCount.toString(),
+                        Icons.favorite_border,
+                        const Color(0xFFD89B9B),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _buildStatCard(
+                        '获赞',
+                        statsData.likeReceivedCount.toString(),
+                        Icons.thumb_up_outlined,
+                        const Color(0xFFB8A8C9),
+                      ),
                     ),
                   ],
                 ),
               ),
 
-              const SizedBox(height: 20),
-
+              const SizedBox(height: 28),
               // 我的功能区域
               _buildSectionTitle('我的图库'),
+              const SizedBox(height: 12),
               _buildActionGrid(
                 context,
                 [
@@ -238,11 +295,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 ],
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 28),
 
               // 管理员功能区域 (仅管理员可见)
               if (isAdmin) ...[
                 _buildSectionTitle('管理员功能'),
+                const SizedBox(height: 12),
                 _buildActionGrid(
                   context,
                   [
@@ -267,6 +325,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   ],
                 ),
               ],
+              
+              const SizedBox(height: 32),
             ],
           ),
         ),
@@ -274,130 +334,210 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    // 根据图标类型确定主色调
-    Color mainColor;
-    switch (icon) {
-      case Icons.upload:
-        mainColor = colorScheme.primary;
-        break;
-      case Icons.favorite:
-        mainColor = Colors.pinkAccent;
-        break;
-      case Icons.visibility:
-        mainColor = Colors.blueAccent;
-        break;
-      default:
-        mainColor = colorScheme.primary;
-    }
+  Widget _buildStatCard(String title, String value, IconData icon, Color themeColor) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.95, end: 1),
-      duration: const Duration(milliseconds: 600),
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 800),
       curve: Curves.easeOutBack,
-      builder: (context, scale, child) {
+      builder: (context, animValue, child) {
         return Transform.scale(
-          scale: scale,
-          child: child,
+          scale: 0.85 + animValue * 0.15,
+          child: Opacity(
+            opacity: animValue.clamp(0.0, 1.0), // 确保值在合法范围内
+            child: child,
+          ),
         );
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              mainColor.withOpacity(0.08),
-              mainColor.withOpacity(0.02),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: Colors.white.withOpacity(0.3),
-            width: 0.6,
-          ),
-          backgroundBlendMode: BlendMode.overlay,
+          boxShadow: [
+            // 主阴影
+            BoxShadow(
+              color: themeColor.withOpacity(0.2),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+              spreadRadius: -4,
+            ),
+            // 内发光
+            BoxShadow(
+              color: Colors.white.withOpacity(isDark ? 0.03 : 0.5),
+              blurRadius: 1,
+              offset: const Offset(0, -1),
+            ),
+          ],
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // 图标 + 柔光圆底
-            Container(
-              width: 48,
-              height: 48,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+            child: Container(
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
                 gradient: LinearGradient(
-                  colors: [
-                    mainColor.withOpacity(0.25),
-                    mainColor.withOpacity(0.1),
-                  ],
+                  colors: isDark
+                      ? [
+                          Colors.white.withOpacity(0.15),
+                          Colors.white.withOpacity(0.08),
+                        ]
+                      : [
+                          Colors.white.withOpacity(0.85),
+                          Colors.white.withOpacity(0.6),
+                        ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: mainColor.withOpacity(0.25),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
+                border: Border.all(
+                  color: Colors.white.withOpacity(isDark ? 0.2 : 0.5),
+                  width: 1.5,
+                ),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Stack(
+                children: [
+                  // 装饰性光晕
+                  Positioned(
+                    top: -20,
+                    right: -20,
+                    child: Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            themeColor.withOpacity(isDark ? 0.15 : 0.25),
+                            themeColor.withOpacity(0),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  // 内容
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // 图标容器
+                        Container(
+                          width: 46,
+                          height: 46,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              colors: [
+                                themeColor.withOpacity(0.2),
+                                themeColor.withOpacity(0.1),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            border: Border.all(
+                              color: themeColor.withOpacity(0.3),
+                              width: 1.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: themeColor.withOpacity(0.25),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            icon,
+                            color: themeColor,
+                            size: 22,
+                          ),
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        // 数值 - 渐变文字
+                        ShaderMask(
+                          shaderCallback: (bounds) => LinearGradient(
+                            colors: [
+                              themeColor,
+                              themeColor.withOpacity(0.7),
+                            ],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                          ).createShader(bounds),
+                          child: Text(
+                            value,
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              letterSpacing: -0.5,
+                              height: 1.0,
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 4),
+
+                        // 标题
+                        Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: isDark
+                                ? Colors.white.withOpacity(0.65)
+                                : Colors.grey[600],
+                            letterSpacing: 0.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
-              child: Icon(icon, color: mainColor, size: 24),
             ),
-
-            const SizedBox(height: 12),
-
-            // 数值
-            ShaderMask(
-              shaderCallback: (bounds) => LinearGradient(
-                colors: [mainColor, mainColor.withOpacity(0.6)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ).createShader(bounds),
-              child: Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 6),
-
-            // 标题
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey[700],
-                letterSpacing: 0.3,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildSectionTitle(String title) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: Colors.grey[700],
-        ),
+      margin: const EdgeInsets.fromLTRB(20, 0, 16, 0),
+      child: Row(
+        children: [
+          Container(
+            width: 4,
+            height: 18,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xFF4FC3F7),
+                  Color(0xFF6FBADB),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white.withOpacity(0.9) : Colors.grey[800],
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -406,34 +546,84 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     BuildContext context,
     List<Map<String, dynamic>> actions,
   ) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // 定义莫兰迪色系
+    final colors = [
+      const Color(0xFF6FBADB), // 莫兰迪蓝
+      const Color(0xFFD89B9B), // 莫兰迪粉
+      const Color(0xFFB8A8C9), // 莫兰迪紫
+      const Color(0xFF9FB89D), // 莫兰迪绿
+      const Color(0xFFDDB892), // 莫兰迪橙
+      const Color(0xFFA8C5D1), // 莫兰迪青
+    ];
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: actions.length,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 4,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 20,
-          childAspectRatio: 1.0,
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.08),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+            spreadRadius: -6,
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: isDark
+                    ? [
+                        Colors.white.withOpacity(0.12),
+                        Colors.white.withOpacity(0.06),
+                      ]
+                    : [
+                        Colors.white.withOpacity(0.8),
+                        Colors.white.withOpacity(0.5),
+                      ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              border: Border.all(
+                color: Colors.white.withOpacity(isDark ? 0.15 : 0.4),
+                width: 1.2,
+              ),
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(12),
+              itemCount: actions.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 4,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 20,
+                childAspectRatio: 0.9,
+              ),
+              itemBuilder: (context, index) {
+                final action = actions[index];
+                final IconData icon = action['icon'];
+                final String title = action['title'];
+                final VoidCallback? onTap = action['onTap'];
+                final color = colors[index % colors.length];
+
+                return _GridActionItem(
+                  icon: icon,
+                  title: title,
+                  onTap: onTap,
+                  color: color,
+                );
+              },
+            ),
+          ),
         ),
-        itemBuilder: (context, index) {
-          final action = actions[index];
-          final IconData icon = action['icon'];
-          final String title = action['title'];
-          final VoidCallback? onTap = action['onTap'];
-
-          return _GridActionItem(
-            icon: icon,
-            title: title,
-            onTap: onTap,
-            color: colorScheme.primary,
-          );
-        },
       ),
     );
   }
@@ -478,152 +668,257 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   }
 
   Widget _buildUserProfileHeader(BuildContext context, dynamic user) {
-    // 从认证状态中获取用户头像，如果不存在则使用默认图标
     final userAvatarUrl = user?.userAvatar;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-      child: Stack(
-        children: [
-          // 背景和装饰
-          Container(
-            height: 180,
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      height: 160,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF4FC3F7).withOpacity(0.15),
+            blurRadius: 30,
+            offset: const Offset(0, 12),
+            spreadRadius: -8,
+          ),
+          BoxShadow(
+            color: Colors.white.withOpacity(isDark ? 0.02 : 0.1),
+            blurRadius: 1,
+            offset: const Offset(0, -1),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
+          child: Container(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
               gradient: LinearGradient(
-                colors: [
-                  Theme.of(context).colorScheme.primary.withOpacity(0.9),
-                  Theme.of(context)
-                      .colorScheme
-                      .primaryContainer
-                      .withOpacity(0.7),
-                ],
+                colors: isDark
+                    ? [
+                        const Color(0xFF4FC3F7).withOpacity(0.25),
+                        const Color(0xFF6FBADB).withOpacity(0.18),
+                        const Color(0xFF4FC3F7).withOpacity(0.12),
+                      ]
+                    : [
+                        const Color(0xFF4FC3F7).withOpacity(0.35),
+                        const Color(0xFF6FBADB).withOpacity(0.25),
+                        const Color(0xFF9DCFDF).withOpacity(0.2),
+                      ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                  blurRadius: 15,
-                  offset: const Offset(0, 8),
+              border: Border.all(
+                color: Colors.white.withOpacity(isDark ? 0.2 : 0.45),
+                width: 1.5,
+              ),
+              borderRadius: BorderRadius.circular(32),
+            ),
+            child: Stack(
+              children: [
+                // 装饰性光晕
+                Positioned(
+                  top: -30,
+                  right: -30,
+                  child: Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          Colors.white.withOpacity(isDark ? 0.08 : 0.2),
+                          Colors.white.withOpacity(0),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                // 内容
+                Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: GestureDetector(
+                    onTap: () => Navigator.pushNamed(context, '/user_settings'),
+                    child: Row(
+                      children: [
+                        // 头像容器
+                        Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.15),
+                                blurRadius: 16,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: CircleAvatar(
+                            radius: 42,
+                            backgroundColor: Colors.white.withOpacity(0.9),
+                            child: CircleAvatar(
+                              radius: 39,
+                              backgroundColor: isDark 
+                                  ? const Color(0xFF1A1F3A)
+                                  : Colors.white,
+                              child: _buildUserAvatar(userAvatarUrl),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 20),
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                user?.userName ?? '点击登录',
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w800,
+                                  color: isDark 
+                                      ? Colors.white
+                                      : Colors.white,
+                                  letterSpacing: 0.3,
+                                  shadows: [
+                                    Shadow(
+                                      blurRadius: 8,
+                                      color: Colors.black.withOpacity(0.15),
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.25),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: Colors.white.withOpacity(0.3),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Text(
+                                  user?.userProfile ?? '编辑个性签名，展示最好的你',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: isDark
+                                        ? Colors.white.withOpacity(0.9)
+                                        : Colors.white.withOpacity(0.95),
+                                    letterSpacing: 0.2,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // 设置按钮
+                Positioned(
+                  top: 16,
+                  right: 16,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(isDark ? 0.15 : 0.3),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.3),
+                        width: 1,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: IconButton(
+                      icon: Icon(
+                        Icons.settings_outlined,
+                        color: isDark ? Colors.white : Colors.white,
+                        size: 22,
+                      ),
+                      onPressed: () => Navigator.pushNamed(context, '/settings'),
+                      tooltip: '设置',
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
-          // 内容
-          Positioned.fill(
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: GestureDetector(
-                onTap: () => Navigator.pushNamed(context, '/user_settings'),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 36,
-                      backgroundColor: Colors.white,
-                      child: CircleAvatar(
-                        radius: 34,
-                        backgroundColor:
-                            Theme.of(context).colorScheme.background,
-                        child: _buildUserAvatar(userAvatarUrl),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            user?.userName ?? '点击登录',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              shadows: [
-                                Shadow(blurRadius: 2.0, color: Colors.black26)
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            user?.userProfile ?? '编辑个性签名，展示最好的你',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.white.withOpacity(0.9),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          // 设置按钮
-          Positioned(
-            top: 12,
-            right: 12,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.15),
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                icon: const Icon(Icons.settings_outlined,
-                    color: Colors.white, size: 20),
-                onPressed: () => Navigator.pushNamed(context, '/settings'),
-                tooltip: '设置',
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildUserAvatar(String? userAvatarUrl) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     if (userAvatarUrl == null) {
-      return Icon(Icons.person_outline, size: 36, color: Colors.grey[400]);
+      return Icon(
+        Icons.person_outline,
+        size: 42,
+        color: isDark ? Colors.white.withOpacity(0.5) : Colors.grey[400],
+      );
     }
 
     return TweenAnimationBuilder(
       tween: Tween<double>(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOut,
       builder: (context, value, child) {
         return Opacity(
           opacity: value,
-          child: ClipOval(
-            child: Image.network(
-              userAvatarUrl,
-              width: 68,
-              height: 68,
-              fit: BoxFit.cover,
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) return child;
-                return Center(
-                  child: SizedBox(
-                    width: 30,
-                    height: 30,
-                    child: CircularProgressIndicator(
-                      value: loadingProgress.expectedTotalBytes != null
-                          ? loadingProgress.cumulativeBytesLoaded /
-                              loadingProgress.expectedTotalBytes!
-                          : null,
-                      strokeWidth: 2,
-                      valueColor:
-                          AlwaysStoppedAnimation<Color>(Colors.grey[400]!),
+          child: Transform.scale(
+            scale: 0.9 + value * 0.1,
+            child: ClipOval(
+              child: Image.network(
+                userAvatarUrl,
+                width: 78,
+                height: 78,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Center(
+                    child: SizedBox(
+                      width: 32,
+                      height: 32,
+                      child: CircularProgressIndicator(
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                                loadingProgress.expectedTotalBytes!
+                            : null,
+                        strokeWidth: 2.5,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          const Color(0xFF4FC3F7),
+                        ),
+                      ),
                     ),
-                  ),
-                );
-              },
-              errorBuilder: (context, error, stackTrace) {
-                return Icon(Icons.person_outline,
-                    size: 36, color: Colors.grey[400]);
-              },
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return Icon(
+                    Icons.person_outline,
+                    size: 42,
+                    color: isDark ? Colors.white.withOpacity(0.5) : Colors.grey[400],
+                  );
+                },
+              ),
             ),
           ),
         );

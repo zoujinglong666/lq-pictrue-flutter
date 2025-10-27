@@ -6,14 +6,14 @@ import '../widgets/skeleton_widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/unread_provider.dart';
 
-class NotificationPage extends StatefulWidget {
+class NotificationPage extends ConsumerStatefulWidget {
   const NotificationPage({super.key});
 
   @override
-  State<NotificationPage> createState() => _NotificationPageState();
+  ConsumerState<NotificationPage> createState() => _NotificationPageState();
 }
 
-class _NotificationPageState extends State<NotificationPage> {
+class _NotificationPageState extends ConsumerState<NotificationPage> {
   late List<NotifyVO> _notifications = [];
   bool _isLoading = true;
 
@@ -21,6 +21,12 @@ class _NotificationPageState extends State<NotificationPage> {
   void initState() {
     super.initState();
     _getData();
+  }
+
+  @override
+  void dispose() {
+    // 不在dispose中调用ref,因为widget已被销毁
+    super.dispose();
   }
 
   Future<void> _markAsRead(NotifyVO notification) async {
@@ -32,7 +38,8 @@ class _NotificationPageState extends State<NotificationPage> {
       setState(() {
         notification.readStatus = 1;
       });
-      _syncUnreadBadge();
+      // 等待刷新未读数完成
+      await ref.read(unreadRefreshNotifierProvider.notifier).refresh();
     } catch (e) {
       print('标记已读失败: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -43,21 +50,26 @@ class _NotificationPageState extends State<NotificationPage> {
 
   Future<void> _markAllRead() async {
     try {
+      // 等待刷新未读数完成
+      await ref.read(unreadRefreshNotifierProvider.notifier).clearAll();
       await NotifyApi.markAllRead();
       setState(() {
         for (var notification in _notifications) {
           notification.readStatus = 1;
         }
       });
-      _syncUnreadBadge();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('已标记所有消息为已读')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('已标记所有消息为已读')),
+        );
+      }
     } catch (e) {
       print('标记全部已读失败: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('标记全部已读失败，请重试')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('标记全部已读失败，请重试')),
+        );
+      }
     }
   }
 
@@ -69,26 +81,31 @@ class _NotificationPageState extends State<NotificationPage> {
       setState(() {
         _notifications.remove(notification);
       });
-      _syncUnreadBadge();
+      // 等待刷新未读数完成
+      await ref.read(unreadRefreshNotifierProvider.notifier).refresh();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('消息已删除'),
-          action: SnackBarAction(
-            label: '撤销',
-            onPressed: () {
-              setState(() {
-                _notifications.insert(0, notification);
-              });
-              _syncUnreadBadge();
-            },
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('消息已删除'),
+            action: SnackBarAction(
+              label: '撤销',
+              onPressed: () async {
+                setState(() {
+                  _notifications.insert(0, notification);
+                });
+                await ref.read(unreadRefreshNotifierProvider.notifier).refresh();
+              },
+            ),
           ),
-        ),
-      );
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('删除失败，请重试')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('删除失败，请重试')),
+        );
+      }
     }
   }
 
@@ -102,32 +119,25 @@ class _NotificationPageState extends State<NotificationPage> {
         'page': 1,
         'pageSize': 10,
       });
-      setState(() {
-        _notifications = res.records ?? [];
-        _isLoading = false;
-      });
-      // 如果分页对象不包含未读总数字段，直接根据返回的列表本地计算并同步角标
-      _syncUnreadBadge();
+      if (mounted) {
+        setState(() {
+          _notifications = res.records ?? [];
+          _isLoading = false;
+        });
+        // 使用RefreshNotifier主动刷新未读数
+        ref.read(unreadRefreshNotifierProvider.notifier).refresh();
+      }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-      // 可以在这里添加错误处理
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
       print('获取通知列表失败: $e');
     }
   }
-  // 计算未读并同步到全局 Provider
-  Future<void> _syncUnreadBadge() async {
-    try {
-      final res = await NotifyApi.countUnread();
-      _setUnreadBadge(int.parse(res));
-    } catch (e) {}
-  }
-  void _setUnreadBadge(int count) {
-    // 在非 ConsumerWidget 中使用 Riverpod
-    final container = ProviderScope.containerOf(context, listen: false);
-    container.read(unreadCountProvider.notifier).state = count;
-  }
+  
+  // 删除旧的_syncUnreadBadge和_setUnreadBadge方法，已由RefreshNotifier替代
 
   @override
   Widget build(BuildContext context) {
@@ -141,7 +151,9 @@ class _NotificationPageState extends State<NotificationPage> {
             Icons.arrow_back_ios,
             color: Colors.grey[800],
           ),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            Navigator.pop(context);
+          },
         ),
         title: Text(
           '消息通知',
