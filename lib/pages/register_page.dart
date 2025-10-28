@@ -16,10 +16,57 @@ class _RegisterPageState extends State<RegisterPage> with KeyboardDismissMixin {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _usernameFocus = FocusNode();
+  final _emailFocus = FocusNode();
+  final _passwordFocus = FocusNode();
+  final _confirmPasswordFocus = FocusNode();
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
   bool _isLoading = false;
   bool _agreeToTerms = false;
+  bool _isUsernameFocused = false;
+  bool _isEmailFocused = false;
+  bool _isPasswordFocused = false;
+  bool _isConfirmPasswordFocused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 监听焦点变化
+    _usernameFocus.addListener(() {
+      setState(() {
+        _isUsernameFocused = _usernameFocus.hasFocus;
+      });
+    });
+    _emailFocus.addListener(() {
+      setState(() {
+        _isEmailFocused = _emailFocus.hasFocus;
+      });
+    });
+    _passwordFocus.addListener(() {
+      setState(() {
+        _isPasswordFocused = _passwordFocus.hasFocus;
+      });
+    });
+    _confirmPasswordFocus.addListener(() {
+      setState(() {
+        _isConfirmPasswordFocused = _confirmPasswordFocus.hasFocus;
+      });
+    });
+    // 监听输入内容变化，实时更新UI
+    _usernameController.addListener(() {
+      setState(() {});
+    });
+    _emailController.addListener(() {
+      setState(() {});
+    });
+    _passwordController.addListener(() {
+      setState(() {});
+    });
+    _confirmPasswordController.addListener(() {
+      setState(() {});
+    });
+  }
 
   @override
   void dispose() {
@@ -27,6 +74,10 @@ class _RegisterPageState extends State<RegisterPage> with KeyboardDismissMixin {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _usernameFocus.dispose();
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
+    _confirmPasswordFocus.dispose();
     super.dispose();
   }
 
@@ -250,9 +301,11 @@ class _RegisterPageState extends State<RegisterPage> with KeyboardDismissMixin {
                               // 用户名输入框
                               _buildInputField(
                                 controller: _usernameController,
+                                focusNode: _usernameFocus,
                                 label: '用户名',
                                 hint: '请输入用户名',
                                 icon: Icons.person_outline_rounded,
+                                isFocused: _isUsernameFocused,
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
                                     return '请输入用户名';
@@ -272,9 +325,11 @@ class _RegisterPageState extends State<RegisterPage> with KeyboardDismissMixin {
                               // 邮箱输入框
                               _buildInputField(
                                 controller: _emailController,
+                                focusNode: _emailFocus,
                                 label: '邮箱',
                                 hint: '请输入邮箱',
                                 icon: Icons.email_outlined,
+                                isFocused: _isEmailFocused,
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
                                     return '请输入邮箱';
@@ -291,10 +346,12 @@ class _RegisterPageState extends State<RegisterPage> with KeyboardDismissMixin {
                               // 密码输入框
                               _buildInputField(
                                 controller: _passwordController,
+                                focusNode: _passwordFocus,
                                 label: '密码',
                                 hint: '请输入密码',
                                 icon: Icons.lock_outline_rounded,
                                 isPassword: true,
+                                isFocused: _isPasswordFocused,
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
                                     return '请输入密码';
@@ -314,11 +371,13 @@ class _RegisterPageState extends State<RegisterPage> with KeyboardDismissMixin {
                               // 确认密码输入框
                               _buildInputField(
                                 controller: _confirmPasswordController,
+                                focusNode: _confirmPasswordFocus,
                                 label: '确认密码',
                                 hint: '请再次输入密码',
                                 icon: Icons.lock_outline_rounded,
                                 isPassword: true,
                                 isConfirmPassword: true,
+                                isFocused: _isConfirmPasswordFocused,
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
                                     return '请确认密码';
@@ -495,9 +554,11 @@ class _RegisterPageState extends State<RegisterPage> with KeyboardDismissMixin {
   // 莫兰迪风格输入框
   Widget _buildInputField({
     required TextEditingController controller,
+    required FocusNode focusNode,
     required String label,
     required String hint,
     required IconData icon,
+    required bool isFocused,
     bool isPassword = false,
     bool isConfirmPassword = false,
     String? Function(String?)? validator,
@@ -527,6 +588,7 @@ class _RegisterPageState extends State<RegisterPage> with KeyboardDismissMixin {
       ),
       child: TextFormField(
         controller: controller,
+        focusNode: focusNode,
         obscureText: isPassword && (isConfirmPassword ? !_isConfirmPasswordVisible : !_isPasswordVisible),
         style: const TextStyle(
           color: Color(0xFF2D3436),
@@ -540,7 +602,7 @@ class _RegisterPageState extends State<RegisterPage> with KeyboardDismissMixin {
             fontSize: 14,
             fontWeight: FontWeight.w300,
           ),
-          hintText: hint,
+          hintText: (isFocused || controller.text.isNotEmpty) ? null : hint,
           hintStyle: TextStyle(
             color: const Color(0xFFB8C5D6).withOpacity(0.6),
             fontSize: 14,

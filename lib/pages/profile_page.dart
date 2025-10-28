@@ -6,6 +6,7 @@ import 'package:lq_picture/apis/picture_api.dart';
 import 'package:lq_picture/apis/space_api.dart';
 import 'package:lq_picture/model/picture.dart';
 import 'package:lq_picture/providers/auth_provider.dart';
+import 'package:lq_picture/providers/space_provider.dart';
 
 import 'my_space_page.dart';
 
@@ -126,42 +127,26 @@ class _GridActionItemState extends State<_GridActionItem>
 }
 
 class _ProfilePageState extends ConsumerState<ProfilePage> {
-  SpaceVO spaceData = SpaceVO.empty();
   PictureStatsData statsData = PictureStatsData.empty();
 
   @override
   void initState() {
     super.initState();
     // 首次加载数据
-    _loadData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData();
+    });
     _loadMyStatsData();
   }
 
   Future<void> _loadData() async {
-    try {
-      // 获取用户认证状态
-      final authState = ref.read(authProvider);
-      // 访问用户信息
-      final user = authState.user;
-      final res = await SpaceApi.getList({
-        "current": 1,
-        "pageSize": 10,
-        "spaceType": 0,
-        "userId": user!.id,
-      });
-      if (res.records.isNotEmpty) {
-        setState(() {
-          spaceData = res.records[0];
-          print('空间数据加载成功: ${spaceData.spaceName}, ID: ${spaceData.id}');
-        });
-      } else {
-        print('没有找到空间数据');
-      }
-    } catch (e) {
-      if (mounted) {
-        print('加载数据失败: $e');
-      }
-    } finally {}
+    final authState = ref.read(authProvider);
+    final user = authState.user;
+    
+    if (user != null && user.id != null) {
+      // 使用 Provider 加载空间数据
+      await ref.read(spaceProvider.notifier).loadMySpace(user.id!);
+    }
   }
 
   Future<void> _loadMyStatsData() async {
@@ -181,7 +166,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   Widget build(BuildContext context) {
     // 获取用户认证状态
     final authState = ref.watch(authProvider);
-    // 监听认证状态变化
+    // 监听空间状态变化
+    final spaceState = ref.watch(spaceProvider);
+    final spaceData = spaceState.space ?? SpaceVO.empty();
 
     // 访问用户信息
     final user = authState.user;
@@ -272,7 +259,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   ]
                   // 如果有空间，则显示相关操作
                   else ...[
-                    {
+                    {  
                       'icon': Icons.photo_library_outlined,
                       'title': '我的空间',
                       'onTap': () {
@@ -286,6 +273,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         ).then((_) {
                           // 从空间页面返回时刷新数据
                           _loadData();
+                          _loadMyStatsData();
                         });
                       },
                     },
@@ -341,7 +329,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 ),
               ],
               
-              const SizedBox(height: 32),
+              // 底部留白，避免被底部导航栏遮挡
+              const SizedBox(height: 120),
             ],
           ),
         ),
@@ -728,7 +717,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               ),
               border: Border.all(
                 color: Colors.white.withOpacity(isDark ? 0.2 : 0.45),
-                width: 1.5,
+                width: 1,
               ),
               borderRadius: BorderRadius.circular(32),
             ),
@@ -808,31 +797,17 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                 ),
                               ),
                               const SizedBox(height: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.25),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: Colors.white.withOpacity(0.3),
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Text(
-                                  user?.userProfile ?? '编辑个性签名，展示最好的你',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: isDark
-                                        ? Colors.white.withOpacity(0.9)
-                                        : Colors.white.withOpacity(0.95),
-                                    letterSpacing: 0.2,
-                                    fontWeight: FontWeight.w500,
-                                  ),
+                              Text(
+                                user?.userProfile ?? '编辑个性签名，展示最好的你',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: isDark
+                                      ? Colors.white.withOpacity(0.9)
+                                      : Colors.white.withOpacity(0.95),
+                                  letterSpacing: 0.2,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ],
@@ -847,6 +822,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   top: 16,
                   right: 16,
                   child: Container(
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(isDark ? 0.15 : 0.3),
                       shape: BoxShape.circle,

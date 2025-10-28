@@ -879,7 +879,7 @@ class _UploadPageState extends ConsumerState<UploadPage>
 
   Widget _buildFileUploadTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 120), // 增加底部内边距避免被导航栏遭挡
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1292,7 +1292,7 @@ class _UploadPageState extends ConsumerState<UploadPage>
 
   Widget _buildUrlUploadTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 120), // 增加底部内边距避免被导航栏遭挡
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

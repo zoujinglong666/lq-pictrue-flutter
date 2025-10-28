@@ -55,10 +55,13 @@ class _MainPageState extends State<MainPage>
                   opacity: showTab ? 1 : 0,
                   duration: const Duration(milliseconds: 200),
                   curve: Curves.easeOut,
-                  child: _CustomTabBar(
-                    tabs: tabs,
-                    selectedIndex: selectedIndex,
-                    onTap: onTabTapped,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 12), // 添加底部安全边距
+                    child: _CustomTabBar(
+                      tabs: tabs,
+                      selectedIndex: selectedIndex,
+                      onTap: onTabTapped,
+                    ),
                   ),
                 ),
               ),
@@ -163,7 +166,7 @@ class _CustomTabBar extends StatelessWidget {
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       curve: Curves.easeInOut,
-                      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       decoration: isSelected
                           ? BoxDecoration(
                               borderRadius: BorderRadius.circular(25),

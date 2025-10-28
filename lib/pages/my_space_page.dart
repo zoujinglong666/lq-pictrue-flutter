@@ -5,6 +5,7 @@ import 'package:lq_picture/apis/space_api.dart';
 import 'package:lq_picture/model/picture.dart';
 import 'package:lq_picture/pages/image_edit_page.dart';
 import 'package:lq_picture/pages/upload_page.dart';
+import 'package:lq_picture/providers/space_provider.dart';
 
 import '../apis/picture_api.dart';
 import '../providers/auth_provider.dart';
@@ -29,28 +30,37 @@ class _MySpacePageState extends ConsumerState<MySpacePage>
   String? _selectedImageId;
   bool _showActionOverlay = false;
 
-  // 获取空间数据，如果为空则使用默认值
-  // 模拟图片数据
+  // 图片列表数据
   List<PictureVO> _images = [];
-
-  // 模拟图片详情数据
-  SpaceVO spaceData = SpaceVO.empty();
 
   @override
   void initState() {
     super.initState();
-
-    _getMySpaceData().then((value) {
-      _loadData();
-    });
+    
     _scrollController.addListener(_onScroll);
     
-    // 如果有刷新回调，调用它
+    // 延迟加载，确保 Provider 已初始化
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.onRefresh != null) {
-        widget.onRefresh!();
-      }
+      _initData();
     });
+  }
+  
+  /// 初始化数据
+  Future<void> _initData() async {
+    final authState = ref.read(authProvider);
+    final user = authState.user;
+    
+    if (user != null && user.id != null) {
+      // 使用 Provider 加载空间数据
+      await ref.read(spaceProvider.notifier).loadMySpace(user.id!);
+      // 加载图片列表
+      await _loadData();
+    }
+    
+    // 如果有刷新回调，调用它
+    if (widget.onRefresh != null) {
+      widget.onRefresh!();
+    }
   }
 
   void _onScroll() {
@@ -60,40 +70,14 @@ class _MySpacePageState extends ConsumerState<MySpacePage>
     }
   }
 
-  Future<void> _getMySpaceData() async {
-    try {
-      // 获取用户认证状态
-      final authState = ref.read(authProvider);
-      // 访问用户信息
-      final user = authState.user;
-      final res = await SpaceApi.getList({
-        "current": 1,
-        "pageSize": 10,
-        "spaceType": 0,
-        "userId": user!.id,
-      });
-
-      if (res.records.isNotEmpty) {
-        setState(() {
-          // 刷新数据
-          spaceData = res.records[0];
-        });
-      } else {
-        print('没有找到空间数据');
-      }
-    } catch (e) {
-      if (mounted) {
-        print('加载数据失败: $e');
-      }
-    } finally {
-      if (mounted) {}
-    }
-  }
-
   Future<void> _loadData() async {
     if (_isLoading) return;
 
-    if (spaceData.id.isEmpty) {
+    // 从 Provider 获取空间数据
+    final spaceState = ref.read(spaceProvider);
+    final spaceData = spaceState.space;
+
+    if (spaceData == null || spaceData.id.isEmpty) {
       setState(() {
         _images = [];
       });
@@ -131,6 +115,12 @@ class _MySpacePageState extends ConsumerState<MySpacePage>
 
   Future<void> _loadMoreImages() async {
     if (_isLoading || !_hasMore) return;
+
+    // 从 Provider 获取空间数据
+    final spaceState = ref.read(spaceProvider);
+    final spaceData = spaceState.space;
+    
+    if (spaceData == null) return;
 
     setState(() {
       _isLoading = true;
@@ -294,12 +284,6 @@ class _MySpacePageState extends ConsumerState<MySpacePage>
 
   @override
   Widget build(BuildContext context) {
-    double total = double.tryParse(spaceData?.totalSize ?? '') ?? 0;
-    double max = double.tryParse(spaceData?.maxSize ?? '') ?? 1;
-
-    // 防止除以0或产生NaN
-    double progress = (max > 0) ? (total / max).clamp(0.0, 1.0) : 0.0;
-
     return buildWithKeyboardDismiss(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -320,12 +304,25 @@ class _MySpacePageState extends ConsumerState<MySpacePage>
         actions: [
           IconButton(
             icon: Icon(Icons.settings_outlined, color: Colors.grey[700]),
-            onPressed: () {
-              Navigator.pushNamed(
-                context,
-                '/space_settings',
-                arguments: spaceData,
-              );
+            onPressed: () async {
+              // 从 Provider 获取当前空间数据
+              final spaceState = ref.read(spaceProvider);
+              final currentSpace = spaceState.space;
+              
+              if (currentSpace != null) {
+                // 传递空间数据到设置页面
+                await Navigator.pushNamed(
+                  context,
+                  '/space_settings',
+                  arguments: currentSpace,
+                );
+                
+                // 设置页面会直接更新 Provider，所以这里不需要手动处理返回值
+                // Provider 会自动通知所有监听者更新 UI
+                
+                // 刷新图片列表
+                await _loadData();
+              }
             },
           ),
         ],
@@ -342,527 +339,564 @@ class _MySpacePageState extends ConsumerState<MySpacePage>
               _currentPage = 1;
               _hasMore = true;
             });
-            await _getMySpaceData();
+            // 刷新空间数据
+            final authState = ref.read(authProvider);
+            final user = authState.user;
+            if (user != null && user.id != null) {
+              await ref.read(spaceProvider.notifier).refresh(user.id!);
+            }
+            // 刷新图片列表
             await _loadData();
           },
-          child: CustomScrollView(
-            controller: _scrollController,
-            slivers: [
-              // 空间信息卡片
-              SliverToBoxAdapter(
-                child: Container(
-                  margin: const EdgeInsets.all(16),
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 空间标题和级别
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  spaceData.spaceName ?? '未命名空间',
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: _getSpaceLevelColor(
-                                          spaceData!.spaceLevel,
-                                        ).withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        _getSpaceLevelName(
-                                          spaceData!.spaceLevel,
-                                        ),
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: _getSpaceLevelColor(
-                                            spaceData.spaceLevel,
-                                          ),
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.green.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        (spaceData.spaceType == 0 ||
-                                                spaceData.spaceType == null)
-                                            ? '私有'
-                                            : '团队',
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.green,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          CircleAvatar(
-                            radius: 24,
-                            backgroundImage: NetworkImage(
-                              spaceData.user.userAvatar ??
-                                  'https://picsum.photos/200',
-                            ),
+          child: Consumer(
+            builder: (context, ref, child) {
+              // 监听空间状态变化
+              final spaceState = ref.watch(spaceProvider);
+              final spaceData = spaceState.space ?? SpaceVO.empty();
+              
+              double total = double.tryParse(spaceData.totalSize ?? '') ?? 0;
+              double max = double.tryParse(spaceData.maxSize ?? '') ?? 1;
+              double progress = (max > 0) ? (total / max).clamp(0.0, 1.0) : 0.0;
+              
+              return CustomScrollView(
+                controller: _scrollController,
+                slivers: [
+                  // 空间信息卡片
+                  SliverToBoxAdapter(
+                    child: Container(
+                      margin: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 5),
                           ),
                         ],
                       ),
-
-                      const SizedBox(height: 20),
-
-                      // 存储使用情况
-                      Column(
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // 空间标题和级别
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text(
-                                '存储使用情况',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      spaceData.spaceName ?? '未命名空间',
+                                      style: const TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: _getSpaceLevelColor(
+                                              spaceData!.spaceLevel,
+                                            ).withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Text(
+                                            _getSpaceLevelName(
+                                              spaceData!.spaceLevel,
+                                            ),
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: _getSpaceLevelColor(
+                                                spaceData.spaceLevel,
+                                              ),
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.green.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Text(
+                                            (spaceData.spaceType == 0 ||
+                                                    spaceData.spaceType == null)
+                                                ? '私有'
+                                                : '团队',
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.green,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ),
                               ),
-                              Text(
-                                '${_formatFileSize(int.tryParse(spaceData.totalSize) ?? 0)} / ${_formatFileSize(int.tryParse(spaceData.maxSize) ?? 0)}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[600],
+                              CircleAvatar(
+                                radius: 24,
+                                backgroundImage: NetworkImage(
+                                  spaceData.user.userAvatar ??
+                                      'https://picsum.photos/200',
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          LinearProgressIndicator(
-                            value: progress,
-                            backgroundColor: Colors.grey[200],
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              _getSpaceLevelColor(spaceData?.spaceLevel ?? 0),
-                            ),
-                          ),
-                        ],
-                      ),
 
-                      const SizedBox(height: 16),
+                          const SizedBox(height: 20),
 
-                      // 统计信息
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildStatItem(
-                              '图片数量',
-                              '${spaceData.totalCount} / ${spaceData.maxCount}',
-                              Icons.photo_library_outlined,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildStatItem(
-                              '创建时间',
-                              _formatDate(spaceData.createTime),
-                              Icons.calendar_today_outlined,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // 操作按钮
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () async {
-                            final result = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    UploadPage(spaceId: spaceData.id!),
-                              ),
-                            );
-                            
-                            // 如果上传成功返回，刷新图片列表
-                            if (result == true) {
-                              _loadData();
-                            }
-                          },
-                          icon: const Icon(Icons.add_photo_alternate_outlined),
-                          label: const Text('上传图片'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue[600],
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SliverToBoxAdapter(child: SizedBox(height: 24)),
-
-              // 图片标题
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: [
-                      const Text(
-                        '我的图片',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const Spacer(),
-                      TextButton.icon(
-                        onPressed: () {
-                          // 切换视图模式
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('切换视图模式')),
-                          );
-                        },
-                        icon: Icon(
-                          Icons.view_module_outlined,
-                          size: 16,
-                          color: Colors.grey[600],
-                        ),
-                        label: Text(
-                          '网格',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SliverToBoxAdapter(child: SizedBox(height: 8)),
-
-              // 图片瀑布流
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                sliver: SliverMasonryGrid.count(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childCount: _images.length,
-                  itemBuilder: (context, index) {
-                    final image = _images[index];
-                    final isSelected = _selectedImageId == image.id;
-
-                    return GestureDetector(
-                      onTap: () {
-                        if (_showActionOverlay) {
-                          _hideActionOverlay();
-                        } else {
-                          Navigator.pushNamed(
-                            context,
-                            '/detail',
-                            arguments: image,
-                          );
-                        }
-                      },
-                      onLongPress: () {
-                        _showImageActions(image.id);
-                      },
-                      child: Stack(
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.04),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                          // 存储使用情况
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Stack(
-                                    children: [
-                                      AspectRatio(
-                                        aspectRatio:
-                                            image.picWidth / image.picHeight,
-                                        child: CachedImage(
-                                          imageUrl:
-                                              image.thumbnailUrl ?? image.url,
-                                          fit: BoxFit.cover,
-                                        ),
-                                      ),
-                                      // 编辑按钮
-                                      if (!_showActionOverlay)
-                                        Positioned(
-                                          top: 8,
-                                          right: 8,
-                                          child: GestureDetector(
-                                            onTap: () {
-                                              // Navigator.pushNamed(
-                                              //   context,
-                                              //   '/image_edit',
-                                              //   arguments: {
-                                              //     'imageId': image.id,
-                                              //     'imageData': image,
-                                              //   },
-                                              // );
-
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      ImageEditPage(
-                                                    imageData: image,
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                            child: Container(
-                                              padding: const EdgeInsets.all(6),
-                                              decoration: BoxDecoration(
-                                                color: Colors.black.withOpacity(
-                                                  0.1,
-                                                ),
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                              ),
-                                              child: const Icon(
-                                                Icons.edit,
-                                                color: Colors.white,
-                                                size: 12,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                    ],
+                                  const Text(
+                                    '存储使用情况',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(12),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          image.name,
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(height: 4),
-                                        // Row(
-                                        //   children: [
-                                        //     Text(
-                                        //       image.picSize,
-                                        //       style: TextStyle(
-                                        //         fontSize: 12,
-                                        //         color: Colors.grey[600],
-                                        //       ),
-                                        //     ),
-                                        //     const Spacer(),
-                                        //     Text(
-                                        //       image.updateTime.toString(),
-                                        //       style: TextStyle(
-                                        //         fontSize: 12,
-                                        //         color: Colors.grey[500],
-                                        //       ),
-                                        //     ),
-                                        //   ],
-                                        // ),
-                                      ],
+                                  Text(
+                                    '${_formatFileSize(int.tryParse(spaceData.totalSize) ?? 0)} / ${_formatFileSize(int.tryParse(spaceData.maxSize) ?? 0)}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey[600],
                                     ),
                                   ),
                                 ],
                               ),
-                            ),
+                              const SizedBox(height: 8),
+                              LinearProgressIndicator(
+                                value: progress,
+                                backgroundColor: Colors.grey[200],
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  _getSpaceLevelColor(spaceData?.spaceLevel ?? 0),
+                                ),
+                              ),
+                            ],
                           ),
-                          // 操作遮罩
-                          if (isSelected && _showActionOverlay)
-                            Positioned.fill(
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.5),
+
+                          const SizedBox(height: 16),
+
+                          // 统计信息
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildStatItem(
+                                  '图片数量',
+                                  '${spaceData.totalCount} / ${spaceData.maxCount}',
+                                  Icons.photo_library_outlined,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _buildStatItem(
+                                  '创建时间',
+                                  _formatDate(spaceData.createTime),
+                                  Icons.calendar_today_outlined,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // 操作按钮
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () async {
+                                final result = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        UploadPage(spaceId: spaceData.id!),
+                                  ),
+                                );
+                                
+                                // 如果上传成功返回，刷新图片列表
+                                if (result == true) {
+                                  _loadData();
+                                }
+                              },
+                              icon: const Icon(Icons.add_photo_alternate_outlined),
+                              label: const Text('上传图片'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue[600],
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: SingleChildScrollView(
-                                  child: ConstrainedBox(
-                                    constraints: BoxConstraints(
-                                      minHeight:
-                                          MediaQuery.of(context).size.height *
-                                              0.2,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
+                  // 图片标题
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          const Text(
+                            '我的图片',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const Spacer(),
+                          TextButton.icon(
+                            onPressed: () {
+                              // 切换视图模式
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('切换视图模式')),
+                              );
+                            },
+                            icon: Icon(
+                              Icons.view_module_outlined,
+                              size: 16,
+                              color: Colors.grey[600],
+                            ),
+                            label: Text(
+                              '网格',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SliverToBoxAdapter(child: SizedBox(height: 8)),
+
+                  // 图片瀑布流
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    sliver: SliverMasonryGrid.count(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childCount: _images.length,
+                      itemBuilder: (context, index) {
+                        final image = _images[index];
+                        final isSelected = _selectedImageId == image.id;
+
+                        return GestureDetector(
+                          onTap: () {
+                            if (_showActionOverlay) {
+                              _hideActionOverlay();
+                            } else {
+                              Navigator.pushNamed(
+                                context,
+                                '/detail',
+                                arguments: image,
+                              );
+                            }
+                          },
+                          onLongPress: () {
+                            _showImageActions(image.id);
+                          },
+                          child: Stack(
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.04),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
                                     ),
-                                    child: IntrinsicHeight(
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
+                                  ],
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Stack(
                                         children: [
-                                          const SizedBox(height: 8),
-                                          // 操作按钮网格 - 使用更紧凑的布局
-                                          Flexible(
-                                            child: Wrap(
-                                              spacing: 8,
-                                              runSpacing: 8,
-                                              alignment: WrapAlignment.center,
-                                              children: [
-                                                _buildCompactActionButton(
-                                                  icon: Icons.share_outlined,
-                                                  label: '分享',
-                                                  color: Colors.blue,
-                                                  onTap: () =>
-                                                      _shareImage(image.id),
-                                                ),
-                                                _buildCompactActionButton(
-                                                  icon: Icons.download_outlined,
-                                                  label: '下载',
-                                                  color: Colors.green,
-                                                  onTap: () => _downloadImage(
-                                                    image.id,
-                                                  ),
-                                                ),
-                                                _buildCompactActionButton(
-                                                  icon: Icons.delete_outline,
-                                                  label: '回收站',
-                                                  color: Colors.orange,
-                                                  onTap: () => _moveToTrash(
-                                                    image.id,
-                                                  ),
-                                                ),
-                                                _buildCompactActionButton(
-                                                  icon: Icons
-                                                      .delete_forever_outlined,
-                                                  label: '删除',
-                                                  color: Colors.red,
-                                                  onTap: () => _deleteImage(
-                                                    image.id,
-                                                  ),
-                                                ),
-                                              ],
+                                          AspectRatio(
+                                            aspectRatio:
+                                                image.picWidth / image.picHeight,
+                                            child: CachedImage(
+                                              imageUrl:
+                                                  image.thumbnailUrl ?? image.url,
+                                              fit: BoxFit.cover,
                                             ),
                                           ),
-                                          const SizedBox(height: 8),
-                                          // 取消按钮
-                                          GestureDetector(
-                                            onTap: _hideActionOverlay,
-                                            child: Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                horizontal: 16,
-                                                vertical: 6,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: Colors.white.withOpacity(
-                                                  0.2,
-                                                ),
-                                                borderRadius:
-                                                    BorderRadius.circular(16),
-                                                border: Border.all(
-                                                  color: Colors.white
-                                                      .withOpacity(0.3),
-                                                ),
-                                              ),
-                                              child: const Text(
-                                                '取消',
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.w500,
+                                          // 编辑按钮
+                                          if (!_showActionOverlay)
+                                            Positioned(
+                                              top: 8,
+                                              right: 8,
+                                              child: GestureDetector(
+                                                onTap: () async {
+                                                  // 跳转到编辑页面并等待返回结果
+                                                  final result = await Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (context) =>
+                                                          ImageEditPage(
+                                                        imageData: image,
+                                                      ),
+                                                    ),
+                                                  );
+                                                  
+                                                  // 如果编辑成功返回，刷新列表中对应的图片数据
+                                                  if (result != null && result is Map<String, dynamic>) {
+                                                    setState(() {
+                                                      // 找到对应的图片并更新数据
+                                                      final imageIndex = _images.indexWhere((img) => img.id == result['id']);
+                                                      if (imageIndex != -1) {
+                                                        _images[imageIndex] = _images[imageIndex].copyWith(
+                                                          name: result['name'] ?? _images[imageIndex].name,
+                                                          introduction: result['introduction'] ?? _images[imageIndex].introduction,
+                                                          category: result['category'] ?? _images[imageIndex].category,
+                                                          tags: result['tags'] != null ? List<String>.from(result['tags']) : _images[imageIndex].tags,
+                                                        );
+                                                      }
+                                                    });
+                                                    
+                                                    // 显示更新成功提示
+                                                    if (mounted) {
+                                                      ScaffoldMessenger.of(context).showSnackBar(
+                                                        const SnackBar(
+                                                          content: Text('图片信息已更新'),
+                                                          backgroundColor: Colors.green,
+                                                          duration: Duration(seconds: 2),
+                                                        ),
+                                                      );
+                                                    }
+                                                  }
+                                                },
+                                                child: Container(
+                                                  padding: const EdgeInsets.all(6),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.black.withOpacity(
+                                                      0.1,
+                                                    ),
+                                                    borderRadius:
+                                                        BorderRadius.circular(8),
+                                                  ),
+                                                  child: const Icon(
+                                                    Icons.edit,
+                                                    color: Colors.white,
+                                                    size: 12,
+                                                  ),
                                                 ),
                                               ),
                                             ),
-                                          ),
-                                          const SizedBox(height: 8),
                                         ],
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.all(12),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              image.name,
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            const SizedBox(height: 4),
+                                            // Row(
+                                            //   children: [
+                                            //     Text(
+                                            //       image.picSize,
+                                            //       style: TextStyle(
+                                            //         fontSize: 12,
+                                            //         color: Colors.grey[600],
+                                            //       ),
+                                            //     ),
+                                            //     const Spacer(),
+                                            //     Text(
+                                            //       image.updateTime.toString(),
+                                            //       style: TextStyle(
+                                            //         fontSize: 12,
+                                            //         color: Colors.grey[500],
+                                            //       ),
+                                            //     ),
+                                            //   ],
+                                            // ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              // 操作遮罩
+                              if (isSelected && _showActionOverlay)
+                                Positioned.fill(
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.5),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: SingleChildScrollView(
+                                      child: ConstrainedBox(
+                                        constraints: BoxConstraints(
+                                          minHeight:
+                                              MediaQuery.of(context).size.height *
+                                                  0.2,
+                                        ),
+                                        child: IntrinsicHeight(
+                                          child: Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              const SizedBox(height: 8),
+                                              // 操作按钮网格 - 使用更紧凑的布局
+                                              Flexible(
+                                                child: Wrap(
+                                                  spacing: 8,
+                                                  runSpacing: 8,
+                                                  alignment: WrapAlignment.center,
+                                                  children: [
+                                                    _buildCompactActionButton(
+                                                      icon: Icons.share_outlined,
+                                                      label: '分享',
+                                                      color: Colors.blue,
+                                                      onTap: () =>
+                                                          _shareImage(image.id),
+                                                    ),
+                                                    _buildCompactActionButton(
+                                                      icon: Icons.download_outlined,
+                                                      label: '下载',
+                                                      color: Colors.green,
+                                                      onTap: () => _downloadImage(
+                                                        image.id,
+                                                      ),
+                                                    ),
+                                                    _buildCompactActionButton(
+                                                      icon: Icons.delete_outline,
+                                                      label: '回收站',
+                                                      color: Colors.orange,
+                                                      onTap: () => _moveToTrash(
+                                                        image.id,
+                                                      ),
+                                                    ),
+                                                    _buildCompactActionButton(
+                                                      icon: Icons
+                                                          .delete_forever_outlined,
+                                                      label: '删除',
+                                                      color: Colors.red,
+                                                      onTap: () => _deleteImage(
+                                                        image.id,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              // 取消按钮
+                                              GestureDetector(
+                                                onTap: _hideActionOverlay,
+                                                child: Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                    horizontal: 16,
+                                                    vertical: 6,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white.withOpacity(
+                                                      0.2,
+                                                    ),
+                                                    borderRadius:
+                                                        BorderRadius.circular(16),
+                                                    border: Border.all(
+                                                      color: Colors.white
+                                                          .withOpacity(0.3),
+                                                    ),
+                                                  ),
+                                                  child: const Text(
+                                                    '取消',
+                                                    style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 12,
+                                                      fontWeight: FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                            ],
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
 
-              // 加载更多指示器
-              SliverToBoxAdapter(
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  child: _isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : !_hasMore
-                          ? Center(
-                              child: Text(
-                                '没有更多图片了',
-                                style: TextStyle(
-                                  color: Colors.grey[500],
-                                  fontSize: 14,
-                                ),
-                              ),
-                            )
-                          : const SizedBox.shrink(),
-                ),
-              ),
-            ],
+                  // 加载更多指示器
+                  SliverToBoxAdapter(
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      child: _isLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : !_hasMore
+                              ? Center(
+                                  child: Text(
+                                    '没有更多图片了',
+                                    style: TextStyle(
+                                      color: Colors.grey[500],
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                )
+                              : const SizedBox.shrink(),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),

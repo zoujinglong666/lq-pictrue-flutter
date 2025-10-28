@@ -1,67 +1,109 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lq_picture/apis/space_api.dart';
+import 'package:lq_picture/providers/space_provider.dart';
 
 import '../utils/index.dart';
 
-class SpaceSettingsPage extends StatefulWidget {
+class SpaceSettingsPage extends ConsumerStatefulWidget {
   const SpaceSettingsPage({super.key});
 
   @override
-  State<SpaceSettingsPage> createState() => _SpaceSettingsPageState();
+  ConsumerState<SpaceSettingsPage> createState() => _SpaceSettingsPageState();
 }
 
-class _SpaceSettingsPageState extends State<SpaceSettingsPage> {
-  // 模拟空间信息
-  final Map<String, dynamic> _spaceInfo = {
-    'id': 1,
-    'spaceName': '我的摄影作品集',
-    'spaceLevel': 1, // 0-普通版 1-专业版 2-旗舰版
-    'spaceType': 0, // 0-私有 1-团队
-    'maxSize': 107374182400, // 100GB
-    'maxCount': 10000,
-    'totalSize': 21474836480, // 20GB
-    'totalCount': 156,
-    'createTime': '2024-01-15',
-  };
+class _SpaceSettingsPageState extends ConsumerState<SpaceSettingsPage> {
+  // 接收传递的空间数据
+  late SpaceVO _spaceInfo;
 
   final _spaceNameController = TextEditingController();
+  final _spaceNameFocus = FocusNode();
   bool _isPrivate = true;
   bool _allowDownload = true;
   bool _allowShare = true;
   bool _enableWatermark = false;
+  bool _isLoading = false;
+  bool _isSpaceNameFocused = false;
 
   @override
   void initState() {
     super.initState();
-    _spaceNameController.text = _spaceInfo['spaceName'];
-    _isPrivate = _spaceInfo['spaceType'] == 0;
+
+    // 监听焦点变化
+    _spaceNameFocus.addListener(() {
+      setState(() {
+        _isSpaceNameFocused = _spaceNameFocus.hasFocus;
+      });
+    });
+
+    // 监听输入内容变化
+    _spaceNameController.addListener(() {
+      setState(() {});
+    });
+
+    // 延迟获取传递的参数，因为 context 在 initState 中不可用
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args != null && args is SpaceVO) {
+        setState(() {
+          _spaceInfo = args;
+          _spaceNameController.text = _spaceInfo.spaceName;
+          _isPrivate = _spaceInfo.spaceType == 0;
+        });
+      } else {
+        // 如果没有传递数据，使用空对象
+        setState(() {
+          _spaceInfo = SpaceVO.empty();
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
     _spaceNameController.dispose();
+    _spaceNameFocus.dispose();
     super.dispose();
   }
 
   String _getSpaceLevelName(int level) {
     switch (level) {
-      case 0: return '普通版';
-      case 1: return '专业版';
-      case 2: return '旗舰版';
-      default: return '未知';
+      case 0:
+        return '普通版';
+      case 1:
+        return '专业版';
+      case 2:
+        return '旗舰版';
+      default:
+        return '未知';
     }
   }
 
   Color _getSpaceLevelColor(int level) {
     switch (level) {
-      case 0: return Colors.blue;
-      case 1: return Colors.purple;
-      case 2: return Colors.orange;
-      default: return Colors.grey;
+      case 0:
+        return Colors.blue;
+      case 1:
+        return Colors.purple;
+      case 2:
+        return Colors.orange;
+      default:
+        return Colors.grey;
     }
   }
 
+  // 格式化时间戳
+  String _formatDateTime(int timestamp) {
+    if (timestamp == 0) return '未知';
+    final dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    return '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')}';
+  }
 
-
+  // 计算存储进度
+  double _calculateProgress(int used, int max) {
+    if (max <= 0) return 0.0;
+    return (used / max).clamp(0.0, 1.0);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -87,21 +129,55 @@ class _SpaceSettingsPageState extends State<SpaceSettingsPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              // 保存设置
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('设置已保存')),
+            onPressed: () async {
+              setState(() {
+                _isLoading = true;
+              });
+              // 更新空间信息
+              final updatedSpace = _spaceInfo.copyWith(
+                spaceName: _spaceNameController.text.trim(),
+                spaceType: _isPrivate ? 0 : 1,
               );
-              Navigator.pop(context);
+              
+              // TODO: 调用 API 保存到后端
+              // await SpaceApi.updateSpace(updatedSpace);
+              await Future.delayed(const Duration(milliseconds: 500));
+              
+              // ✅ 更新全局 Provider
+              ref.read(spaceProvider.notifier).updateSpace(updatedSpace);
+              
+              setState(() {
+                _isLoading = false;
+              });
+
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('设置已保存'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+                // 返回上一页，Provider 会自动同步数据
+                Navigator.pop(context);
+              }
             },
-            child: Text(
-              '保存',
-              style: TextStyle(
-                color: Colors.blue[600],
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            child: _isLoading
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                    ),
+                  )
+                : Text(
+                    '保存',
+                    style: TextStyle(
+                      color: Colors.blue[600],
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
           ),
         ],
       ),
@@ -117,23 +193,27 @@ class _SpaceSettingsPageState extends State<SpaceSettingsPage> {
                 _buildTextFieldItem(
                   '空间名称',
                   _spaceNameController,
+                  _spaceNameFocus,
                   '请输入空间名称',
+                  _isSpaceNameFocused,
                 ),
                 const SizedBox(height: 16),
                 _buildInfoItem(
                   '空间级别',
-                  _getSpaceLevelName(_spaceInfo['spaceLevel']),
+                  _getSpaceLevelName(_spaceInfo.spaceLevel),
                   trailing: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: _getSpaceLevelColor(_spaceInfo['spaceLevel']).withOpacity(0.1),
+                      color: _getSpaceLevelColor(_spaceInfo.spaceLevel)
+                          .withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
                       '升级',
                       style: TextStyle(
                         fontSize: 12,
-                        color: _getSpaceLevelColor(_spaceInfo['spaceLevel']),
+                        color: _getSpaceLevelColor(_spaceInfo.spaceLevel),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -145,7 +225,7 @@ class _SpaceSettingsPageState extends State<SpaceSettingsPage> {
                 const SizedBox(height: 16),
                 _buildInfoItem(
                   '创建时间',
-                  _spaceInfo['createTime'],
+                  _formatDateTime(_spaceInfo.createTime),
                 ),
               ],
             ),
@@ -158,13 +238,14 @@ class _SpaceSettingsPageState extends State<SpaceSettingsPage> {
               [
                 _buildStorageItem(
                   '已用存储',
-                  '${formatFileSize(_spaceInfo['totalSize'])} / ${formatFileSize(_spaceInfo['maxSize'])}',
-                  _spaceInfo['totalSize'] / _spaceInfo['maxSize'],
+                  '${formatFileSize(int.tryParse(_spaceInfo.totalSize) ?? 0)} / ${formatFileSize(int.tryParse(_spaceInfo.maxSize) ?? 0)}',
+                  _calculateProgress(int.tryParse(_spaceInfo.totalSize) ?? 0,
+                      int.tryParse(_spaceInfo.maxSize) ?? 1),
                 ),
                 const SizedBox(height: 16),
                 _buildInfoItem(
                   '图片数量',
-                  '${_spaceInfo['totalCount']} / ${_spaceInfo['maxCount']}',
+                  '${_spaceInfo.totalCount} / ${_spaceInfo.maxCount}',
                 ),
               ],
             ),
@@ -318,7 +399,13 @@ class _SpaceSettingsPageState extends State<SpaceSettingsPage> {
     );
   }
 
-  Widget _buildTextFieldItem(String label, TextEditingController controller, String hint) {
+  Widget _buildTextFieldItem(
+    String label,
+    TextEditingController controller,
+    FocusNode focusNode,
+    String hint,
+    bool isFocused,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -332,8 +419,9 @@ class _SpaceSettingsPageState extends State<SpaceSettingsPage> {
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
+          focusNode: focusNode,
           decoration: InputDecoration(
-            hintText: hint,
+            hintText: (isFocused || controller.text.isNotEmpty) ? null : hint,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: Colors.grey[300]!),
@@ -346,14 +434,16 @@ class _SpaceSettingsPageState extends State<SpaceSettingsPage> {
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: Colors.blue[600]!),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildInfoItem(String label, String value, {Widget? trailing, VoidCallback? onTap}) {
+  Widget _buildInfoItem(String label, String value,
+      {Widget? trailing, VoidCallback? onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Row(
@@ -424,7 +514,8 @@ class _SpaceSettingsPageState extends State<SpaceSettingsPage> {
     );
   }
 
-  Widget _buildSwitchItem(String title, String subtitle, bool value, ValueChanged<bool> onChanged) {
+  Widget _buildSwitchItem(
+      String title, String subtitle, bool value, ValueChanged<bool> onChanged) {
     return Row(
       children: [
         Expanded(
@@ -458,7 +549,8 @@ class _SpaceSettingsPageState extends State<SpaceSettingsPage> {
     );
   }
 
-  Widget _buildActionItem(String title, String subtitle, IconData icon, Color color, VoidCallback onTap) {
+  Widget _buildActionItem(String title, String subtitle, IconData icon,
+      Color color, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Row(
@@ -793,7 +885,8 @@ class _SpaceSettingsPageState extends State<SpaceSettingsPage> {
     );
   }
 
-  Widget _buildContactItem(IconData icon, String label, String value, Color color, VoidCallback onTap) {
+  Widget _buildContactItem(IconData icon, String label, String value,
+      Color color, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -900,7 +993,8 @@ class _SpaceSettingsPageState extends State<SpaceSettingsPage> {
     );
   }
 
-  void _showConfirmDialog(String title, String content, VoidCallback onConfirm, {bool isDestructive = false}) {
+  void _showConfirmDialog(String title, String content, VoidCallback onConfirm,
+      {bool isDestructive = false}) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

@@ -11,6 +11,7 @@ import '../utils/index.dart';
 import 'image_preview_page.dart';
 import '../widgets/shimmer_effect.dart';
 import '../widgets/skeleton_widgets.dart';
+import '../providers/picture_update_provider.dart';
 
 class DetailPage extends ConsumerStatefulWidget {
   final PictureVO? imageData;
@@ -327,6 +328,9 @@ class _DetailPageState extends ConsumerState<DetailPage> {
                             );
                           });
                           
+                          // 通知全局状态更新（同步到首页等其他页面）
+                          ref.read(pictureUpdateProvider.notifier).notifyPictureUpdate(_imageDetails);
+                          
                           // 点赞成功，不自动返回，只在本地更新状态
                           MyToast.showSuccess(_isFavorite ? '点赞成功' : '取消点赞');
                           
@@ -391,8 +395,11 @@ class _DetailPageState extends ConsumerState<DetailPage> {
                                 children: [
                                   CircleAvatar(
                                     radius: 16,
-                                    backgroundColor: Colors.grey[300],
-                                    child: const Icon(Icons.person, size: 20),
+                                    backgroundImage: NetworkImage(_imageDetails.user.userAvatar),
+                                    onBackgroundImageError: (exception, stackTrace) {},
+                                    child: _imageDetails.user.userAvatar.isEmpty
+                                        ? Icon(Icons.person, color: Colors.grey[600])
+                                        : null,
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
@@ -440,7 +447,6 @@ class _DetailPageState extends ConsumerState<DetailPage> {
                                   );
                                 }).toList(),
                               ),
-
                               const SizedBox(height: 16),
                               const Text(
                                 '描述',
@@ -451,18 +457,15 @@ class _DetailPageState extends ConsumerState<DetailPage> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                _imageDetails.introduction ?? "暂无描述",
+                                _imageDetails.introduction,
                                 style: TextStyle(
                                   fontSize: 16,
                                   color: Colors.grey[700],
                                   height: 1.5,
                                 ),
                               ),
-
-                              const SizedBox(height: 16),
                               const Divider(),
                               const SizedBox(height: 16),
-
                               const Text(
                                 '图片信息',
                                 style: TextStyle(
@@ -471,7 +474,6 @@ class _DetailPageState extends ConsumerState<DetailPage> {
                                 ),
                               ),
                               const SizedBox(height: 12),
-
                               _buildInfoRow(
                                   '文件大小',
                                   formatFileSize(

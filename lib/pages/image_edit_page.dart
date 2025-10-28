@@ -23,6 +23,11 @@ class _ImageEditPageState extends State<ImageEditPage> with KeyboardDismissMixin
   final _categoryController = TextEditingController();
   final _picColorController = TextEditingController();
   
+  final _nameFocus = FocusNode();
+  final _introductionFocus = FocusNode();
+  final _categoryFocus = FocusNode();
+  final _tagFocus = FocusNode();
+  
   List<String> _tags = [];
   final _tagController = TextEditingController();
   
@@ -30,10 +35,51 @@ class _ImageEditPageState extends State<ImageEditPage> with KeyboardDismissMixin
   late PictureVO? _imageInfo;
   bool _isLoading = false;
   
+  bool _isNameFocused = false;
+  bool _isIntroductionFocused = false;
+  bool _isCategoryFocused = false;
+  bool _isTagFocused = false;
+  
   @override
   void initState() {
     super.initState();
     _initImageData();
+    
+    // 监听焦点变化
+    _nameFocus.addListener(() {
+      setState(() {
+        _isNameFocused = _nameFocus.hasFocus;
+      });
+    });
+    _introductionFocus.addListener(() {
+      setState(() {
+        _isIntroductionFocused = _introductionFocus.hasFocus;
+      });
+    });
+    _categoryFocus.addListener(() {
+      setState(() {
+        _isCategoryFocused = _categoryFocus.hasFocus;
+      });
+    });
+    _tagFocus.addListener(() {
+      setState(() {
+        _isTagFocused = _tagFocus.hasFocus;
+      });
+    });
+    
+    // 监听输入内容变化，实时更新UI
+    _nameController.addListener(() {
+      setState(() {});
+    });
+    _introductionController.addListener(() {
+      setState(() {});
+    });
+    _categoryController.addListener(() {
+      setState(() {});
+    });
+    _tagController.addListener(() {
+      setState(() {});
+    });
   }
   
   void _initImageData() {
@@ -55,6 +101,10 @@ class _ImageEditPageState extends State<ImageEditPage> with KeyboardDismissMixin
     _categoryController.dispose();
     _picColorController.dispose();
     _tagController.dispose();
+    _nameFocus.dispose();
+    _introductionFocus.dispose();
+    _categoryFocus.dispose();
+    _tagFocus.dispose();
     super.dispose();
   }
   
@@ -99,9 +149,8 @@ class _ImageEditPageState extends State<ImageEditPage> with KeyboardDismissMixin
     });
     // 显示成功提示
     if (mounted) {
-
-      final res=await PictureApi.editPicture(updateData);
-      if(res){
+      final res = await PictureApi.editPicture(updateData);
+      if (res) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Row(
@@ -118,10 +167,27 @@ class _ImageEditPageState extends State<ImageEditPage> with KeyboardDismissMixin
             ),
           ),
         );
-        // 返回上一页
+        // 返回上一页并传递更新后的数据
         Navigator.pop(context, updateData);
+      } else {
+        // 更新失败提示
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.error_outline, color: Colors.white),
+                SizedBox(width: 8),
+                Text('图片信息更新失败，请重试'),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
       }
-
     }
   }
   
@@ -279,8 +345,10 @@ class _ImageEditPageState extends State<ImageEditPage> with KeyboardDismissMixin
                       // 图片名称
                       _buildTextField(
                         controller: _nameController,
+                        focusNode: _nameFocus,
                         label: '图片名称',
                         hint: '请输入图片名称',
+                        isFocused: _isNameFocused,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return '请输入图片名称';
@@ -294,8 +362,10 @@ class _ImageEditPageState extends State<ImageEditPage> with KeyboardDismissMixin
                       // 简介
                       _buildTextField(
                         controller: _introductionController,
+                        focusNode: _introductionFocus,
                         label: '简介',
                         hint: '请输入图片简介',
+                        isFocused: _isIntroductionFocused,
                         maxLines: 3,
                       ),
                       
@@ -304,8 +374,10 @@ class _ImageEditPageState extends State<ImageEditPage> with KeyboardDismissMixin
                       // 分类
                       _buildTextField(
                         controller: _categoryController,
+                        focusNode: _categoryFocus,
                         label: '分类',
                         hint: '请输入图片分类',
+                        isFocused: _isCategoryFocused,
                       ),
                       const SizedBox(height: 20),
                       // 标签
@@ -338,12 +410,13 @@ class _ImageEditPageState extends State<ImageEditPage> with KeyboardDismissMixin
                                   ),
                                   child: TextField(
                                     controller: _tagController,
+                                    focusNode: _tagFocus,
                                     style: const TextStyle(
                                       fontSize: 16,
                                       color: Color(0xFF2C3E50),
                                     ),
                                     decoration: InputDecoration(
-                                      hintText: '输入标签后按回车添加',
+                                      hintText: (_isTagFocused || _tagController.text.isNotEmpty) ? null : '输入标签后按回车添加',
                                       hintStyle: TextStyle(
                                         color: Colors.grey[400],
                                         fontSize: 15,
@@ -533,8 +606,10 @@ class _ImageEditPageState extends State<ImageEditPage> with KeyboardDismissMixin
   
   Widget _buildTextField({
     required TextEditingController controller,
+    required FocusNode focusNode,
     required String label,
     required String hint,
+    required bool isFocused,
     int maxLines = 1,
     String? Function(String?)? validator,
   }) {
@@ -564,6 +639,7 @@ class _ImageEditPageState extends State<ImageEditPage> with KeyboardDismissMixin
           ),
           child: TextFormField(
             controller: controller,
+            focusNode: focusNode,
             maxLines: maxLines,
             validator: validator,
             style: const TextStyle(
@@ -571,7 +647,7 @@ class _ImageEditPageState extends State<ImageEditPage> with KeyboardDismissMixin
               color: Color(0xFF2C3E50),
             ),
             decoration: InputDecoration(
-              hintText: hint,
+              hintText: (isFocused || controller.text.isNotEmpty) ? null : hint,
               hintStyle: TextStyle(
                 color: Colors.grey[400],
                 fontSize: 15,

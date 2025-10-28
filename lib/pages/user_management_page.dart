@@ -32,10 +32,6 @@ class _UserManagementPageState extends State<UserManagementPage> {
       _isLoading = true;
     });
 
-    // 模拟网络请求
-    await Future.delayed(const Duration(seconds: 1));
-
-    // 模拟用户数据
     _users = [
 
     ];
@@ -92,14 +88,14 @@ class _UserManagementPageState extends State<UserManagementPage> {
                   color: user.isEnabled ? Colors.red[600] : Colors.green[600],
                 ),
                 const SizedBox(width: 12),
-                Text('${action}用户'),
+                Text('$action用户'),
               ],
             ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('确定要${action}用户 "${user.userName}" 吗？'),
+                Text('确定要$action用户 "${user.userName}" 吗？'),
                 const SizedBox(height: 8),
                 if (user.isEnabled)
                   Container(
@@ -148,14 +144,10 @@ class _UserManagementPageState extends State<UserManagementPage> {
     );
 
     if (confirmed == true) {
-      // 模拟网络请求
-      await Future.delayed(const Duration(milliseconds: 500));
-
       setState(() {
         user.isEnabled = !user.isEnabled;
         user.editTime = DateTime.now();
       });
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -164,7 +156,6 @@ class _UserManagementPageState extends State<UserManagementPage> {
           ),
         );
       }
-
       _filterUsers();
     }
   }

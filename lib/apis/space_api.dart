@@ -313,7 +313,13 @@ class SpaceApi {
 
     return result;
   }
-
+  static Future<SpaceVO> updateSpace(Map<String, dynamic> data) async {
+    final result = await Http.post<Result>(
+      "/space/update",
+      data: data,
+    );
+    return result.toModel((json) => SpaceVO.fromJson(json));
+  }
   static Future<Page<SpaceItem>> getSpaceListPage(Map<String, dynamic> data) async {
     final result = await Http.post<Result>(
       "/space/list/page",

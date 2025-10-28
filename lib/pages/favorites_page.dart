@@ -1,9 +1,12 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:lq_picture/apis/picture_api.dart';
 
 import '../model/picture.dart';
+import '../widgets/cached_image.dart';
 
 class FavoritesPage extends StatefulWidget {
   const FavoritesPage({super.key});
@@ -73,284 +76,470 @@ class _FavoritesPageState extends State<FavoritesPage>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: CustomScrollView(
-        controller: _scrollController,
-        slivers: [
-          // 自定义AppBar
-          SliverAppBar(
-            expandedHeight: 120,
-            floating: false,
-            pinned: true,
-            backgroundColor: Colors.black,
-            systemOverlayStyle: SystemUiOverlayStyle.light,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+      backgroundColor: isDark ? const Color(0xFF0A0E21) : const Color(0xFFF8F9FA),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // 自定义 AppBar
+            _buildCustomAppBar(isDark),
+            
+            // 分类标签栏
+            _buildCategoryTabs(isDark),
+            
+            // 内容区域
+            Expanded(
+              child: _filteredImages.isEmpty
+                  ? _buildEmptyState(isDark)
+                  : _buildImageGrid(isDark),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCustomAppBar(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark
+              ? [
+                  const Color(0xFF1A1F3A).withOpacity(0.8),
+                  const Color(0xFF0A0E21).withOpacity(0.8),
+                ]
+              : [
+                  Colors.white.withOpacity(0.9),
+                  const Color(0xFFF8F9FA).withOpacity(0.9),
+                ],
+        ),
+        border: Border(
+          bottom: BorderSide(
+            color: isDark
+                ? Colors.white.withOpacity(0.05)
+                : Colors.grey.shade200,
+            width: 1,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withOpacity(0.1)
+                  : Colors.grey[100],
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              icon: Icon(
+                Icons.arrow_back_ios_rounded,
+                color: isDark ? Colors.white : Colors.grey[800],
+                size: 20,
+              ),
               onPressed: () => Navigator.pop(context),
             ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.search, color: Colors.white),
-                onPressed: () {
-                  // 搜索功能
-                },
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFD89B9B), Color(0xFFC88A8A)],
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.favorite,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    '我的收藏',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.white : Colors.grey[800],
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
               ),
-              IconButton(
-                icon: const Icon(Icons.more_vert, color: Colors.white),
-                onPressed: () {
-                  _showMoreOptions();
-                },
+              const SizedBox(height: 2),
+              Text(
+                '${_favoriteImages.length} 张精选图片',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark
+                      ? Colors.white.withOpacity(0.6)
+                      : Colors.grey[600],
+                  letterSpacing: 0.3,
+                ),
               ),
             ],
-            flexibleSpace: FlexibleSpaceBar(
-              title: AnimatedOpacity(
-                opacity: _scrollOffset > 50 ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 200),
-                child: const Text(
-                  '我的收藏',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              background: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.black87, Colors.transparent],
-                  ),
-                ),
-                child: SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 50, 16, 20),
-                    child: Align(
-                      alignment: Alignment.bottomLeft,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            '我的收藏',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${_favoriteImages.length} 张图片',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.8),
-                              fontSize: 12,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
           ),
-
-          // 分类标签栏
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: _CategoryTabDelegate(
-              tabController: _tabController,
-              categories: _categories,
-              selectedCategory: _selectedCategory,
-              onCategoryChanged: (category) {
-                setState(() {
-                  _selectedCategory = category;
-                });
-              },
+          const Spacer(),
+          Container(
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withOpacity(0.1)
+                  : Colors.grey[100],
+              shape: BoxShape.circle,
             ),
-          ),
-
-          // 瀑布流图片网格
-          SliverPadding(
-            padding: const EdgeInsets.all(8),
-            sliver: _filteredImages.isEmpty
-                ? SliverToBoxAdapter(
-                    child: Container(
-                      height: 200,
-                      alignment: Alignment.center,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.favorite_border,
-                            size: 64,
-                            color: Colors.grey[600],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            '暂无收藏',
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                : SliverMasonryGrid.count(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 8,
-                    crossAxisSpacing: 8,
-                    childCount: _filteredImages.length,
-                    itemBuilder: (context, index) {
-                      final image = _filteredImages[index];
-                      return _buildImageCard(image, index);
-                    },
-                  ),
+            child: IconButton(
+              icon: Icon(
+                Icons.more_vert_rounded,
+                color: isDark ? Colors.white : Colors.grey[700],
+                size: 22,
+              ),
+              onPressed: _showMoreOptions,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildImageCard(PictureVO image, int index) {
+  Widget _buildCategoryTabs(bool isDark) {
+    return Container(
+      height: 56,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark
+              ? [
+                  const Color(0xFF1A1F3A).withOpacity(0.5),
+                  const Color(0xFF0A0E21).withOpacity(0.5),
+                ]
+              : [
+                  Colors.white.withOpacity(0.7),
+                  const Color(0xFFF8F9FA).withOpacity(0.7),
+                ],
+        ),
+      ),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: _categories.length,
+        itemBuilder: (context, index) {
+          final category = _categories[index];
+          final isSelected = category == _selectedCategory;
+          
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedCategory = category;
+              });
+            },
+            child: Container(
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              decoration: BoxDecoration(
+                gradient: isSelected
+                    ? const LinearGradient(
+                        colors: [Color(0xFFD89B9B), Color(0xFFC88A8A)],
+                      )
+                    : null,
+                color: isSelected
+                    ? null
+                    : isDark
+                        ? Colors.white.withOpacity(0.08)
+                        : Colors.grey[100],
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isSelected
+                      ? const Color(0xFFD89B9B)
+                      : isDark
+                          ? Colors.white.withOpacity(0.1)
+                          : Colors.grey.shade300,
+                  width: 1,
+                ),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFFD89B9B).withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Text(
+                category,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  color: isSelected
+                      ? Colors.white
+                      : isDark
+                          ? Colors.white.withOpacity(0.7)
+                          : Colors.grey[700],
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(bool isDark) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFFD89B9B).withOpacity(0.2),
+                  const Color(0xFFD89B9B).withOpacity(0.1),
+                ],
+              ),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.favorite_border,
+              size: 64,
+              color: const Color(0xFFD89B9B),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            '暂无收藏',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: isDark
+                  ? Colors.white.withOpacity(0.9)
+                  : Colors.grey[800],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '快去收藏你喜欢的图片吧',
+            style: TextStyle(
+              fontSize: 14,
+              color: isDark
+                  ? Colors.white.withOpacity(0.6)
+                  : Colors.grey[600],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImageGrid(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16), // 底部留白避免被导航栏遮挡
+      child: MasonryGridView.count(
+        crossAxisCount: 2,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        itemCount: _filteredImages.length,
+        itemBuilder: (context, index) {
+          final image = _filteredImages[index];
+          return _buildImageCard(image, index, isDark);
+        },
+      ),
+    );
+  }
+
+  Widget _buildImageCard(PictureVO image, int index, bool isDark) {
     return GestureDetector(
       onTap: () => _openImageDetail(image, index),
-      child: Hero(
-        tag: 'favorite_image_${image.id}',
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.3),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Stack(
-              children: [
-                // 图片
-                Container(
-                  width: double.infinity,
-                  height: _getRandomHeight(index),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[900],
-                    image: DecorationImage(
-                      image: NetworkImage(image.url),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-
-                // 渐变遮罩
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: Container(
-                    height: 80,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black.withOpacity(0.8),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-                // 图片信息
-                Positioned(
-                  bottom: 12,
-                  left: 12,
-                  right: 12,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        image.name,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+              spreadRadius: 1,
+            ),
+            BoxShadow(
+              color: const Color(0xFFD89B9B).withOpacity(0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 图片容器
+              AspectRatio(
+                aspectRatio: image.picWidth / image.picHeight,
+                child: Stack(
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Colors.grey[100]!,
+                            Colors.grey[50]!,
+                          ],
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              image.user.userName,
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.8),
-                                fontSize: 12,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                      child: CachedImage(
+                        fit: BoxFit.cover,
+                        imageUrl: image.thumbnailUrl,
+                      ),
+                    ),
+                    // 顶部渐变遮罩
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        height: 60,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withOpacity(0.3),
+                              Colors.transparent,
+                            ],
                           ),
-                          Row(
+                        ),
+                      ),
+                    ),
+                    // 收藏标记
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: GestureDetector(
+                        onTap: () => _toggleFavorite(image),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.white.withOpacity(0.9),
+                                Colors.white.withOpacity(0.7),
+                              ],
+                            ),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            Icons.favorite,
+                            color: Colors.red[400],
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // 信息栏
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: isDark
+                        ? [
+                            Colors.white.withOpacity(0.05),
+                            Colors.white.withOpacity(0.02),
+                          ]
+                        : [
+                            Colors.white,
+                            Colors.grey[50]!,
+                          ],
+                  ),
+                  border: Border(
+                    top: BorderSide(
+                      color: isDark
+                          ? Colors.white.withOpacity(0.05)
+                          : Colors.grey.shade100,
+                      width: 1,
+                    ),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      image.name,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        height: 1.3,
+                        letterSpacing: 0.2,
+                        color: isDark
+                            ? Colors.white.withOpacity(0.9)
+                            : Colors.grey[800],
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
                                 Icons.favorite,
-                                color: Colors.red[400],
                                 size: 14,
+                                color: Colors.red[400],
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 image.likeCount,
                                 style: TextStyle(
-                                  color: Colors.white.withOpacity(0.8),
                                   fontSize: 12,
+                                  color: Colors.red[400],
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ],
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                // 收藏按钮
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: GestureDetector(
-                    onTap: () => _toggleFavorite(image),
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.5),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        image.hasLiked ? Icons.favorite : Icons.favorite_border,
-                        color: image.hasLiked ? Colors.red[400] : Colors.white,
-                        size: 18,
-                      ),
+                        ),
+                      ],
                     ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -381,31 +570,35 @@ class _FavoritesPageState extends State<FavoritesPage>
   }
 
   void _openImageDetail(PictureVO image, int index) {
-    Navigator.push(
+    Navigator.pushNamed(
       context,
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            FavoriteImageDetailPage(
-          image: image,
-          images: _filteredImages,
-          initialIndex: index,
-        ),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(opacity: animation, child: child);
-        },
-        transitionDuration: const Duration(milliseconds: 300),
-      ),
+      '/detail',
+      arguments: image,
     );
   }
 
   void _showMoreOptions() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: isDark
+                ? [
+                    const Color(0xFF1A1F3A).withOpacity(0.98),
+                    const Color(0xFF0A0E21).withOpacity(0.98),
+                  ]
+                : [
+                    Colors.white,
+                    const Color(0xFFF8F9FA),
+                  ],
+          ),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -512,307 +705,6 @@ class _FavoritesPageState extends State<FavoritesPage>
             child: const Text('确定', style: TextStyle(color: Colors.red)),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// 分类标签栏代理
-class _CategoryTabDelegate extends SliverPersistentHeaderDelegate {
-  final TabController tabController;
-  final List<String> categories;
-  final String selectedCategory;
-  final Function(String) onCategoryChanged;
-
-  _CategoryTabDelegate({
-    required this.tabController,
-    required this.categories,
-    required this.selectedCategory,
-    required this.onCategoryChanged,
-  });
-
-  @override
-  Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-      height: maxExtent,
-      color: Colors.black,
-      child: TabBar(
-        controller: tabController,
-        isScrollable: true,
-        indicatorColor: Colors.white,
-        indicatorWeight: 2,
-        labelColor: Colors.white,
-        unselectedLabelColor: Colors.grey[400],
-        labelStyle: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-        ),
-        unselectedLabelStyle: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.normal,
-        ),
-        onTap: (index) {
-          onCategoryChanged(categories[index]);
-        },
-        tabs: categories.map((category) => Tab(text: category)).toList(),
-      ),
-    );
-  }
-
-  @override
-  double get maxExtent => 48.0;
-
-  @override
-  double get minExtent => 48.0;
-
-  @override
-  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) =>
-      true;
-}
-
-// 收藏图片详情页面
-class FavoriteImageDetailPage extends StatefulWidget {
-  final PictureVO image;
-  final List<PictureVO> images;
-  final int initialIndex;
-
-  const FavoriteImageDetailPage({
-    super.key,
-    required this.image,
-    required this.images,
-    required this.initialIndex,
-  });
-
-  @override
-  State<FavoriteImageDetailPage> createState() =>
-      _FavoriteImageDetailPageState();
-}
-
-class _FavoriteImageDetailPageState extends State<FavoriteImageDetailPage> {
-  late PageController _pageController;
-  late int _currentIndex;
-
-  @override
-  void initState() {
-    super.initState();
-    _currentIndex = widget.initialIndex;
-    _pageController = PageController(initialPage: widget.initialIndex);
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          // 图片浏览器
-          PageView.builder(
-            controller: _pageController,
-            onPageChanged: (index) {
-              setState(() {
-                _currentIndex = index;
-              });
-            },
-            itemCount: widget.images.length,
-            itemBuilder: (context, index) {
-              final image = widget.images[index];
-              return Hero(
-                tag: 'favorite_image_${image.id}',
-                child: InteractiveViewer(
-                  child: Container(
-                    width: double.infinity,
-                    height: double.infinity,
-                    decoration: BoxDecoration(
-                      image: DecorationImage(
-                        image: NetworkImage(image.url),
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-
-          // 顶部工具栏
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              height: 100,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.7),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-              child: SafeArea(
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon:
-                          const Icon(Icons.arrow_back_ios, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    Expanded(
-                      child: Text(
-                        '${_currentIndex + 1} / ${widget.images.length}',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.more_vert, color: Colors.white),
-                      onPressed: () {
-                        _showImageOptions();
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // 底部信息栏
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.8),
-                  ],
-                ),
-              ),
-              child: SafeArea(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.images[_currentIndex].name,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            '作者: ${widget.images[_currentIndex].user.userName}',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.8),
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.favorite,
-                              color: Colors.red[400],
-                              size: 16,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              widget.images[_currentIndex].likeCount,
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.8),
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showImageOptions() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.download),
-              title: const Text('下载图片'),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('开始下载图片...')),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.share),
-              title: const Text('分享图片'),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('分享功能开发中...')),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.favorite_border),
-              title: const Text('取消收藏'),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('已取消收藏')),
-                );
-              },
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
       ),
     );
   }
