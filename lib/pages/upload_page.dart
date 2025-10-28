@@ -87,6 +87,183 @@ class _UploadPageState extends ConsumerState<UploadPage>
     super.dispose();
   }
 
+  // 显示成功对话框
+  void _showSuccessDialog(BuildContext context, String uploadType, int imageCount) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        // 自动关闭对话框
+        Future.delayed(const Duration(seconds: 2), () {
+          if (Navigator.canPop(context)) {
+            Navigator.of(context).pop();
+          }
+        });
+
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: Container(
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white.withOpacity(0.95),
+                  Colors.white.withOpacity(0.85),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.green.withOpacity(0.3),
+                  blurRadius: 30,
+                  offset: const Offset(0, 10),
+                  spreadRadius: 5,
+                ),
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+              border: Border.all(
+                color: Colors.white.withOpacity(0.5),
+                width: 1.5,
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 成功图标 - 带动画效果的绿色对勾
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0.0, end: 1.0),
+                  duration: const Duration(milliseconds: 600),
+                  curve: Curves.elasticOut,
+                  builder: (context, value, child) {
+                    return Transform.scale(
+                      scale: value,
+                      child: Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Color(0xFF4CAF50),
+                              Color(0xFF66BB6A),
+                            ],
+                          ),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.green.withOpacity(0.4),
+                              blurRadius: 20,
+                              offset: const Offset(0, 8),
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.check_rounded,
+                          color: Colors.white,
+                          size: 50,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 24),
+                // 成功文字
+                ShaderMask(
+                  shaderCallback: (bounds) => const LinearGradient(
+                    colors: [
+                      Color(0xFF4CAF50),
+                      Color(0xFF66BB6A),
+                    ],
+                  ).createShader(bounds),
+                  child: Text(
+                    '${uploadType}成功！',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // 详细信息
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.green.withOpacity(0.1),
+                        Colors.green.withOpacity(0.05),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Colors.green.withOpacity(0.2),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.image_outlined,
+                        color: Colors.green[700],
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '共${imageCount}张图片',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.green[700],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // 光晕效果装饰
+                Container(
+                  height: 2,
+                  width: 100,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.green.withOpacity(0.0),
+                        Colors.green.withOpacity(0.6),
+                        Colors.green.withOpacity(0.0),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.green.withOpacity(0.5),
+                        blurRadius: 10,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   // 文件上传相关方法
   Future<void> _pickImages() async {
     try {
@@ -361,12 +538,8 @@ class _UploadPageState extends ConsumerState<UploadPage>
         await _uploadUrlImages();
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${uploadType}上传成功！共上传${_uploadedImages.length}张图片'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      // 显示成功提示和动画
+      _showSuccessDialog(context, uploadType, _uploadedImages.length);
 
       // 上传成功后显示已上传的图片，让用户填写信息
       setState(() {
@@ -601,7 +774,8 @@ class _UploadPageState extends ConsumerState<UploadPage>
         });
 
         if (editRes) {
-          MyToast.showSuccess("上传并提交成功！");
+          // 显示成功提示
+          _showSuccessDialog(context, '上传并提交', _uploadedImages.length);
           
           // 清空所有数据，重置状态
           setState(() {
@@ -662,7 +836,8 @@ class _UploadPageState extends ConsumerState<UploadPage>
       });
 
       if(editRes){
-        MyToast.showSuccess("图片信息更新成功");
+        // 显示成功提示
+        _showSuccessDialog(context, '提交', _uploadedImages.length);
       }
 
       // 清空所有数据，重置状态
@@ -1099,23 +1274,52 @@ class _UploadPageState extends ConsumerState<UploadPage>
                                         ),
                                       ),
                                     ),
-                                  // 上传成功标识
-                                  if (progress == 1.0 && !_isUploading)
+                                  // 上传成功标识 - 精致渐变对勾
+                                  if (progress == 1.0)
                                     Positioned(
                                       top: 4,
                                       left: 4,
-                                      child: Container(
-                                        width: 20,
-                                        height: 20,
-                                        decoration: const BoxDecoration(
-                                          color: Colors.green,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: const Icon(
-                                          Icons.check,
-                                          color: Colors.white,
-                                          size: 12,
-                                        ),
+                                      child: TweenAnimationBuilder<double>(
+                                        tween: Tween(begin: 0.0, end: 1.0),
+                                        duration: const Duration(milliseconds: 400),
+                                        curve: Curves.elasticOut,
+                                        builder: (context, value, child) {
+                                          return Transform.scale(
+                                            scale: value,
+                                            child: Container(
+                                              width: 28,
+                                              height: 28,
+                                              decoration: BoxDecoration(
+                                                gradient: const LinearGradient(
+                                                  begin: Alignment.topLeft,
+                                                  end: Alignment.bottomRight,
+                                                  colors: [
+                                                    Color(0xFF4CAF50),
+                                                    Color(0xFF66BB6A),
+                                                  ],
+                                                ),
+                                                shape: BoxShape.circle,
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.green.withOpacity(0.5),
+                                                    blurRadius: 8,
+                                                    offset: const Offset(0, 2),
+                                                    spreadRadius: 1,
+                                                  ),
+                                                ],
+                                                border: Border.all(
+                                                  color: Colors.white.withOpacity(0.5),
+                                                  width: 1.5,
+                                                ),
+                                              ),
+                                              child: const Icon(
+                                                Icons.check_rounded,
+                                                color: Colors.white,
+                                                size: 16,
+                                              ),
+                                            ),
+                                          );
+                                        },
                                       ),
                                     ),
                                   // 上传失败标识
@@ -1485,23 +1689,52 @@ class _UploadPageState extends ConsumerState<UploadPage>
                                 ),
                               ),
                             ),
-                          // 上传成功标识
-                          if (progress == 1.0 && !_isUploading)
+                          // 上传成功标识 - 精致渐变对勾
+                          if (progress == 1.0)
                             Positioned(
                               top: 2,
                               right: 2,
-                              child: Container(
-                                width: 16,
-                                height: 16,
-                                decoration: const BoxDecoration(
-                                  color: Colors.green,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.check,
-                                  color: Colors.white,
-                                  size: 10,
-                                ),
+                              child: TweenAnimationBuilder<double>(
+                                tween: Tween(begin: 0.0, end: 1.0),
+                                duration: const Duration(milliseconds: 400),
+                                curve: Curves.elasticOut,
+                                builder: (context, value, child) {
+                                  return Transform.scale(
+                                    scale: value,
+                                    child: Container(
+                                      width: 24,
+                                      height: 24,
+                                      decoration: BoxDecoration(
+                                        gradient: const LinearGradient(
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                          colors: [
+                                            Color(0xFF4CAF50),
+                                            Color(0xFF66BB6A),
+                                          ],
+                                        ),
+                                        shape: BoxShape.circle,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.green.withOpacity(0.5),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 2),
+                                            spreadRadius: 1,
+                                          ),
+                                        ],
+                                        border: Border.all(
+                                          color: Colors.white.withOpacity(0.5),
+                                          width: 1.5,
+                                        ),
+                                      ),
+                                      child: const Icon(
+                                        Icons.check_rounded,
+                                        color: Colors.white,
+                                        size: 14,
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
                             ),
                           // 上传失败标识

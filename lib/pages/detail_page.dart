@@ -21,6 +21,7 @@ class DetailPage extends ConsumerStatefulWidget {
   @override
   ConsumerState<DetailPage> createState() => _DetailPageState();
 }
+
 class _FlatComment {
   final CommentVO? comment;
   final int level;
@@ -35,10 +36,12 @@ class _FlatComment {
         expanded = null,
         remainingCount = null;
 
-  _FlatComment.control(this.parentId, this.expanded, this.remainingCount, this.level)
+  _FlatComment.control(
+      this.parentId, this.expanded, this.remainingCount, this.level)
       : isControl = true,
         comment = null;
 }
+
 class _DetailPageState extends ConsumerState<DetailPage> {
   bool _isFavorite = false;
   bool _isImageLoaded = false; // 图片加载状态
@@ -53,12 +56,16 @@ class _DetailPageState extends ConsumerState<DetailPage> {
   String? _highlightedReplyId; // 高亮的回复ID
   // 展开/折叠状态：key 为评论ID，值为是否展开其子回复
   final Map<String, bool> _expanded = {};
+
   // 用于滚动定位与高亮定位的 Item Keys
   final Map<String, GlobalKey> _itemKeys = {};
-  GlobalKey _getItemKey(String id) => _itemKeys.putIfAbsent(id, () => GlobalKey());
-  
+
+  GlobalKey _getItemKey(String id) =>
+      _itemKeys.putIfAbsent(id, () => GlobalKey());
+
   // 默认每层先展示的子回复数量（未展开状态）
   final int _initialChildren = 3;
+
   // 最大默认展开层级（超过则默认折叠，需要手动展开）
   final int _maxDefaultDepth = 2;
 
@@ -143,13 +150,12 @@ class _DetailPageState extends ConsumerState<DetailPage> {
     });
 
     try {
-      final res = await PictureCommentApi.getCommentList({
-        "pictureId":_imageDetails.id
-      } );
+      final res = await PictureCommentApi.getCommentList(
+          {"pictureId": _imageDetails.id});
 
       if (mounted) {
         setState(() {
-          _comments =res.records ;
+          _comments = res.records;
           _commentsLoading = false;
         });
       }
@@ -314,12 +320,13 @@ class _DetailPageState extends ConsumerState<DetailPage> {
                         setState(() {
                           _isFavorite = !originalIsFavorite;
                         });
-                        
+
                         try {
-                          final result = await PictureLikeApi.pictureLikeToggle({
+                          final result =
+                              await PictureLikeApi.pictureLikeToggle({
                             "pictureId": _imageDetails.id,
                           });
-                          
+
                           // 更新图片详情数据
                           setState(() {
                             _imageDetails = _imageDetails.copyWith(
@@ -327,13 +334,14 @@ class _DetailPageState extends ConsumerState<DetailPage> {
                               likeCount: result.likeCount.toString(),
                             );
                           });
-                          
+
                           // 通知全局状态更新（同步到首页等其他页面）
-                          ref.read(pictureUpdateProvider.notifier).notifyPictureUpdate(_imageDetails);
-                          
+                          ref
+                              .read(pictureUpdateProvider.notifier)
+                              .notifyPictureUpdate(_imageDetails);
+
                           // 点赞成功，不自动返回，只在本地更新状态
                           MyToast.showSuccess(_isFavorite ? '点赞成功' : '取消点赞');
-                          
                         } catch (e) {
                           // 如果点赞失败，恢复原来的状态
                           setState(() {
@@ -395,10 +403,13 @@ class _DetailPageState extends ConsumerState<DetailPage> {
                                 children: [
                                   CircleAvatar(
                                     radius: 16,
-                                    backgroundImage: NetworkImage(_imageDetails.user.userAvatar),
-                                    onBackgroundImageError: (exception, stackTrace) {},
+                                    backgroundImage: NetworkImage(
+                                        _imageDetails.user.userAvatar),
+                                    onBackgroundImageError:
+                                        (exception, stackTrace) {},
                                     child: _imageDetails.user.userAvatar.isEmpty
-                                        ? Icon(Icons.person, color: Colors.grey[600])
+                                        ? Icon(Icons.person,
+                                            color: Colors.grey[600])
                                         : null,
                                   ),
                                   const SizedBox(width: 8),
@@ -595,7 +606,7 @@ class _DetailPageState extends ConsumerState<DetailPage> {
 
 🔗 图片链接：${_imageDetails.url}
 
-#摄影 #图库 ${(_imageDetails.tags ?? [] as List<String>).map((tag) => '#$tag').join(' ')}
+#摄影 #图库 ${(_imageDetails.tags).map((tag) => '#$tag').join(' ')}
     '''
         .trim();
 
@@ -904,14 +915,16 @@ class _DetailPageState extends ConsumerState<DetailPage> {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  const Expanded(child: Divider(thickness: 1, color: Color(0xFFEFEFEF))),
+                  const Expanded(
+                      child: Divider(thickness: 1, color: Color(0xFFEFEFEF))),
                   const SizedBox(width: 8),
                   Text(
                     '已显示全部评论',
                     style: TextStyle(color: Colors.grey[600], fontSize: 12),
                   ),
                   const SizedBox(width: 8),
-                  const Expanded(child: Divider(thickness: 1, color: Color(0xFFEFEFEF))),
+                  const Expanded(
+                      child: Divider(thickness: 1, color: Color(0xFFEFEFEF))),
                 ],
               ),
               const SizedBox(height: 8),
@@ -1000,15 +1013,18 @@ class _DetailPageState extends ConsumerState<DetailPage> {
                         const Spacer(),
                         if (comment.replies.isNotEmpty)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
                               color: const Color(0xFFF5F7FA),
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: const Color(0xFFE5EAF1)),
+                              border:
+                                  Border.all(color: const Color(0xFFE5EAF1)),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.chat_bubble_outline, size: 12, color: Color(0xFF4FC3F7)),
+                                const Icon(Icons.chat_bubble_outline,
+                                    size: 12, color: Color(0xFF4FC3F7)),
                                 const SizedBox(width: 4),
                                 Text(
                                   '${comment.replies.length}',
@@ -1091,7 +1107,8 @@ class _DetailPageState extends ConsumerState<DetailPage> {
   }
 
   // 构建回复树（支持多级 + 可折叠 + 限制初始数量）
-  Widget _buildRepliesTree(List<CommentVO> replies, int level, {String? parentId}) {
+  Widget _buildRepliesTree(List<CommentVO> replies, int level,
+      {String? parentId}) {
     if (replies.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -1101,7 +1118,8 @@ class _DetailPageState extends ConsumerState<DetailPage> {
     final bool expanded = _expanded[keyId] ?? (level <= _maxDefaultDepth);
 
     // 计算需要显示的条数（未展开时仅显示前 _initialChildren 条）
-    final int visibleCount = expanded ? replies.length : replies.length.clamp(0, _initialChildren);
+    final int visibleCount =
+        expanded ? replies.length : replies.length.clamp(0, _initialChildren);
     final List<CommentVO> visibleReplies = replies.take(visibleCount).toList();
 
     return Container(
@@ -1115,7 +1133,8 @@ class _DetailPageState extends ConsumerState<DetailPage> {
                 children: [
                   _buildReplyItem(reply, level),
                   if (reply.replies.isNotEmpty)
-                    _buildRepliesTree(reply.replies, level + 1, parentId: reply.id),
+                    _buildRepliesTree(reply.replies, level + 1,
+                        parentId: reply.id),
                 ],
               )),
 
@@ -1131,7 +1150,10 @@ class _DetailPageState extends ConsumerState<DetailPage> {
                 padding: const EdgeInsets.only(left: 0, top: 8, bottom: 4),
                 child: Text(
                   '展开剩余${replies.length - visibleCount}条回复',
-                  style: const TextStyle(color: Color(0xFF4FC3F7), fontSize: 12, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                      color: Color(0xFF4FC3F7),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600),
                 ),
               ),
             ),
@@ -1233,7 +1255,8 @@ class _DetailPageState extends ConsumerState<DetailPage> {
                                 Container(
                                   width: 12,
                                   height: 1,
-                                  margin: const EdgeInsets.only(right: 6, top: 6),
+                                  margin:
+                                      const EdgeInsets.only(right: 6, top: 6),
                                   color: Colors.grey[300],
                                 ),
                                 Text(
@@ -1410,13 +1433,11 @@ class _DetailPageState extends ConsumerState<DetailPage> {
     }
 
     try {
-      final res = await PictureCommentApi.addPictureComment(
-        AddCommentRequest(
-          pictureId: _imageDetails.id,
-          content: content,
-          parentId: _parentId,
-        )
-      );
+      final res = await PictureCommentApi.addPictureComment(AddCommentRequest(
+        pictureId: _imageDetails.id,
+        content: content,
+        parentId: _parentId,
+      ));
 
       if (res.isNotEmpty) {
         // 重新加载评论列表
@@ -1593,6 +1614,7 @@ class _DetailPageState extends ConsumerState<DetailPage> {
       });
     }
   }
+
   // 将评论树扁平化
   List<_FlatComment> _flattenComments(CommentVO root, [int level = 0]) {
     final List<_FlatComment> result = [];
@@ -1620,6 +1642,7 @@ class _DetailPageState extends ConsumerState<DetailPage> {
 
     return result;
   }
+
   @override
   void dispose() {
     _commentController.dispose();
@@ -1638,8 +1661,6 @@ class _DetailPageState extends ConsumerState<DetailPage> {
   void _navigateBack() {
     Navigator.pop(context, _imageDetails);
   }
-
-
 
   Widget _buildInfoRow(String label, String value) {
     return Padding(
@@ -1663,8 +1684,6 @@ class _DetailPageState extends ConsumerState<DetailPage> {
       ),
     );
   }
-
-
 
   // 单条评论渲染
   Widget _buildFlatCommentItem(CommentVO comment, int level) {
@@ -1793,26 +1812,20 @@ class _DetailPageState extends ConsumerState<DetailPage> {
       child: Container(
         margin: EdgeInsets.only(left: indent, bottom: 8),
         child: Text(
-          expanded
-              ? '收起回复'
-              : '展开剩余${item.remainingCount}条回复',
+          expanded ? '收起回复' : '展开剩余${item.remainingCount}条回复',
           style: TextStyle(
             color: expanded ? Colors.grey[600] : const Color(0xFF4FC3F7),
             fontSize: 12,
-            fontWeight:
-            expanded ? FontWeight.normal : FontWeight.w600,
+            fontWeight: expanded ? FontWeight.normal : FontWeight.w600,
           ),
         ),
       ),
     );
   }
 
-
-
   Widget _buildCommentsSection1() {
-    final flatList = _comments
-        .expand((c) => _flattenComments(c))
-        .toList(growable: false);
+    final flatList =
+        _comments.expand((c) => _flattenComments(c)).toList(growable: false);
 
     return ListView.builder(
       shrinkWrap: true,

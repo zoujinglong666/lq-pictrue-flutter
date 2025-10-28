@@ -167,52 +167,52 @@ class _CustomTabBar extends StatelessWidget {
                       duration: const Duration(milliseconds: 200),
                       curve: Curves.easeInOut,
                       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: isSelected
-                          ? BoxDecoration(
-                              borderRadius: BorderRadius.circular(25),
-                              // iOS风格的液态玻璃渐变
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  Colors.white.withOpacity(0.4),
-                                  Colors.white.withOpacity(0.2),
-                                  activeColor.withOpacity(0.15),
-                                  Colors.white.withOpacity(0.1),
-                                ],
-                                stops: const [0.0, 0.3, 0.7, 1.0],
-                              ),
-                              // 精致的边框
-                              border: Border.all(
-                                color: Colors.white.withOpacity(0.3),
-                                width: 0.1,
-                              ),
-                              // 多层阴影效果
-                              boxShadow: [
-                                // 主要阴影
-                                BoxShadow(
-                                  color: activeColor.withOpacity(0.1),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 4),
-                                  spreadRadius: -2,
-                                ),
-                                // 内发光效果
-                                BoxShadow(
-                                  color: Colors.white.withOpacity(0.6),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 1),
-                                  spreadRadius: -3,
-                                ),
-                                // 底部深度阴影
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                  spreadRadius: -1,
-                                ),
-                              ],
-                            )
-                          : null,
+                      // decoration: isSelected
+                      //     ? BoxDecoration(
+                      //         borderRadius: BorderRadius.circular(25),
+                      //         // iOS风格的液态玻璃渐变
+                      //         gradient: LinearGradient(
+                      //           begin: Alignment.topLeft,
+                      //           end: Alignment.bottomRight,
+                      //           colors: [
+                      //             Colors.white.withOpacity(0.4),
+                      //             Colors.white.withOpacity(0.2),
+                      //             activeColor.withOpacity(0.15),
+                      //             Colors.white.withOpacity(0.1),
+                      //           ],
+                      //           stops: const [0.0, 0.3, 0.7, 1.0],
+                      //         ),
+                      //         // 精致的边框
+                      //         border: Border.all(
+                      //           color: Colors.white.withOpacity(0.3),
+                      //           width: 0.1,
+                      //         ),
+                      //         // 多层阴影效果
+                      //         boxShadow: [
+                      //           // 主要阴影
+                      //           BoxShadow(
+                      //             color: activeColor.withOpacity(0.1),
+                      //             blurRadius: 12,
+                      //             offset: const Offset(0, 4),
+                      //             spreadRadius: -2,
+                      //           ),
+                      //           // 内发光效果
+                      //           BoxShadow(
+                      //             color: Colors.white.withOpacity(0.6),
+                      //             blurRadius: 6,
+                      //             offset: const Offset(0, 1),
+                      //             spreadRadius: -3,
+                      //           ),
+                      //           // 底部深度阴影
+                      //           BoxShadow(
+                      //             color: Colors.black.withOpacity(0.1),
+                      //             blurRadius: 8,
+                      //             offset: const Offset(0, 2),
+                      //             spreadRadius: -1,
+                      //           ),
+                      //         ],
+                      //       )
+                      //     : null,
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
