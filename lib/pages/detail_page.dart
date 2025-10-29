@@ -6,6 +6,11 @@ import 'package:lq_picture/common/toast.dart';
 import 'package:lq_picture/model/picture.dart';
 import 'package:lq_picture/model/comment.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:dio/dio.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:open_file/open_file.dart';
+import 'dart:io';
 import '../model/add_comment_request.dart';
 import '../utils/index.dart';
 import 'image_preview_page.dart';
@@ -54,6 +59,8 @@ class _DetailPageState extends ConsumerState<DetailPage> {
   String? _parentId;
   String? _highlightedCommentId; // 高亮的评论ID
   String? _highlightedReplyId; // 高亮的回复ID
+  bool _isDownloading = false; // 下载状态
+  double _downloadProgress = 0.0; // 下载进度
   // 展开/折叠状态：key 为评论ID，值为是否展开其子回复
   final Map<String, bool> _expanded = {};
 
@@ -294,6 +301,7 @@ class _DetailPageState extends ConsumerState<DetailPage> {
                     onPressed: _navigateBack,
                   ),
                   actions: [
+                    // 点赞按钮
                     IconButton(
                       icon: _showAppBarBackground
                           ? Icon(
@@ -351,6 +359,29 @@ class _DetailPageState extends ConsumerState<DetailPage> {
                         }
                       },
                     ),
+                    
+                    // 下载按钮
+                    IconButton(
+                      icon: _showAppBarBackground
+                          ? Icon(
+                              _isDownloading ? Icons.downloading : Icons.download,
+                              color: const Color(0xFF4FC3F7),
+                            )
+                          : Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.3),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                _isDownloading ? Icons.downloading : Icons.download,
+                                color: Colors.white,
+                              ),
+                            ),
+                      onPressed: _isDownloading ? null : _downloadImage,
+                    ),
+                    
+                    // 分享按钮
                     IconButton(
                       icon: _showAppBarBackground
                           ? const Icon(Icons.share, color: Colors.black)
@@ -594,6 +625,414 @@ class _DetailPageState extends ConsumerState<DetailPage> {
         ],
       ),
     );
+  }
+
+  // 下载图片功能
+  Future<void> _downloadImage() async {
+    // 请求存储权限
+    final status = await Permission.storage.request();
+    
+    if (!status.isGranted) {
+      MyToast.showError('需要存储权限才能下载图片');
+      return;
+    }
+
+    setState(() {
+      _isDownloading = true;
+      _downloadProgress = 0.0;
+    });
+
+    // 显示下载进度对话框
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.white.withOpacity(0.95),
+                      Colors.white.withOpacity(0.85),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF4FC3F7).withOpacity(0.3),
+                      blurRadius: 30,
+                      offset: const Offset(0, 10),
+                      spreadRadius: 5,
+                    ),
+                  ],
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.5),
+                    width: 1.5,
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 下载图标
+                    Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [
+                            Color(0xFF4FC3F7),
+                            Color(0xFF6FBADB),
+                          ],
+                        ),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF4FC3F7).withOpacity(0.4),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.download_rounded,
+                        color: Colors.white,
+                        size: 30,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    // 下载文字
+                    ShaderMask(
+                      shaderCallback: (bounds) => const LinearGradient(
+                        colors: [
+                          Color(0xFF4FC3F7),
+                          Color(0xFF6FBADB),
+                        ],
+                      ).createShader(bounds),
+                      child: const Text(
+                        '正在下载...',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    // 进度条
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: LinearProgressIndicator(
+                        value: _downloadProgress,
+                        backgroundColor: Colors.grey[200],
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          Color(0xFF4FC3F7),
+                        ),
+                        minHeight: 8,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    
+                    // 进度百分比
+                    Text(
+                      '${(_downloadProgress * 100).toInt()}%',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey[700],
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    try {
+      // 获取保存路径
+      Directory? directory;
+      if (Platform.isAndroid) {
+        directory = await getExternalStorageDirectory();
+      } else {
+        directory = await getApplicationDocumentsDirectory();
+      }
+
+      if (directory == null) {
+        throw Exception('无法获取存储目录');
+      }
+
+      // 创建Pictures文件夹
+      final picturesDir = Directory('${directory.path}/Pictures');
+      if (!await picturesDir.exists()) {
+        await picturesDir.create(recursive: true);
+      }
+
+      // 生成文件名
+      final fileName = '${_imageDetails.name}_${DateTime.now().millisecondsSinceEpoch}.${_imageDetails.picFormat}';
+      final savePath = '${picturesDir.path}/$fileName';
+
+      // 下载图片
+      final dio = Dio();
+      await dio.download(
+        _imageDetails.url,
+        savePath,
+        onReceiveProgress: (received, total) {
+          if (total != -1) {
+            final progress = received / total;
+            // 更新主页面状态
+            if (mounted) {
+              setState(() {
+                _downloadProgress = progress;
+              });
+            }
+          }
+        },
+      );
+
+      // 下载完成，关闭进度对话框
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
+      // 显示成功提示
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            // 5秒后自动关闭对话框
+            Future.delayed(const Duration(seconds: 5), () {
+              if (Navigator.canPop(context)) {
+                Navigator.of(context).pop();
+              }
+            });
+
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.white.withOpacity(0.95),
+                      Colors.white.withOpacity(0.85),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.green.withOpacity(0.3),
+                      blurRadius: 30,
+                      offset: const Offset(0, 10),
+                      spreadRadius: 5,
+                    ),
+                  ],
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.5),
+                    width: 1.5,
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 成功图标
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.0, end: 1.0),
+                      duration: const Duration(milliseconds: 600),
+                      curve: Curves.elasticOut,
+                      builder: (context, value, child) {
+                        return Transform.scale(
+                          scale: value,
+                          child: Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Color(0xFF4CAF50),
+                                  Color(0xFF66BB6A),
+                                ],
+                              ),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.green.withOpacity(0.4),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.check_rounded,
+                              color: Colors.white,
+                              size: 35,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    // 成功文字
+                    ShaderMask(
+                      shaderCallback: (bounds) => const LinearGradient(
+                        colors: [
+                          Color(0xFF4CAF50),
+                          Color(0xFF66BB6A),
+                        ],
+                      ).createShader(bounds),
+                      child: const Text(
+                        '下载成功！',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    
+                    // 保存位置 - 可点击打开
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () async {
+                          try {
+                            // 打开文件所在目录
+                            final result = await OpenFile.open(savePath);
+                            
+                            if (result.type != ResultType.done) {
+                              // 如果无法打开文件，尝试打开目录
+                              final directory = Directory(picturesDir.path);
+                              await OpenFile.open(directory.path);
+                            }
+                            
+                            MyToast.showSuccess('正在打开文件...');
+                          } catch (e) {
+                            MyToast.showError('无法打开文件，请手动查看');
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                const Color(0xFF4FC3F7).withOpacity(0.1),
+                                const Color(0xFF6FBADB).withOpacity(0.05),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color(0xFF4FC3F7).withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.folder_open,
+                                    size: 18,
+                                    color: const Color(0xFF4FC3F7),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '点击打开文件位置',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: const Color(0xFF4FC3F7),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    Icons.arrow_forward_ios,
+                                    size: 12,
+                                    color: const Color(0xFF4FC3F7),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                savePath,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey[700],
+                                  height: 1.3,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // 关闭按钮
+                    SizedBox(
+                      width: double.infinity,
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(color: Colors.grey[300]!),
+                          ),
+                        ),
+                        child: Text(
+                          '关闭',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      }
+    } catch (e) {
+      // 关闭进度对话框
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+      
+      // 显示错误提示
+      MyToast.showError('下载失败：${e.toString()}');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isDownloading = false;
+          _downloadProgress = 0.0;
+        });
+      }
+    }
   }
 
   // 分享图片功能

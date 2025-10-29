@@ -138,11 +138,11 @@ class _SpaceSettingsPageState extends ConsumerState<SpaceSettingsPage> {
                 spaceName: _spaceNameController.text.trim(),
                 spaceType: _isPrivate ? 0 : 1,
               );
-              
-              // TODO: 调用 API 保存到后端
-              // await SpaceApi.updateSpace(updatedSpace);
-              await Future.delayed(const Duration(milliseconds: 500));
-              
+
+              await SpaceApi.updateSpace({
+                "id": _spaceInfo.id,
+                "spaceName": _spaceNameController.text.trim(),
+              });
               // ✅ 更新全局 Provider
               ref.read(spaceProvider.notifier).updateSpace(updatedSpace);
               
