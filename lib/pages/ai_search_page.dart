@@ -15,18 +15,25 @@ class AiSearchPage extends ConsumerStatefulWidget {
 }
 
 class _AiSearchPageState extends ConsumerState<AiSearchPage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   File? _selectedImage;
   bool _isSearching = false;
   List<PictureVO> _searchResults = [];
   
+  late TabController _tabController;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
+  
+  // 文字搜索相关
+  final TextEditingController _textSearchController = TextEditingController();
+  final FocusNode _textSearchFocus = FocusNode();
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
@@ -50,7 +57,10 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage>
 
   @override
   void dispose() {
+    _tabController.dispose();
     _animationController.dispose();
+    _textSearchController.dispose();
+    _textSearchFocus.dispose();
     super.dispose();
   }
 
@@ -73,7 +83,34 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage>
       _isSearching = true;
     });
 
-    // TODO: 调用后端 AI 搜图接口
+    // TODO: 调用后端 AI 图片搜索接口
+    // 这里模拟延迟
+    await Future.delayed(const Duration(seconds: 2));
+    
+    // TODO: 替换为真实的搜索结果
+    setState(() {
+      _isSearching = false;
+      _searchResults = []; // 从接口获取结果
+    });
+  }
+  
+  Future<void> _performTextSearch() async {
+    final searchText = _textSearchController.text.trim();
+    if (searchText.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请输入搜索关键词')),
+      );
+      return;
+    }
+    
+    setState(() {
+      _isSearching = true;
+    });
+    
+    // 隐藏键盘
+    _textSearchFocus.unfocus();
+
+    // TODO: 调用后端 AI 文字搜索接口
     // 这里模拟延迟
     await Future.delayed(const Duration(seconds: 2));
     
@@ -238,29 +275,18 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage>
             // 自定义 AppBar
             _buildCustomAppBar(isDark),
             
+            // Tab 切换栏
+            _buildTabBar(isDark),
+            
             Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 20),
-                    
-                    // 主要上传区域
-                    _buildUploadArea(isDark),
-                    
-                    const SizedBox(height: 32),
-                    
-                    // 功能说明
-                    _buildFeatureIntro(isDark),
-                    
-                    const SizedBox(height: 32),
-                    
-                    // 搜索结果
-                    if (_searchResults.isNotEmpty) _buildSearchResults(isDark),
-                    
-                    const SizedBox(height: 32),
-                  ],
-                ),
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  // 图片搜索页
+                  _buildImageSearchTab(isDark),
+                  // 文字搜索页
+                  _buildTextSearchTab(isDark),
+                ],
               ),
             ),
           ],
@@ -361,6 +387,436 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage>
     );
   }
 
+  Widget _buildTabBar(bool isDark) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark
+              ? [
+                  Colors.white.withOpacity(0.08),
+                  Colors.white.withOpacity(0.04),
+                ]
+              : [
+                  Colors.grey[100]!,
+                  Colors.grey[50]!,
+                ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.white.withOpacity(isDark ? 0.1 : 0.3),
+          width: 1,
+        ),
+      ),
+      child: TabBar(
+        controller: _tabController,
+        indicator: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF4FC3F7), Color(0xFF6FBADB)],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF4FC3F7).withOpacity(0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        indicatorSize: TabBarIndicatorSize.tab,
+        dividerColor: Colors.transparent,
+        labelColor: Colors.white,
+        unselectedLabelColor: isDark
+            ? Colors.white.withOpacity(0.6)
+            : Colors.grey[600],
+        labelStyle: const TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.5,
+        ),
+        unselectedLabelStyle: const TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
+        ),
+        tabs: const [
+          Tab(
+            icon: Icon(Icons.image_search_rounded, size: 20),
+            text: '图片搜索',
+          ),
+          Tab(
+            icon: Icon(Icons.text_fields_rounded, size: 20),
+            text: '文字搜索',
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildImageSearchTab(bool isDark) {
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: Column(
+        children: [
+          const SizedBox(height: 20),
+          
+          // 主要上传区域
+          _buildUploadArea(isDark),
+          
+          const SizedBox(height: 32),
+          
+          // 功能说明
+          _buildFeatureIntro(isDark),
+          
+          const SizedBox(height: 32),
+          
+          // 搜索结果
+          if (_searchResults.isNotEmpty) _buildSearchResults(isDark),
+          
+          const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildTextSearchTab(bool isDark) {
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: Column(
+        children: [
+          const SizedBox(height: 20),
+          
+          // 文字搜索输入区域
+          _buildTextSearchArea(isDark),
+          
+          const SizedBox(height: 32),
+          
+          // 搜索提示
+          _buildSearchTips(isDark),
+          
+          const SizedBox(height: 32),
+          
+          // 搜索结果
+          if (_searchResults.isNotEmpty) _buildSearchResults(isDark),
+          
+          const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildTextSearchArea(bool isDark) {
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: ScaleTransition(
+        scale: _scaleAnimation,
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 20),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(32),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF4FC3F7).withOpacity(0.15),
+                blurRadius: 30,
+                offset: const Offset(0, 12),
+                spreadRadius: -8,
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(32),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: isDark
+                        ? [
+                            Colors.white.withOpacity(0.12),
+                            Colors.white.withOpacity(0.06),
+                          ]
+                        : [
+                            Colors.white.withOpacity(0.8),
+                            Colors.white.withOpacity(0.5),
+                          ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(isDark ? 0.15 : 0.3),
+                    width: 1.5,
+                  ),
+                  borderRadius: BorderRadius.circular(32),
+                ),
+                child: Column(
+                  children: [
+                    // 搜索图标
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [
+                            Color(0xFF4FC3F7),
+                            Color(0xFF6FBADB),
+                          ],
+                        ),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF4FC3F7).withOpacity(0.4),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.psychology_rounded,
+                        size: 40,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    
+                    // 输入框
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: isDark
+                              ? [
+                                  Colors.white.withOpacity(0.1),
+                                  Colors.white.withOpacity(0.05),
+                                ]
+                              : [
+                                  Colors.white.withOpacity(0.9),
+                                  Colors.white.withOpacity(0.7),
+                                ],
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(isDark ? 0.2 : 0.4),
+                          width: 1.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: TextField(
+                        controller: _textSearchController,
+                        focusNode: _textSearchFocus,
+                        maxLines: 3,
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: isDark
+                              ? Colors.white.withOpacity(0.9)
+                              : Colors.grey[800],
+                          height: 1.5,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: '描述你想找的图片...\n例如:"蓝天白云的风景照"',
+                          hintStyle: TextStyle(
+                            fontSize: 14,
+                            color: isDark
+                                ? Colors.white.withOpacity(0.4)
+                                : Colors.grey[500],
+                            height: 1.5,
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.all(16),
+                        ),
+                        onSubmitted: (_) => _performTextSearch(),
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 20),
+                    
+                    // 搜索按钮
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _isSearching ? null : _performTextSearch,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4FC3F7),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          shadowColor: const Color(0xFF4FC3F7).withOpacity(0.4),
+                        ),
+                        child: _isSearching
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              )
+                            : const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.auto_awesome, size: 20),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'AI 智能搜索',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildSearchTips(bool isDark) {
+    final tips = [
+      {
+        'icon': Icons.tips_and_updates_rounded,
+        'title': '详细描述',
+        'desc': '描述越详细越准确',
+        'color': const Color(0xFF6FBADB),
+      },
+      {
+        'icon': Icons.category_rounded,
+        'title': '场景分类',
+        'desc': '可加入风格、色调',
+        'color': const Color(0xFFD89B9B),
+      },
+      {
+        'icon': Icons.wb_sunny_rounded,
+        'title': '氛围词汇',
+        'desc': '如温暖、梦幻等',
+        'color': const Color(0xFFB8A8C9),
+      },
+    ];
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 4,
+                height: 16,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF4FC3F7), Color(0xFF6FBADB)],
+                  ),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '搜索小贴士',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white.withOpacity(0.9) : Colors.grey[800],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: tips.map((tip) {
+              return Expanded(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: isDark
+                          ? [
+                              Colors.white.withOpacity(0.08),
+                              Colors.white.withOpacity(0.04),
+                            ]
+                          : [
+                              Colors.white.withOpacity(0.7),
+                              Colors.white.withOpacity(0.4),
+                            ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(isDark ? 0.1 : 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              (tip['color'] as Color).withOpacity(0.2),
+                              (tip['color'] as Color).withOpacity(0.1),
+                            ],
+                          ),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          tip['icon'] as IconData,
+                          color: tip['color'] as Color,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        tip['title'] as String,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: isDark
+                              ? Colors.white.withOpacity(0.9)
+                              : Colors.grey[800],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        tip['desc'] as String,
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: isDark
+                              ? Colors.white.withOpacity(0.5)
+                              : Colors.grey[600],
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+  
   Widget _buildUploadArea(bool isDark) {
     return FadeTransition(
       opacity: _fadeAnimation,

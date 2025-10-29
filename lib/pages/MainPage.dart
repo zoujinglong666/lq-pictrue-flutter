@@ -34,14 +34,12 @@ class _MainPageState extends State<MainPage>
   Widget build(BuildContext context) {
     final keyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
     final showTab = !keyboardOpen;
-
     return Scaffold(
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           // 给页面内容预留底部空间
           IndexedStack(index: selectedIndex, children: pages),
-
           // 底部导航栏：带滑入/滑出与淡入/淡出动画
           Align(
             alignment: Alignment.bottomCenter,
@@ -49,7 +47,7 @@ class _MainPageState extends State<MainPage>
               top: false,
               child: AnimatedSlide(
                 offset: showTab ? const Offset(0, 0) : const Offset(0, 1),
-                duration: const Duration(milliseconds: 240),
+                duration: const Duration(milliseconds: 350),
                 curve: Curves.easeOutCubic,
                 child: AnimatedOpacity(
                   opacity: showTab ? 1 : 0,
@@ -165,7 +163,7 @@ class _CustomTabBar extends StatelessWidget {
                     onTap: () => onTap(index),
                     behavior: HitTestBehavior.opaque,
                     child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
+                      duration: const Duration(milliseconds: 1000),
                       curve: Curves.easeInOut,
                       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       // decoration: isSelected
@@ -237,7 +235,7 @@ class _CustomTabBar extends StatelessWidget {
                             duration: const Duration(milliseconds: 200),
                             curve: Curves.easeInOut,
                             style: TextStyle(
-                              fontSize: isSelected ? 12 : 11,
+                              fontSize: isSelected ? 11 : 11,
                               fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                               color: isSelected
                                   ? activeColor
