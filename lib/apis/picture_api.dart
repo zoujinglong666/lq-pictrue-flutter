@@ -299,6 +299,55 @@ factory PictureItem.fromJson(Map<String, dynamic> json) => PictureItem(
     "commentCount": commentCount,
   };
 }
+
+
+class PicturePreviewVO {
+  /// 图片 URL
+  String? url;
+
+  /// 缩略图 URL
+  String? thumbnailUrl;
+
+  /// 图片标题
+  String? title;
+
+  /// 图片宽度
+  int width;
+
+  /// 图片高度
+  int height;
+
+  PicturePreviewVO({
+    this.url,
+    this.thumbnailUrl,
+    this.title,
+    required this.width,
+    required this.height,
+  });
+
+  /// 转换为 JSON 对象
+  Map<String, dynamic> toJson() {
+    return {
+      'url': url,
+      'thumbnailUrl': thumbnailUrl,
+      'title': title,
+      'width': width,
+      'height': height,
+    };
+  }
+
+  /// 从 JSON 对象构造实例
+  factory PicturePreviewVO.fromJson(Map<String, dynamic> json) {
+    return PicturePreviewVO(
+      url: json['url'] as String?,
+      thumbnailUrl: json['thumbnailUrl'] as String?,
+      title: json['title'] as String?,
+      width: json['width'],
+      height: json['height'],
+    );
+  }
+}
+
 class PictureApi {
   /// 获取图片列表
   static Future<Page<PictureVO>> getList(Map<String, dynamic> data) async {
@@ -359,6 +408,21 @@ class PictureApi {
       data: data,
     );
     return result.toModel((json) => Page.fromJson(json, (item) => PictureItem.fromJson(item)));
+  }
+
+  static Future<List<PicturePreviewVO>> fetchSearchPictures(Map<String, dynamic> data) async {
+    final result = await Http.post<Result>(
+      "/picture/fetch",
+      data: data,
+    );
+    
+    // 解析返回的列表数据
+    if (result.data is List) {
+      return (result.data as List)
+          .map((item) => PicturePreviewVO.fromJson(item as Map<String, dynamic>))
+          .toList();
+    }
+    return [];
   }
 static Future<bool> editPicture(Map<String, dynamic> data) async {
   final result = await Http.post<Result>(

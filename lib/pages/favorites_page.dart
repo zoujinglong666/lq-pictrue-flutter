@@ -7,6 +7,7 @@ import 'package:lq_picture/apis/picture_api.dart';
 
 import '../model/picture.dart';
 import '../widgets/cached_image.dart';
+import '../widgets/shimmer_effect.dart';
 
 class FavoritesPage extends StatefulWidget {
   const FavoritesPage({super.key});
@@ -21,6 +22,7 @@ class _FavoritesPageState extends State<FavoritesPage>
   late ScrollController _scrollController;
   bool _isAppBarVisible = true;
   double _scrollOffset = 0;
+  bool _isLoading = true;
 
   // 模拟收藏数据
   late List<PictureVO> _favoriteImages = [];
@@ -53,16 +55,27 @@ class _FavoritesPageState extends State<FavoritesPage>
   }
 
   Future getFavoriteImages() async {
-    final res = await PictureApi.getMyLikes({
-      "current": 1,
-      "pageSize": 10,
-      "sortField": 'createTime',
-      "sortOrder": 'descend',
+    setState(() {
+      _isLoading = true;
     });
 
-    setState(() {
-      _favoriteImages = res.records;
-    });
+    try {
+      final res = await PictureApi.getMyLikes({
+        "current": 1,
+        "pageSize": 10,
+        "sortField": 'createTime',
+        "sortOrder": 'descend',
+      });
+
+      setState(() {
+        _favoriteImages = res.records;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   List<PictureVO> get _filteredImages {
@@ -91,9 +104,11 @@ class _FavoritesPageState extends State<FavoritesPage>
             
             // 内容区域
             Expanded(
-              child: _filteredImages.isEmpty
-                  ? _buildEmptyState(isDark)
-                  : _buildImageGrid(isDark),
+              child: _isLoading
+                  ? _buildSkeletonGrid(isDark)
+                  : _filteredImages.isEmpty
+                      ? _buildEmptyState(isDark)
+                      : _buildImageGrid(isDark),
             ),
           ],
         ),
@@ -705,6 +720,148 @@ class _FavoritesPageState extends State<FavoritesPage>
             child: const Text('确定', style: TextStyle(color: Colors.red)),
           ),
         ],
+      ),
+    );
+  }
+
+  // 骨架屏网格
+  Widget _buildSkeletonGrid(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+      child: MasonryGridView.count(
+        crossAxisCount: 2,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        itemCount: 6,
+        itemBuilder: (context, index) {
+          return _buildSkeletonCard(isDark);
+        },
+      ),
+    );
+  }
+
+  // 单个骨架屏卡片
+  Widget _buildSkeletonCard(bool isDark) {
+    final heights = [200.0, 250.0, 300.0, 350.0, 280.0, 320.0];
+    final randomHeight = heights[DateTime.now().millisecond % heights.length];
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+            spreadRadius: 1,
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 图片骨架
+            ShimmerEffect(
+              baseColor: isDark
+                  ? Colors.white.withOpacity(0.1)
+                  : const Color(0xFFE0E0E0),
+              highlightColor: isDark
+                  ? Colors.white.withOpacity(0.15)
+                  : const Color(0xFFF5F5F5),
+              child: Container(
+                height: randomHeight,
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.05)
+                      : Colors.grey[300],
+                ),
+              ),
+            ),
+            // 信息栏骨架
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.white.withOpacity(0.03)
+                    : Colors.white,
+                border: Border(
+                  top: BorderSide(
+                    color: isDark
+                        ? Colors.white.withOpacity(0.05)
+                        : Colors.grey.shade100,
+                    width: 1,
+                  ),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 标题骨架
+                  ShimmerEffect(
+                    baseColor: isDark
+                        ? Colors.white.withOpacity(0.1)
+                        : const Color(0xFFE0E0E0),
+                    highlightColor: isDark
+                        ? Colors.white.withOpacity(0.15)
+                        : const Color(0xFFF5F5F5),
+                    child: Container(
+                      height: 14,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white.withOpacity(0.05)
+                            : Colors.grey[300],
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  ShimmerEffect(
+                    baseColor: isDark
+                        ? Colors.white.withOpacity(0.1)
+                        : const Color(0xFFE0E0E0),
+                    highlightColor: isDark
+                        ? Colors.white.withOpacity(0.15)
+                        : const Color(0xFFF5F5F5),
+                    child: Container(
+                      height: 14,
+                      width: 120,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white.withOpacity(0.05)
+                            : Colors.grey[300],
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // 点赞数骨架
+                  ShimmerEffect(
+                    baseColor: isDark
+                        ? Colors.white.withOpacity(0.1)
+                        : const Color(0xFFE0E0E0),
+                    highlightColor: isDark
+                        ? Colors.white.withOpacity(0.15)
+                        : const Color(0xFFF5F5F5),
+                    child: Container(
+                      height: 24,
+                      width: 60,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white.withOpacity(0.05)
+                            : Colors.grey[300],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

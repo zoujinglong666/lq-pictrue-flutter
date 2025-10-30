@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
-import '../model/picture.dart';
+import 'package:lq_picture/apis/picture_api.dart';
 import '../widgets/cached_image.dart';
 
 class AiSearchPage extends ConsumerStatefulWidget {
@@ -18,32 +18,38 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage>
     with TickerProviderStateMixin {
   File? _selectedImage;
   bool _isSearching = false;
-  List<PictureVO> _searchResults = [];
-  
+  List<PicturePreviewVO> _searchResults = [];
+
   late TabController _tabController;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
-  
+
   // 文字搜索相关
   final TextEditingController _textSearchController = TextEditingController();
   final FocusNode _textSearchFocus = FocusNode();
+  
+  // 滚动控制器
+  final ScrollController _scrollController = ScrollController();
+  
+  // 搜索结果区域的 GlobalKey
+  final GlobalKey _searchResultsKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    
+
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
-    
+
     _fadeAnimation = CurvedAnimation(
       parent: _animationController,
       curve: Curves.easeOut,
     );
-    
+
     _scaleAnimation = Tween<double>(
       begin: 0.9,
       end: 1.0,
@@ -51,7 +57,7 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage>
       parent: _animationController,
       curve: Curves.easeOutBack,
     ));
-    
+
     _animationController.forward();
   }
 
@@ -61,13 +67,14 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage>
     _animationController.dispose();
     _textSearchController.dispose();
     _textSearchFocus.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
   Future<void> _pickImage(ImageSource source) async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: source);
-    
+
     if (pickedFile != null) {
       setState(() {
         _selectedImage = File(pickedFile.path);
@@ -78,22 +85,27 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage>
 
   Future<void> _performAiSearch() async {
     if (_selectedImage == null) return;
-    
+
     setState(() {
       _isSearching = true;
     });
 
     // TODO: 调用后端 AI 图片搜索接口
-    // 这里模拟延迟
-    await Future.delayed(const Duration(seconds: 2));
-    
+
     // TODO: 替换为真实的搜索结果
     setState(() {
       _isSearching = false;
       _searchResults = []; // 从接口获取结果
     });
+    
+    // 搜索成功后的处理
+    if (_searchResults.isNotEmpty) {
+      _showSuccessAndScroll(_searchResults.length);
+    } else {
+      _showNoResultsMessage();
+    }
   }
-  
+
   Future<void> _performTextSearch() async {
     final searchText = _textSearchController.text.trim();
     if (searchText.isEmpty) {
@@ -102,28 +114,203 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage>
       );
       return;
     }
-    
+
     setState(() {
       _isSearching = true;
     });
-    
+
     // 隐藏键盘
     _textSearchFocus.unfocus();
 
-    // TODO: 调用后端 AI 文字搜索接口
-    // 这里模拟延迟
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      final res =
+          await PictureApi.fetchSearchPictures({"searchText": searchText});
+      setState(() {
+        _isSearching = false;
+        _searchResults = res;
+      });
+      
+      // 搜索成功后的处理
+      if (res.isNotEmpty) {
+        _showSuccessAndScroll(res.length);
+      } else {
+        _showNoResultsMessage();
+      }
+    } catch (e) {
+      setState(() {
+        _isSearching = false;
+      });
+      _showErrorMessage();
+    }
+  }
+  
+  // 显示成功提示并滚动到结果区域
+  void _showSuccessAndScroll(int count) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    // TODO: 替换为真实的搜索结果
-    setState(() {
-      _isSearching = false;
-      _searchResults = []; // 从接口获取结果
+    // 显示成功提示
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF4FC3F7), Color(0xFF6FBADB)],
+                ),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.check_circle,
+                color: Colors.white,
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                '搜索成功！找到 $count 张相似图片',
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: isDark 
+            ? const Color(0xFF1A1F3A).withOpacity(0.95)
+            : Colors.white.withOpacity(0.95),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: const Color(0xFF4FC3F7).withOpacity(0.3),
+            width: 1.5,
+          ),
+        ),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 2),
+        elevation: 8,
+      ),
+    );
+    
+    // 延迟滚动到搜索结果标题位置
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (_scrollController.hasClients) {
+        final RenderBox? renderBox = _searchResultsKey.currentContext?.findRenderObject() as RenderBox?;
+        if (renderBox != null) {
+          final position = renderBox.localToGlobal(Offset.zero).dy;
+          final currentScrollOffset = _scrollController.offset;
+          final targetScrollOffset = currentScrollOffset + position - 150; // 150 是留出的顶部间距
+          
+          _scrollController.animateTo(
+            targetScrollOffset.clamp(0.0, _scrollController.position.maxScrollExtent),
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.easeOutCubic,
+          );
+        }
+      }
     });
+  }
+  
+  // 显示无结果提示
+  void _showNoResultsMessage() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD89B9B).withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.info_outline,
+                color: Color(0xFFD89B9B),
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                '未找到相关图片，请尝试其他关键词',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: isDark 
+            ? const Color(0xFF1A1F3A).withOpacity(0.95)
+            : Colors.white.withOpacity(0.95),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+  
+  // 显示错误提示
+  void _showErrorMessage() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.error_outline,
+                color: Colors.red,
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                '搜索失败，请稍后重试',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: isDark 
+            ? const Color(0xFF1A1F3A).withOpacity(0.95)
+            : Colors.white.withOpacity(0.95),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   void _showImageSourceDialog() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -153,9 +340,8 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage>
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: isDark
-                      ? Colors.white.withOpacity(0.3)
-                      : Colors.grey[300],
+                  color:
+                      isDark ? Colors.white.withOpacity(0.3) : Colors.grey[300],
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -193,7 +379,7 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage>
     required VoidCallback onTap,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Material(
@@ -266,18 +452,19 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0A0E21) : const Color(0xFFF8F9FA),
+      backgroundColor:
+          isDark ? const Color(0xFF0A0E21) : const Color(0xFFF8F9FA),
       body: SafeArea(
         child: Column(
           children: [
             // 自定义 AppBar
             _buildCustomAppBar(isDark),
-            
+
             // Tab 切换栏
             _buildTabBar(isDark),
-            
+
             Expanded(
               child: TabBarView(
                 controller: _tabController,
@@ -312,9 +499,8 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage>
         ),
         border: Border(
           bottom: BorderSide(
-            color: isDark
-                ? Colors.white.withOpacity(0.05)
-                : Colors.grey.shade200,
+            color:
+                isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade200,
             width: 1,
           ),
         ),
@@ -323,9 +509,7 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage>
         children: [
           Container(
             decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.grey[100],
+              color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey[100],
               shape: BoxShape.circle,
             ),
             child: IconButton(
@@ -374,9 +558,8 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage>
                 '上传图片,智能识别相似内容',
                 style: TextStyle(
                   fontSize: 12,
-                  color: isDark
-                      ? Colors.white.withOpacity(0.6)
-                      : Colors.grey[600],
+                  color:
+                      isDark ? Colors.white.withOpacity(0.6) : Colors.grey[600],
                   letterSpacing: 0.3,
                 ),
               ),
@@ -427,9 +610,8 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage>
         indicatorSize: TabBarIndicatorSize.tab,
         dividerColor: Colors.transparent,
         labelColor: Colors.white,
-        unselectedLabelColor: isDark
-            ? Colors.white.withOpacity(0.6)
-            : Colors.grey[600],
+        unselectedLabelColor:
+            isDark ? Colors.white.withOpacity(0.6) : Colors.grey[600],
         labelStyle: const TextStyle(
           fontSize: 15,
           fontWeight: FontWeight.w600,
@@ -452,59 +634,61 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage>
       ),
     );
   }
-  
+
   Widget _buildImageSearchTab(bool isDark) {
     return SingleChildScrollView(
+      controller: _scrollController,
       physics: const BouncingScrollPhysics(),
       child: Column(
         children: [
           const SizedBox(height: 20),
-          
+
           // 主要上传区域
           _buildUploadArea(isDark),
-          
+
           const SizedBox(height: 32),
-          
+
           // 功能说明
           _buildFeatureIntro(isDark),
-          
+
           const SizedBox(height: 32),
-          
+
           // 搜索结果
           if (_searchResults.isNotEmpty) _buildSearchResults(isDark),
-          
+
           const SizedBox(height: 32),
         ],
       ),
     );
   }
-  
+
   Widget _buildTextSearchTab(bool isDark) {
     return SingleChildScrollView(
+      controller: _scrollController,
       physics: const BouncingScrollPhysics(),
       child: Column(
         children: [
           const SizedBox(height: 20),
-          
+
           // 文字搜索输入区域
           _buildTextSearchArea(isDark),
-          
+
           const SizedBox(height: 32),
-          
+
           // 搜索提示
           _buildSearchTips(isDark),
-          
+
           const SizedBox(height: 32),
-          
+
           // 搜索结果
           if (_searchResults.isNotEmpty) _buildSearchResults(isDark),
-          
+
           const SizedBox(height: 32),
         ],
       ),
     );
   }
-  
+
   Widget _buildTextSearchArea(bool isDark) {
     return FadeTransition(
       opacity: _fadeAnimation,
@@ -578,7 +762,7 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage>
                       ),
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // 输入框
                     Container(
                       decoration: BoxDecoration(
@@ -632,9 +816,9 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage>
                         onSubmitted: (_) => _performTextSearch(),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 20),
-                    
+
                     // 搜索按钮
                     SizedBox(
                       width: double.infinity,
@@ -687,7 +871,7 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage>
       ),
     );
   }
-  
+
   Widget _buildSearchTips(bool isDark) {
     final tips = [
       {
@@ -733,7 +917,8 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage>
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white.withOpacity(0.9) : Colors.grey[800],
+                  color:
+                      isDark ? Colors.white.withOpacity(0.9) : Colors.grey[800],
                 ),
               ),
             ],
@@ -816,7 +1001,7 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage>
       ),
     );
   }
-  
+
   Widget _buildUploadArea(bool isDark) {
     return FadeTransition(
       opacity: _fadeAnimation,
@@ -1027,9 +1212,8 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage>
                 icon: const Icon(Icons.close_rounded),
                 label: const Text('重新选择'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: isDark
-                      ? Colors.white.withOpacity(0.8)
-                      : Colors.grey[700],
+                  foregroundColor:
+                      isDark ? Colors.white.withOpacity(0.8) : Colors.grey[700],
                   side: BorderSide(
                     color: isDark
                         ? Colors.white.withOpacity(0.3)
@@ -1168,6 +1352,7 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage>
 
   Widget _buildSearchResults(bool isDark) {
     return Column(
+      key: _searchResultsKey,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
@@ -1190,7 +1375,8 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage>
                 style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
-                  color: isDark ? Colors.white.withOpacity(0.9) : Colors.grey[800],
+                  color:
+                      isDark ? Colors.white.withOpacity(0.9) : Colors.grey[800],
                 ),
               ),
               const Spacer(),
@@ -1198,9 +1384,8 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage>
                 '${_searchResults.length} 张相似图片',
                 style: TextStyle(
                   fontSize: 13,
-                  color: isDark
-                      ? Colors.white.withOpacity(0.6)
-                      : Colors.grey[600],
+                  color:
+                      isDark ? Colors.white.withOpacity(0.6) : Colors.grey[600],
                 ),
               ),
             ],
@@ -1226,7 +1411,7 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage>
     );
   }
 
-  Widget _buildResultItem(PictureVO picture, bool isDark) {
+  Widget _buildResultItem(PicturePreviewVO picture, bool isDark) {
     return GestureDetector(
       onTap: () {
         Navigator.pushNamed(
@@ -1253,9 +1438,9 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               AspectRatio(
-                aspectRatio: picture.picWidth / picture.picHeight,
+                aspectRatio: picture.width / picture.height,
                 child: CachedImage(
-                  imageUrl: picture.thumbnailUrl,
+                  imageUrl: picture.thumbnailUrl ?? picture.url ?? "",
                   fit: BoxFit.cover,
                 ),
               ),
@@ -1265,7 +1450,7 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      picture.name,
+                      picture.title ?? '',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -1285,16 +1470,6 @@ class _AiSearchPageState extends ConsumerState<AiSearchPage>
                           color: isDark
                               ? Colors.white.withOpacity(0.6)
                               : Colors.grey[600],
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          picture.likeCount,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isDark
-                                ? Colors.white.withOpacity(0.6)
-                                : Colors.grey[600],
-                          ),
                         ),
                       ],
                     ),
