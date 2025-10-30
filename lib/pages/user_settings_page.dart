@@ -15,12 +15,13 @@ class UserSettingsPage extends ConsumerStatefulWidget {
   ConsumerState<UserSettingsPage> createState() => _UserSettingsPageState();
 }
 
-class _UserSettingsPageState extends ConsumerState<UserSettingsPage> with KeyboardDismissMixin {
+class _UserSettingsPageState extends ConsumerState<UserSettingsPage>
+    with KeyboardDismissMixin {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _userNameController = TextEditingController();
   final TextEditingController _userAccountController = TextEditingController();
   final TextEditingController _userProfileController = TextEditingController();
-  
+
   String _userAvatar = '';
   String _userRole = 'user';
   String _userId = '';
@@ -42,35 +43,34 @@ class _UserSettingsPageState extends ConsumerState<UserSettingsPage> with Keyboa
     super.dispose();
   }
 
- Future<void> _loadUserInfo() async {
-  setState(() {
-    _isLoading = true;
-  });
-
-  try {
-    final res = await UserApi.getCurrentUser();
+  Future<void> _loadUserInfo() async {
     setState(() {
-      _userNameController.text = res.userName ?? '';
-      _userAccountController.text = res.userAccount ?? '';
-      _userProfileController.text = res.userProfile ?? '';
-      _userAvatar = res.userAvatar ?? '';
-      _userRole = res.userRole ?? 'user';
-      _isEditing = true;
-      _isLoading = false;
-      _userId = res.id ?? '';
-    });
-  } catch (e) {
-    // 处理错误情况
-    setState(() {
-      _isLoading = false;
+      _isLoading = true;
     });
 
-    if (mounted) {
-      MyToast.showError('加载用户信息失败');
+    try {
+      final res = await UserApi.getCurrentUser();
+      setState(() {
+        _userNameController.text = res.userName ?? '';
+        _userAccountController.text = res.userAccount ?? '';
+        _userProfileController.text = res.userProfile ?? '';
+        _userAvatar = res.userAvatar ?? '';
+        _userRole = res.userRole ?? 'user';
+        _isEditing = true;
+        _isLoading = false;
+        _userId = res.id ?? '';
+      });
+    } catch (e) {
+      // 处理错误情况
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (mounted) {
+        MyToast.showError('加载用户信息失败');
+      }
     }
   }
-}
-
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
@@ -123,12 +123,12 @@ class _UserSettingsPageState extends ConsumerState<UserSettingsPage> with Keyboa
                         final avatarUrl = await UserApi.uploadAvatar(
                           File(image.path),
                         );
-                        
+
                         // 更新本地头像URL
                         setState(() {
                           _userAvatar = avatarUrl;
                         });
-                        
+
                         // 更新全局用户状态
                         final currentUser = ref.read(authProvider).user;
                         if (currentUser != null) {
@@ -142,9 +142,11 @@ class _UserSettingsPageState extends ConsumerState<UserSettingsPage> with Keyboa
                             createTime: currentUser.createTime,
                             updateTime: currentUser.updateTime,
                           );
-                          await ref.read(authProvider.notifier).setLoginUser(updatedUser);
+                          await ref
+                              .read(authProvider.notifier)
+                              .setLoginUser(updatedUser);
                         }
-                        
+
                         if (mounted) {
                           MyToast.showSuccess('头像上传成功');
                         }
@@ -175,12 +177,12 @@ class _UserSettingsPageState extends ConsumerState<UserSettingsPage> with Keyboa
                         final avatarUrl = await UserApi.uploadAvatar(
                           File(image.path),
                         );
-                        
+
                         // 更新本地头像URL
                         setState(() {
                           _userAvatar = avatarUrl;
                         });
-                        
+
                         // 更新全局用户状态
                         final currentUser = ref.read(authProvider).user;
                         if (currentUser != null) {
@@ -194,7 +196,9 @@ class _UserSettingsPageState extends ConsumerState<UserSettingsPage> with Keyboa
                             createTime: currentUser.createTime,
                             updateTime: currentUser.updateTime,
                           );
-                          await ref.read(authProvider.notifier).setLoginUser(updatedUser);
+                          await ref
+                              .read(authProvider.notifier)
+                              .setLoginUser(updatedUser);
                         }
                         if (mounted) {
                           MyToast.showSuccess('头像上传成功');
@@ -249,12 +253,19 @@ class _UserSettingsPageState extends ConsumerState<UserSettingsPage> with Keyboa
     );
   }
 
+  bool isAdmin(String userRole) {
+
+
+
+    return userRole == 'admin';
+  }
+
   Future<void> _saveUserInfo() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    if(_userId.isEmpty){
+    if (_userId.isEmpty) {
       MyToast.showError('用户ID不能为空');
       return;
     }
@@ -262,15 +273,13 @@ class _UserSettingsPageState extends ConsumerState<UserSettingsPage> with Keyboa
     setState(() {
       _isLoading = true;
     });
-    final res = await UserApi.updateUser(
-      {
-        "id": _userId,
-        "userName": _userNameController.text,
-        "userProfile": _userProfileController.text,
-      }
-    );
+    final res = await UserApi.updateUser({
+      "id": _userId,
+      "userName": _userNameController.text,
+      "userProfile": _userProfileController.text,
+    });
 
-    if(res){
+    if (res) {
       // 更新全局状态
       final currentUser = ref.read(authProvider).user;
       if (currentUser != null) {
@@ -286,7 +295,7 @@ class _UserSettingsPageState extends ConsumerState<UserSettingsPage> with Keyboa
         );
         await ref.read(authProvider.notifier).setLoginUser(updatedUser);
       }
-      
+
       setState(() {
         _isLoading = false;
         _isEditing = false;
@@ -295,7 +304,6 @@ class _UserSettingsPageState extends ConsumerState<UserSettingsPage> with Keyboa
         MyToast.showSuccess('用户信息保存成功');
       }
     }
-
   }
 
   Widget _buildInfoCard() {
@@ -385,14 +393,14 @@ class _UserSettingsPageState extends ConsumerState<UserSettingsPage> with Keyboa
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: _userRole == 'admin' ? Colors.red[50] : Colors.blue[50],
+              color: isAdmin(_userRole) ? Colors.red[50] : Colors.blue[50],
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
-              _userRole == 'admin' ? '管理员' : '普通用户',
+              isAdmin(_userRole) ? '管理员' : '普通用户',
               style: TextStyle(
                 fontSize: 12,
-                color: _userRole == 'admin' ? Colors.red[700] : Colors.blue[700],
+                color: isAdmin(_userRole) ? Colors.red[700] : Colors.blue[700],
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -599,7 +607,8 @@ class _UserSettingsPageState extends ConsumerState<UserSettingsPage> with Keyboa
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white),
                                 ),
                               )
                             : const Text(
