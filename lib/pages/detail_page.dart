@@ -365,7 +365,7 @@ class _DetailPageState extends ConsumerState<DetailPage> {
                       icon: _showAppBarBackground
                           ? Icon(
                               _isDownloading ? Icons.downloading : Icons.download,
-                              color: const Color(0xFF4FC3F7),
+                        color: Colors.black.withOpacity(0.3),
                             )
                           : Container(
                               padding: const EdgeInsets.all(8),

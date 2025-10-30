@@ -196,7 +196,6 @@ class _UserSettingsPageState extends ConsumerState<UserSettingsPage> with Keyboa
                           );
                           await ref.read(authProvider.notifier).setLoginUser(updatedUser);
                         }
-                        
                         if (mounted) {
                           MyToast.showSuccess('头像上传成功');
                         }

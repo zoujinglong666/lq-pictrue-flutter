@@ -13,8 +13,8 @@ class SpaceSettingsPage extends ConsumerStatefulWidget {
 }
 
 class _SpaceSettingsPageState extends ConsumerState<SpaceSettingsPage> {
-  // 接收传递的空间数据
-  late SpaceVO _spaceInfo;
+  // 接收传递的空间数据，初始化为空对象避免late初始化错误
+  SpaceVO? _spaceInfo;
 
   final _spaceNameController = TextEditingController();
   final _spaceNameFocus = FocusNode();
@@ -40,23 +40,24 @@ class _SpaceSettingsPageState extends ConsumerState<SpaceSettingsPage> {
     _spaceNameController.addListener(() {
       setState(() {});
     });
+  }
 
-    // 延迟获取传递的参数，因为 context 在 initState 中不可用
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    
+    // 在这里获取传递的参数更安全
+    if (_spaceInfo == null) {
       final args = ModalRoute.of(context)?.settings.arguments;
       if (args != null && args is SpaceVO) {
-        setState(() {
-          _spaceInfo = args;
-          _spaceNameController.text = _spaceInfo.spaceName;
-          _isPrivate = _spaceInfo.spaceType == 0;
-        });
+        _spaceInfo = args;
+        _spaceNameController.text = _spaceInfo!.spaceName;
+        _isPrivate = _spaceInfo!.spaceType == 0;
       } else {
         // 如果没有传递数据，使用空对象
-        setState(() {
-          _spaceInfo = SpaceVO.empty();
-        });
+        _spaceInfo = SpaceVO.empty();
       }
-    });
+    }
   }
 
   @override
@@ -107,6 +108,37 @@ class _SpaceSettingsPageState extends ConsumerState<SpaceSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    // 如果数据还未初始化，显示加载界面
+    if (_spaceInfo == null) {
+      return Scaffold(
+        backgroundColor: Colors.grey[50],
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(
+              Icons.arrow_back_ios,
+              color: Colors.grey[800],
+            ),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(
+            '空间设置',
+            style: TextStyle(
+              color: Colors.grey[800],
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    final spaceInfo = _spaceInfo!;
+    
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -134,13 +166,13 @@ class _SpaceSettingsPageState extends ConsumerState<SpaceSettingsPage> {
                 _isLoading = true;
               });
               // 更新空间信息
-              final updatedSpace = _spaceInfo.copyWith(
+              final updatedSpace = spaceInfo.copyWith(
                 spaceName: _spaceNameController.text.trim(),
                 spaceType: _isPrivate ? 0 : 1,
               );
 
               await SpaceApi.updateSpace({
-                "id": _spaceInfo.id,
+                "id": spaceInfo.id,
                 "spaceName": _spaceNameController.text.trim(),
               });
               // ✅ 更新全局 Provider
@@ -200,12 +232,12 @@ class _SpaceSettingsPageState extends ConsumerState<SpaceSettingsPage> {
                 const SizedBox(height: 16),
                 _buildInfoItem(
                   '空间级别',
-                  _getSpaceLevelName(_spaceInfo.spaceLevel),
+                  _getSpaceLevelName(spaceInfo.spaceLevel),
                   trailing: Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: _getSpaceLevelColor(_spaceInfo.spaceLevel)
+                      color: _getSpaceLevelColor(spaceInfo.spaceLevel)
                           .withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -213,7 +245,7 @@ class _SpaceSettingsPageState extends ConsumerState<SpaceSettingsPage> {
                       '升级',
                       style: TextStyle(
                         fontSize: 12,
-                        color: _getSpaceLevelColor(_spaceInfo.spaceLevel),
+                        color: _getSpaceLevelColor(spaceInfo.spaceLevel),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -225,7 +257,7 @@ class _SpaceSettingsPageState extends ConsumerState<SpaceSettingsPage> {
                 const SizedBox(height: 16),
                 _buildInfoItem(
                   '创建时间',
-                  _formatDateTime(_spaceInfo.createTime),
+                  _formatDateTime(spaceInfo.createTime),
                 ),
               ],
             ),
@@ -238,14 +270,14 @@ class _SpaceSettingsPageState extends ConsumerState<SpaceSettingsPage> {
               [
                 _buildStorageItem(
                   '已用存储',
-                  '${formatFileSize(int.tryParse(_spaceInfo.totalSize) ?? 0)} / ${formatFileSize(int.tryParse(_spaceInfo.maxSize) ?? 0)}',
-                  _calculateProgress(int.tryParse(_spaceInfo.totalSize) ?? 0,
-                      int.tryParse(_spaceInfo.maxSize) ?? 1),
+                  '${formatFileSize(int.tryParse(spaceInfo.totalSize) ?? 0)} / ${formatFileSize(int.tryParse(spaceInfo.maxSize) ?? 0)}',
+                  _calculateProgress(int.tryParse(spaceInfo.totalSize) ?? 0,
+                      int.tryParse(spaceInfo.maxSize) ?? 1),
                 ),
                 const SizedBox(height: 16),
                 _buildInfoItem(
                   '图片数量',
-                  '${_spaceInfo.totalCount} / ${_spaceInfo.maxCount}',
+                  '${spaceInfo.totalCount} / ${spaceInfo.maxCount}',
                 ),
               ],
             ),
